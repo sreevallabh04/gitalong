@@ -3,13 +3,21 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/models.dart';
 import '../services/auth_service.dart';
 
-// Auth service provider
-final authServiceProvider = Provider<AuthService>((ref) => AuthService());
+// Auth service provider - lazy initialization to prevent early Firebase access
+final authServiceProvider = Provider<AuthService>((ref) {
+  // Ensure Firebase is initialized before creating AuthService
+  return AuthService();
+});
 
 // Current user provider
 final currentUserProvider = StateProvider<User?>((ref) {
-  final authService = ref.read(authServiceProvider);
-  return authService.currentUser;
+  try {
+    final authService = ref.read(authServiceProvider);
+    return authService.currentUser;
+  } catch (e) {
+    // Firebase not initialized yet
+    return null;
+  }
 });
 
 // User profile provider
@@ -96,18 +104,33 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
 
 // Authentication state provider
 final authStateProvider = StreamProvider<User?>((ref) {
-  final authService = ref.read(authServiceProvider);
-  return authService.authStateChanges;
+  try {
+    final authService = ref.read(authServiceProvider);
+    return authService.authStateChanges;
+  } catch (e) {
+    // Firebase not initialized yet, return empty stream
+    return Stream.value(null);
+  }
 });
 
 // Is authenticated provider
 final isAuthenticatedProvider = Provider<bool>((ref) {
-  final authService = ref.read(authServiceProvider);
-  return authService.isAuthenticated;
+  try {
+    final authService = ref.read(authServiceProvider);
+    return authService.isAuthenticated;
+  } catch (e) {
+    // Firebase not initialized yet
+    return false;
+  }
 });
 
 // Has user profile provider
 final hasUserProfileProvider = FutureProvider<bool>((ref) async {
-  final authService = ref.read(authServiceProvider);
-  return await authService.hasUserProfile();
+  try {
+    final authService = ref.read(authServiceProvider);
+    return await authService.hasUserProfile();
+  } catch (e) {
+    // Firebase not initialized yet
+    return false;
+  }
 });

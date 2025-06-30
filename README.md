@@ -1,221 +1,199 @@
-# 🚀 GitAlong - Open Source Matchmaking App
+# 🚀 GitAlong
 
-A beautiful Tinder-style Flutter app that connects open source contributors with exciting projects! Built with Flutter, Supabase, and modern UI/UX principles.
+**Connect • Collaborate • Create**
 
-![Flutter](https://img.shields.io/badge/Flutter-3.0+-blue?logo=flutter)
-![Supabase](https://img.shields.io/badge/Supabase-Backend-green?logo=supabase)
-![Dart](https://img.shields.io/badge/Dart-Language-blue?logo=dart)
+A modern Flutter application that matches open source projects with passionate contributors using a Tinder-like swipe interface. Built with Firebase, clean architecture, and production-ready practices.
 
-## ✨ Features
+---
 
-### 🎨 **Beautiful UI**
-- Modern gradient design with smooth animations
-- Tab-based authentication (Sign In / Sign Up)
-- Intuitive onboarding flow
-- Dark theme optimized
+## 📱 Features
 
-### 🔐 **Authentication**
-- Email/password authentication via Supabase
-- Secure password reset functionality
-- Form validation and error handling
-- Persistent login state
+- 🔥 **Smart Matching**: Swipe through curated open source projects
+- 🔐 **Multi-Auth**: Google Sign-In, Apple Sign-In, and Email/Password
+- 💬 **Real-time Chat**: Instant messaging with project maintainers  
+- 👤 **Rich Profiles**: Showcase skills, GitHub integration, and project history
+- 🎨 **Modern UI**: Glassmorphic design with neon accents and smooth animations
+- 📊 **Analytics**: Track contributions and project engagement
 
-### 🎯 **Core App Structure**
-- **Splash Screen** - Animated app loading
-- **Authentication** - Login/Signup with beautiful forms
-- **Onboarding** - Role selection and profile setup
-- **Main Navigation** - Discover, Messages, Saved, Profile
-- **Swipe Interface** - Tinder-style matching (ready for implementation)
+---
 
-### 🏗️ **Architecture**
-- **State Management**: Riverpod
-- **Backend**: Supabase (PostgreSQL + Auth + Realtime)
-- **UI Framework**: Flutter with Material Design 3
-- **Database**: Comprehensive schema with RLS policies
+## 🏗️ Architecture
+
+- **Clean Architecture** with separation of concerns
+- **Riverpod** for state management
+- **Firebase** for backend services (Auth, Firestore, Storage)
+- **Repository Pattern** with interfaces
+- **Comprehensive Error Handling** and logging
+- **Production-Ready** configuration
+
+---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Flutter SDK (3.0+)
-- Dart SDK
-- Android Studio or VS Code
-- Supabase account
 
-### 1. Clone and Setup
+- Flutter SDK (3.0+)
+- Dart SDK (3.0+)
+- Android Studio / VS Code
+- Firebase account
+
+### 1. Clone & Setup
+
 ```bash
-git clone <your-repo>
-cd Gitalong
+git clone https://github.com/your-org/gitalong.git
+cd gitalong
 flutter pub get
 ```
 
-### 2. Supabase Setup
+### 2. Firebase Configuration
 
-#### A. Create Project
-1. Go to [Supabase Dashboard](https://supabase.com/dashboard)
-2. Create new project
-3. Copy your project URL and anon key
+**⚠️ IMPORTANT**: This app requires proper Firebase configuration to work.
 
-#### B. Configure Flutter
-Update `lib/config/supabase_config.dart`:
-```dart
-class SupabaseConfig {
-  static const String supabaseUrl = 'YOUR_SUPABASE_URL';
-  static const String supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
-  // ...
-}
+**Current Status**: The app uses placeholder Firebase configuration files. Google Sign-In will fail with `DEVELOPER_ERROR (Code 10)` until properly configured.
+
+#### Option A: Automated Setup (Recommended)
+
+```bash
+dart run scripts/setup_firebase.dart
 ```
 
-#### C. Setup Database
-1. Go to your Supabase project → SQL Editor
-2. Copy the contents of `supabase_setup.sql`
-3. Run the script to create all tables, policies, and functions
+#### Option B: Manual Setup
+
+1. See detailed instructions: **[FIREBASE_SETUP_GUIDE.md](FIREBASE_SETUP_GUIDE.md)**
+2. Your debug SHA-1 fingerprint: `F9:38:05:08:14:4E:ED:79:17:3E:6E:45:F2:06:38:3B:C5:F8:09:39`
+3. Package name: `com.example.gitalong`
 
 ### 3. Run the App
+
 ```bash
+flutter clean
+flutter pub get
 flutter run
 ```
 
-## 🗄️ Database Schema
-
-The app includes a comprehensive database setup:
-
-### Core Tables
-- **users** - User profiles (extends auth.users)
-- **projects** - Open source projects 
-- **swipes** - User swipe actions
-- **matches** - Successful matches
-- **messages** - Chat messages
-- **badges** - User achievements
-- **contributions** - Contribution tracking
-- **saved_projects** - Bookmarked projects
-
-### Security Features
-- ✅ Row Level Security (RLS) enabled
-- ✅ Secure access policies
-- ✅ User data protection
-- ✅ Real-time subscriptions
-
-### Performance Optimizations
-- ✅ Database indexes for fast queries
-- ✅ Optimized conversation queries
-- ✅ Automatic timestamp updates
-
-## 🎯 Current Implementation Status
-
-### ✅ Completed
-- [x] Project structure and dependencies
-- [x] Beautiful authentication screens
-- [x] Supabase integration
-- [x] Database schema and security
-- [x] User registration and login
-- [x] Onboarding flow (partial)
-- [x] Navigation structure
-- [x] State management setup
-
-### 🚧 Ready for Implementation
-- [ ] Swipe interface with project/user cards
-- [ ] Matching algorithm
-- [ ] Real-time messaging
-- [ ] User profile management
-- [ ] Project creation and management
-- [ ] Search and filters
-- [ ] Notifications
-- [ ] Advanced matching preferences
+---
 
 ## 🔧 Development
 
-### Project Structure
-```
-lib/
-├── config/          # Supabase configuration
-├── models/          # Data models
-├── providers/       # Riverpod state providers
-├── screens/         # UI screens
-│   ├── auth/        # Login/signup
-│   ├── home/        # Main app screens
-│   └── onboarding/  # User setup flow
-├── services/        # Business logic
-├── widgets/         # Reusable UI components
-└── main.dart        # App entry point
-```
+### Current State
 
-### Key Services
-- **AuthService** - Authentication and user management
-- **SwipeService** - Matching logic
-- **MessagingService** - Real-time chat
+✅ **Working Features:**
+- Firebase initialization with comprehensive logging
+- Email/Password authentication  
+- Clean architecture implementation
+- Modern UI with animations
+- Error handling and validation
+- Comprehensive logging system
 
-## 🎨 Design System
+⚠️ **Requires Configuration:**
+- Google Sign-In (needs real Firebase config)
+- Firestore database setup
+- Production security rules
 
-### Colors
-- Primary: Material 3 dynamic colors
-- Gradients: Smooth primary/secondary blends
-- Cards: Elevated surfaces with shadows
+### Testing
 
-### Typography
-- Google Fonts integration
-- Hierarchical text styles
-- Accessibility-focused sizing
-
-### Components
-- Custom form fields with validation
-- Animated buttons and transitions
-- Modern card designs
-
-## 🔒 Security
-
-### Authentication
-- Email/password with strong validation
-- Secure password reset flow
-- Session management
-
-### Database Security
-- Row Level Security (RLS) policies
-- User-specific data access
-- Secure API endpoints
-- Real-time subscriptions with auth
-
-## 📱 Testing
-
-### Run Tests
 ```bash
+# Run tests
 flutter test
+
+# Check for issues
+flutter analyze
+
+# Check dependencies
+flutter pub deps
 ```
 
-### Build for Release
+### Building
+
 ```bash
+# Debug build
+flutter build apk --debug
+
+# Release build (requires proper keystore)
 flutter build apk --release
-flutter build ios --release
 ```
-
-## 🤝 Contributing
-
-The app structure is ready for collaborative development:
-
-1. **UI Implementation** - Complete the swipe interface
-2. **Backend Logic** - Implement matching algorithms  
-3. **Features** - Add messaging, profiles, search
-4. **Testing** - Write comprehensive tests
-5. **Deployment** - Set up CI/CD pipelines
-
-## 📞 Support
-
-For setup issues or questions:
-1. Check the Supabase console for connection issues
-2. Verify database tables are created correctly
-3. Ensure authentication is properly configured
-4. Check Flutter doctor for environment issues
-
-## 🚀 Next Steps
-
-1. **Complete the onboarding flow** with skills selection
-2. **Implement swipe interface** with project/user cards
-3. **Add real-time messaging** using Supabase subscriptions
-4. **Build matching algorithm** based on skills and interests
-5. **Add user profile management** with image uploads
-6. **Implement project creation** for maintainers
 
 ---
 
-**Happy Coding! 🎉** 
+## 📁 Project Structure
 
-*GitAlong - Where open source contributors and maintainers find their perfect match!*
+```
+lib/
+├── config/          # App and Firebase configuration
+├── core/            # Core utilities, constants, themes
+├── models/          # Data models and entities
+├── providers/       # Riverpod state providers
+├── screens/         # UI screens and pages
+├── services/        # Business logic and API calls
+├── widgets/         # Reusable UI components
+└── main.dart        # App entry point
+
+scripts/
+└── setup_firebase.dart  # Automated Firebase setup
+
+docs/
+└── FIREBASE_SETUP_GUIDE.md  # Detailed setup instructions
+```
+
+---
+
+## 🔒 Production Deployment
+
+### Security Checklist
+
+- [ ] Replace placeholder Firebase configuration
+- [ ] Configure Firestore security rules
+- [ ] Generate production keystore
+- [ ] Add release SHA-1 to Firebase
+- [ ] Set up app signing in Play Console
+- [ ] Configure OAuth consent screen
+- [ ] Enable required Firebase services
+
+### Performance
+
+- **Clean Architecture** for maintainability
+- **Lazy Loading** of Firebase services
+- **Efficient State Management** with Riverpod
+- **Image Optimization** and caching
+- **Network Request** optimization
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🆘 Support
+
+### Common Issues
+
+**Google Sign-In fails with "DEVELOPER_ERROR"**
+- ✅ **Solution**: Run `dart run scripts/setup_firebase.dart` or follow [FIREBASE_SETUP_GUIDE.md](FIREBASE_SETUP_GUIDE.md)
+
+**App crashes on startup**
+- ✅ **Solution**: Ensure Firebase is properly initialized
+
+**Build fails**
+- ✅ **Solution**: Run `flutter clean && flutter pub get`
+
+### Getting Help
+
+- 📖 **Documentation**: [FIREBASE_SETUP_GUIDE.md](FIREBASE_SETUP_GUIDE.md)
+- 🐛 **Issues**: [GitHub Issues](https://github.com/your-org/gitalong/issues)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/your-org/gitalong/discussions)
+
+---
+
+**Made with ❤️ for the open source community**

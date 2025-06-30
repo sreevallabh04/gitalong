@@ -77,6 +77,8 @@ dependencies:
   # Utilities
   logger: ^2.0.2+1
   path_provider: ^2.1.1
+  uuid: ^4.5.1
+  stack_trace: ^1.12.1
 
 dev_dependencies:
   flutter_test:

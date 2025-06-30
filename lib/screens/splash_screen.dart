@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:lottie/lottie.dart';
 import 'package:glassmorphism/glassmorphism.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/auth_provider.dart';
@@ -195,39 +194,39 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     final delay = random * 20;
 
     return Positioned(
-          left: (random % 100) * 4.0,
-          top: (random % 100) * 8.0,
-          child: AnimatedBuilder(
-            animation: _particleController,
-            builder: (context, child) {
-              return Transform.translate(
-                offset: Offset(0, _particleController.value * 100 - 50),
-                child: Opacity(
-                  opacity: (1 - _particleController.value) * 0.7,
-                  child: Container(
-                    width: size,
-                    height: size,
-                    decoration: BoxDecoration(
+      left: (random % 100) * 4.0,
+      top: (random % 100) * 8.0,
+      child: AnimatedBuilder(
+        animation: _particleController,
+        builder: (context, child) {
+          return Transform.translate(
+            offset: Offset(0, _particleController.value * 100 - 50),
+            child: Opacity(
+              opacity: (1 - _particleController.value) * 0.7,
+              child: Container(
+                width: size,
+                height: size,
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.6),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
                       color: Theme.of(
                         context,
-                      ).colorScheme.primary.withValues(alpha: 0.6),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.primary.withValues(alpha: 0.3),
-                          blurRadius: 4,
-                          spreadRadius: 1,
-                        ),
-                      ],
+                      ).colorScheme.primary.withValues(alpha: 0.3),
+                      blurRadius: 4,
+                      spreadRadius: 1,
                     ),
-                  ),
+                  ],
                 ),
-              );
-            },
-          ),
-        )
+              ),
+            ),
+          );
+        },
+      ),
+    )
         .animate(delay: Duration(milliseconds: delay))
         .fadeIn(duration: Duration(milliseconds: duration))
         .then()
@@ -309,14 +308,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           child: Transform.translate(
             offset: Offset(0, 20 * (1 - _textController.value)),
             child: ShaderMask(
-              shaderCallback:
-                  (bounds) => LinearGradient(
-                    colors: [
-                      Theme.of(context).colorScheme.primary,
-                      Theme.of(context).colorScheme.secondary,
-                      Theme.of(context).colorScheme.tertiary,
-                    ],
-                  ).createShader(bounds),
+              shaderCallback: (bounds) => LinearGradient(
+                colors: [
+                  Theme.of(context).colorScheme.primary,
+                  Theme.of(context).colorScheme.secondary,
+                  Theme.of(context).colorScheme.tertiary,
+                ],
+              ).createShader(bounds),
               child: Text(
                 'GitAlong',
                 style: GoogleFonts.orbitron(
@@ -335,16 +333,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   Widget _buildTagline() {
     return Text(
-          'Find your perfect open source match',
-          style: GoogleFonts.inter(
-            fontSize: 16,
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.7),
-            letterSpacing: 0.5,
-          ),
-          textAlign: TextAlign.center,
-        )
+      'Find your perfect open source match',
+      style: GoogleFonts.inter(
+        fontSize: 16,
+        color: Theme.of(
+          context,
+        ).colorScheme.onSurface.withValues(alpha: 0.7),
+        letterSpacing: 0.5,
+      ),
+      textAlign: TextAlign.center,
+    )
         .animate(delay: 1000.ms)
         .fadeIn(duration: 1000.ms)
         .slideY(begin: 0.3, end: 0);
@@ -354,24 +352,22 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     return Column(
       children: [
         SizedBox(
-              width: 40,
-              height: 40,
-              child: CircularProgressIndicator(
-                strokeWidth: 3,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  Theme.of(context).colorScheme.primary,
-                ),
-                backgroundColor: Theme.of(
-                  context,
-                ).colorScheme.primary.withValues(alpha: 0.2),
-              ),
-            )
+          width: 40,
+          height: 40,
+          child: CircularProgressIndicator(
+            strokeWidth: 3,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              Theme.of(context).colorScheme.primary,
+            ),
+            backgroundColor: Theme.of(
+              context,
+            ).colorScheme.primary.withValues(alpha: 0.2),
+          ),
+        )
             .animate(delay: 1500.ms)
             .fadeIn(duration: 800.ms)
             .scale(begin: const Offset(0.5, 0.5)),
-
         const SizedBox(height: 20),
-
         Text(
           'Initializing...',
           style: GoogleFonts.inter(

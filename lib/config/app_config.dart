@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/constants/app_constants.dart';
-import '../core/utils/logger.dart';
 
 enum Environment { development, staging, production }
 
@@ -83,7 +82,7 @@ class AppConfig {
           '✅ App Config initialized - Environment: ${environment.name}, Version: $appVersion',
         );
       }
-    } catch (e, stackTrace) {
+    } catch (e) {
       if (kDebugMode) {
         print('❌ Failed to initialize app config: $e');
       }
@@ -98,9 +97,9 @@ class AppConfig {
 
     // You can add more sophisticated environment detection here
     // For example, based on build flavors or environment variables
-    const String? envString = String.fromEnvironment('ENVIRONMENT');
+    const String envString = String.fromEnvironment('ENVIRONMENT');
 
-    switch (envString?.toLowerCase()) {
+    switch (envString.toLowerCase()) {
       case 'development':
       case 'dev':
         return Environment.development;
@@ -141,7 +140,7 @@ class AppConfig {
         final webInfo = await deviceInfo.webBrowserInfo;
         return {
           'platform': 'Web',
-          'browserName': webInfo.browserName?.name,
+          'browserName': webInfo.browserName.name,
           'userAgent': webInfo.userAgent,
         };
       }

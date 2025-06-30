@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:responsive_framework/responsive_framework.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/router/app_router.dart';
@@ -228,21 +227,19 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
                   child: ListTile(
                     leading: Icon(
                       isSelected ? item.activeIcon : item.icon,
-                      color:
-                          isSelected
-                              ? Theme.of(context).colorScheme.primary
-                              : Theme.of(context).colorScheme.onSurface,
+                      color: isSelected
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.onSurface,
                     ),
                     title: Text(
                       item.label,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color:
-                            isSelected
+                            color: isSelected
                                 ? Theme.of(context).colorScheme.primary
                                 : Theme.of(context).colorScheme.onSurface,
-                        fontWeight:
-                            isSelected ? FontWeight.w600 : FontWeight.w400,
-                      ),
+                            fontWeight:
+                                isSelected ? FontWeight.w600 : FontWeight.w400,
+                          ),
                     ),
                     selected: isSelected,
                     selectedTileColor: Theme.of(
@@ -297,54 +294,52 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
         child: SizedBox(
           height: AppSizes.bottomNavHeight.h,
           child: Row(
-            children:
-                _navigationItems.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final item = entry.value;
-                  final isSelected = index == _currentIndex;
+            children: _navigationItems.asMap().entries.map((entry) {
+              final index = entry.key;
+              final item = entry.value;
+              final isSelected = index == _currentIndex;
 
-                  return Expanded(
-                    child: InkWell(
-                      onTap: () => _onNavigationTap(index),
-                      child: Container(
-                        padding: EdgeInsets.symmetric(vertical: AppSizes.sm.h),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              isSelected ? item.activeIcon : item.icon,
-                              color:
-                                  isSelected
-                                      ? Theme.of(context).colorScheme.primary
-                                      : Theme.of(context).colorScheme.onSurface
-                                          .withValues(alpha: 0.6),
-                              size: 24.w,
-                            ),
-                            SizedBox(height: AppSizes.xs.h),
-                            Text(
-                              item.label,
-                              style: Theme.of(
-                                context,
-                              ).textTheme.labelSmall?.copyWith(
-                                color:
-                                    isSelected
-                                        ? Theme.of(context).colorScheme.primary
-                                        : Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withValues(alpha: 0.6),
-                                fontWeight:
-                                    isSelected
-                                        ? FontWeight.w600
-                                        : FontWeight.w400,
-                              ),
-                            ),
-                          ],
+              return Expanded(
+                child: InkWell(
+                  onTap: () => _onNavigationTap(index),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(vertical: AppSizes.sm.h),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isSelected ? item.activeIcon : item.icon,
+                          color: isSelected
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.6),
+                          size: 24.w,
                         ),
-                      ),
+                        SizedBox(height: AppSizes.xs.h),
+                        Text(
+                          item.label,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.labelSmall?.copyWith(
+                                color: isSelected
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.6),
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
+                              ),
+                        ),
+                      ],
                     ),
-                  );
-                }).toList(),
+                  ),
+                ),
+              );
+            }).toList(),
           ),
         ),
       ),

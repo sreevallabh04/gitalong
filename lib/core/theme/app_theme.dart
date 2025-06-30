@@ -82,8 +82,6 @@ class AppTheme {
         tertiary: AppColors.accentNeon,
         surface: AppColors.surfaceGlass,
         onSurface: AppColors.textPrimary,
-        background: AppColors.darkBase,
-        onBackground: AppColors.textPrimary,
         error: AppColors.errorNeon,
         onError: Colors.white,
         outline: AppColors.textTertiary,
@@ -96,8 +94,6 @@ class AppTheme {
         tertiary: AppColors.accentNeon,
         surface: Colors.white,
         onSurface: Colors.black87,
-        background: Colors.grey[50]!,
-        onBackground: Colors.black87,
         error: AppColors.errorNeon,
         onError: Colors.white,
         outline: Colors.grey[400]!,
@@ -230,10 +226,9 @@ class AppTheme {
 
   static AppBarTheme _buildAppBarTheme(bool isDark) {
     return AppBarTheme(
-      backgroundColor:
-          isDark
-              ? AppColors.surfaceGlass.withValues(alpha: 0.1)
-              : Colors.white.withValues(alpha: 0.9),
+      backgroundColor: isDark
+          ? AppColors.surfaceGlass.withValues(alpha: 0.1)
+          : Colors.white.withValues(alpha: 0.9),
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: true,
@@ -257,13 +252,12 @@ class AppTheme {
       shadowColor: isDark ? Colors.transparent : Colors.black12,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSizes.md.r),
-        side:
-            isDark
-                ? BorderSide(
-                  color: AppColors.primaryNeon.withValues(alpha: 0.1),
-                  width: 1,
-                )
-                : BorderSide.none,
+        side: isDark
+            ? BorderSide(
+                color: AppColors.primaryNeon.withValues(alpha: 0.1),
+                width: 1,
+              )
+            : BorderSide.none,
       ),
     );
   }
@@ -334,26 +328,23 @@ class AppTheme {
   static InputDecorationTheme _buildInputDecorationTheme(bool isDark) {
     return InputDecorationTheme(
       filled: true,
-      fillColor:
-          isDark
-              ? AppColors.surfaceGlass.withValues(alpha: 0.1)
-              : Colors.grey[50],
+      fillColor: isDark
+          ? AppColors.surfaceGlass.withValues(alpha: 0.1)
+          : Colors.grey[50],
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppSizes.md.r),
         borderSide: BorderSide(
-          color:
-              isDark
-                  ? AppColors.primaryNeon.withValues(alpha: 0.3)
-                  : Colors.grey[300]!,
+          color: isDark
+              ? AppColors.primaryNeon.withValues(alpha: 0.3)
+              : Colors.grey[300]!,
         ),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppSizes.md.r),
         borderSide: BorderSide(
-          color:
-              isDark
-                  ? AppColors.primaryNeon.withValues(alpha: 0.3)
-                  : Colors.grey[300]!,
+          color: isDark
+              ? AppColors.primaryNeon.withValues(alpha: 0.3)
+              : Colors.grey[300]!,
         ),
       ),
       focusedBorder: OutlineInputBorder(
@@ -369,10 +360,9 @@ class AppTheme {
         fontSize: 14.sp,
       ),
       hintStyle: GoogleFonts.inter(
-        color:
-            isDark
-                ? AppColors.textSecondary.withValues(alpha: 0.7)
-                : Colors.grey[500],
+        color: isDark
+            ? AppColors.textSecondary.withValues(alpha: 0.7)
+            : Colors.grey[500],
         fontSize: 14.sp,
       ),
       contentPadding: EdgeInsets.symmetric(
@@ -430,13 +420,12 @@ class AppTheme {
       elevation: isDark ? 0 : 8,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSizes.lg.r),
-        side:
-            isDark
-                ? BorderSide(
-                  color: AppColors.primaryNeon.withValues(alpha: 0.2),
-                  width: 1,
-                )
-                : BorderSide.none,
+        side: isDark
+            ? BorderSide(
+                color: AppColors.primaryNeon.withValues(alpha: 0.2),
+                width: 1,
+              )
+            : BorderSide.none,
       ),
       titleTextStyle: GoogleFonts.orbitron(
         fontSize: 20.sp,
@@ -459,13 +448,12 @@ class AppTheme {
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppSizes.lg.r),
         ),
-        side:
-            isDark
-                ? BorderSide(
-                  color: AppColors.primaryNeon.withValues(alpha: 0.2),
-                  width: 1,
-                )
-                : BorderSide.none,
+        side: isDark
+            ? BorderSide(
+                color: AppColors.primaryNeon.withValues(alpha: 0.2),
+                width: 1,
+              )
+            : BorderSide.none,
       ),
     );
   }
@@ -483,16 +471,14 @@ class AppTheme {
 
   static ChipThemeData _buildChipTheme(bool isDark) {
     return ChipThemeData(
-      backgroundColor:
-          isDark
-              ? AppColors.surfaceGlass.withValues(alpha: 0.1)
-              : Colors.grey[200],
+      backgroundColor: isDark
+          ? AppColors.surfaceGlass.withValues(alpha: 0.1)
+          : Colors.grey[200],
       selectedColor: AppColors.primaryNeon.withValues(alpha: 0.2),
       side: BorderSide(
-        color:
-            isDark
-                ? AppColors.primaryNeon.withValues(alpha: 0.3)
-                : Colors.grey[300]!,
+        color: isDark
+            ? AppColors.primaryNeon.withValues(alpha: 0.3)
+            : Colors.grey[300]!,
       ),
       labelStyle: GoogleFonts.inter(
         fontSize: 12.sp,
@@ -527,10 +513,9 @@ class AppTheme {
   static SliderThemeData _buildSliderTheme(bool isDark) {
     return SliderThemeData(
       activeTrackColor: AppColors.primaryNeon,
-      inactiveTrackColor:
-          isDark
-              ? AppColors.textTertiary.withValues(alpha: 0.3)
-              : Colors.grey[300],
+      inactiveTrackColor: isDark
+          ? AppColors.textTertiary.withValues(alpha: 0.3)
+          : Colors.grey[300],
       thumbColor: AppColors.primaryNeon,
       overlayColor: AppColors.primaryNeon.withValues(alpha: 0.2),
     );
@@ -548,10 +533,9 @@ class AppTheme {
     return ListTileThemeData(
       iconColor: isDark ? AppColors.textSecondary : Colors.grey[600],
       textColor: isDark ? AppColors.textPrimary : Colors.black87,
-      tileColor:
-          isDark
-              ? AppColors.surfaceGlass.withValues(alpha: 0.05)
-              : Colors.transparent,
+      tileColor: isDark
+          ? AppColors.surfaceGlass.withValues(alpha: 0.05)
+          : Colors.transparent,
       selectedTileColor: AppColors.primaryNeon.withValues(alpha: 0.1),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSizes.sm.r),
@@ -565,10 +549,9 @@ class AppTheme {
 
   static DividerThemeData _buildDividerTheme(bool isDark) {
     return DividerThemeData(
-      color:
-          isDark
-              ? AppColors.primaryNeon.withValues(alpha: 0.1)
-              : Colors.grey[300],
+      color: isDark
+          ? AppColors.primaryNeon.withValues(alpha: 0.1)
+          : Colors.grey[300],
       thickness: 1,
       space: 1,
     );

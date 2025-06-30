@@ -5,10 +5,12 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'dart:io';
 import '../config/firebase_config.dart';
 import '../models/models.dart';
+import '../core/utils/logger.dart';
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseConfig.auth;
-  final FirebaseFirestore _firestore = FirebaseConfig.firestore;
+  // Lazy-loaded Firebase instances to prevent early initialization
+  FirebaseAuth get _auth => FirebaseConfig.auth;
+  FirebaseFirestore get _firestore => FirebaseConfig.firestore;
   final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
 
   // Get current user
@@ -73,42 +75,111 @@ class AuthService {
   // Sign in with Google
   Future<UserCredential> signInWithGoogle() async {
     try {
-      // Sign out from any previous Google sessions
-      await _googleSignIn.signOut();
+      AppLogger.logger.i('🔐 Starting Google Sign-In process...');
 
+      // Log Google Sign-In configuration details
+      AppLogger.logger.d('Google Sign-In scopes: ${_googleSignIn.scopes}');
+      AppLogger.logger.d(
+          'Google Sign-In client ID: ${_googleSignIn.clientId ?? "NOT_SET"}');
+
+      // Check current sign-in status
+      final bool wasSignedIn = await _googleSignIn.isSignedIn();
+      AppLogger.logger.d('Previous Google sign-in status: $wasSignedIn');
+
+      // Sign out from any previous Google sessions
+      if (wasSignedIn) {
+        AppLogger.logger.d('Signing out from previous Google session...');
+        await _googleSignIn.signOut();
+      }
+
+      AppLogger.logger.d('Attempting Google Sign-In...');
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
       if (googleUser == null) {
+        AppLogger.logger.w('🚫 Google sign-in was cancelled by user');
         throw const AuthException('Google sign in was cancelled');
       }
 
+      AppLogger.logger.i('✅ Google user account selected: ${googleUser.email}');
+      AppLogger.logger.d(
+          'Google user details - Name: ${googleUser.displayName}, ID: ${googleUser.id}');
+
+      AppLogger.logger.d('Getting Google authentication tokens...');
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
 
+      AppLogger.logger.d('Google auth tokens received:');
+      AppLogger.logger.d(
+          '  - Access Token: ${googleAuth.accessToken != null ? "PRESENT" : "MISSING"}');
+      AppLogger.logger.d(
+          '  - ID Token: ${googleAuth.idToken != null ? "PRESENT" : "MISSING"}');
+
       if (googleAuth.accessToken == null || googleAuth.idToken == null) {
+        AppLogger.logger
+            .e('❌ Failed to get Google credentials - tokens are null');
         throw const AuthException('Failed to get Google credentials');
       }
 
       // Create a new credential
+      AppLogger.logger.d('Creating Firebase credential...');
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
+      AppLogger.logger
+          .d('🔑 Attempting Firebase sign-in with Google credential...');
       final userCredential = await _auth.signInWithCredential(credential);
+
+      AppLogger.logger.i('🎉 Firebase sign-in successful!');
+      AppLogger.logger.d('Firebase user: ${userCredential.user?.email}');
 
       // Create or update user profile in Firestore
       if (userCredential.user != null) {
+        AppLogger.logger.d('👤 Creating/updating user profile in Firestore...');
         await _createOrUpdateUserProfile(
           user: userCredential.user!,
           name: googleUser.displayName ?? 'Unknown',
           role: UserRole.contributor, // Default role
         );
+        AppLogger.logger.i('✅ User profile updated successfully');
       }
 
       return userCredential;
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException catch (e, stackTrace) {
+      AppLogger.logger.e('🔥 Firebase Auth Exception during Google sign-in',
+          error: e, stackTrace: stackTrace);
+      AppLogger.logger.e('Firebase Auth Error Code: ${e.code}');
+      AppLogger.logger.e('Firebase Auth Error Message: ${e.message}');
       throw _handleFirebaseAuthError(e);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      AppLogger.logger.e('❌ Google sign-in failed with unexpected error',
+          error: e, stackTrace: stackTrace);
+
+      // Enhanced error analysis for common Google Sign-In issues
+      final errorString = e.toString();
+      if (errorString.contains('ApiException: 10')) {
+        AppLogger.logger.e('🔍 DEVELOPER_ERROR (Code 10) Analysis:');
+        AppLogger.logger.e('   ❌ This indicates a configuration problem');
+        AppLogger.logger.e('   📋 Common causes:');
+        AppLogger.logger
+            .e('      • google-services.json is missing or invalid');
+        AppLogger.logger
+            .e('      • SHA-1 fingerprint not added to Firebase console');
+        AppLogger.logger.e(
+            '      • Package name mismatch between app and Firebase project');
+        AppLogger.logger.e('      • OAuth client not properly configured');
+      } else if (errorString.contains('ApiException: 12500')) {
+        AppLogger.logger.e(
+            '🔍 SIGN_IN_REQUIRED (Code 12500): User not signed in to Google Play Services');
+      } else if (errorString.contains('ApiException: 7')) {
+        AppLogger.logger
+            .e('🔍 NETWORK_ERROR (Code 7): Check internet connectivity');
+      } else if (errorString.contains('ApiException: 8')) {
+        AppLogger.logger.e(
+            '🔍 INTERNAL_ERROR (Code 8): Google Play Services internal error');
+      }
+
       throw AuthException('Google sign in failed: ${e.toString()}');
     }
   }

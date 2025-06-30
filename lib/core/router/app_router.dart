@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -170,27 +169,23 @@ class AppRouterObserver extends NavigatorObserver {
   @override
   void didPush(Route route, Route? previousRoute) {
     super.didPush(route, previousRoute);
-    if (kDebugMode) {
-      print('🧭 Navigated to: ${route.settings.name ?? route.runtimeType}');
-    }
+    AppLogger.logger
+        .d('Navigated to: ${route.settings.name ?? route.runtimeType}');
   }
 
   @override
   void didPop(Route route, Route? previousRoute) {
     super.didPop(route, previousRoute);
-    if (kDebugMode) {
-      print('🧭 Popped from: ${route.settings.name ?? route.runtimeType}');
-    }
+    AppLogger.logger
+        .d('Popped from: ${route.settings.name ?? route.runtimeType}');
   }
 
   @override
   void didReplace({Route? newRoute, Route? oldRoute}) {
     super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
-    if (kDebugMode) {
-      print(
-        '🧭 Replaced ${oldRoute?.settings.name} with ${newRoute?.settings.name}',
-      );
-    }
+    AppLogger.logger.d(
+      'Replaced ${oldRoute?.settings.name} with ${newRoute?.settings.name}',
+    );
   }
 }
 

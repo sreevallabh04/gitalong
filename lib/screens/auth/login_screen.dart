@@ -148,7 +148,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       }
     } catch (e) {
       if (mounted) {
-        _showErrorSnackBar(e.toString());
+        // Production-ready error handling for Google Sign-In
+        String errorMessage;
+
+        if (e.toString().contains('ApiException: 10') ||
+            e.toString().contains('DEVELOPER_ERROR')) {
+          errorMessage = '🔧 App Configuration Required\n\n'
+              'To enable Google Sign-In, the Firebase project needs to be properly configured.\n\n'
+              '📋 Required Steps:\n'
+              '• Add SHA-1 fingerprint to Firebase console\n'
+              '• Download real google-services.json\n'
+              '• Update Firebase configuration\n\n'
+              'See FIREBASE_SETUP_GUIDE.md for detailed instructions.\n\n'
+              'For now, you can use Email/Password sign-in below.';
+        } else if (e.toString().contains('ApiException: 12500')) {
+          errorMessage = '🔐 Google Play Services Required\n\n'
+              'Please sign in to Google Play Services on this device and try again.';
+        } else if (e.toString().contains('ApiException: 7')) {
+          errorMessage = '🌐 Network Error\n\n'
+              'Please check your internet connection and try again.';
+        } else if (e.toString().contains('sign in was cancelled')) {
+          // Don't show error for user cancellation
+          return;
+        } else {
+          errorMessage = '❌ Google Sign-In Failed\n\n'
+              'Please try email/password sign-in below or check your network connection.\n\n'
+              'Error: ${e.toString().replaceAll('AuthException: ', '')}';
+        }
+
+        _showErrorSnackBar(errorMessage);
       }
     } finally {
       if (mounted) {
@@ -226,18 +254,59 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
   void _showErrorSnackBar(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message.replaceAll('AuthException: ', ''),
-          style: GoogleFonts.inter(),
+
+    // For multi-line messages, show dialog instead of snackbar
+    if (message.contains('\n\n')) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                Icons.error_outline,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Authentication Error',
+                style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          content: Text(
+            message.replaceAll('AuthException: ', ''),
+            style: GoogleFonts.inter(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'OK',
+                style: GoogleFonts.inter(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
         ),
-        backgroundColor: Theme.of(context).colorScheme.error,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
+      );
+    } else {
+      // Simple messages show as snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            message.replaceAll('AuthException: ', ''),
+            style: GoogleFonts.inter(),
+          ),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+    }
   }
 
   void _showSuccessSnackBar(String message) {
@@ -321,13 +390,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
         // App title
         ShaderMask(
-          shaderCallback:
-              (bounds) => LinearGradient(
-                colors: [
-                  Theme.of(context).colorScheme.primary,
-                  Theme.of(context).colorScheme.secondary,
-                ],
-              ).createShader(bounds),
+          shaderCallback: (bounds) => LinearGradient(
+            colors: [
+              Theme.of(context).colorScheme.primary,
+              Theme.of(context).colorScheme.secondary,
+            ],
+          ).createShader(bounds),
           child: Text(
             'GitAlong',
             style: GoogleFonts.orbitron(
@@ -366,9 +434,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             opacity: _cardController.value,
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 24),
+              constraints: BoxConstraints(
+                minHeight: 500,
+                maxHeight: MediaQuery.of(context).size.height * 0.75,
+              ),
               child: GlassmorphicContainer(
                 width: double.infinity,
-                height: 600,
+                height: double.infinity,
                 borderRadius: 24,
                 blur: 20,
                 alignment: Alignment.center,
@@ -396,17 +468,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   ],
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
-                    children: [
-                      _buildOAuthButtons(),
-                      const SizedBox(height: 32),
-                      _buildDivider(),
-                      const SizedBox(height: 32),
-                      _buildTabBar(),
-                      const SizedBox(height: 24),
-                      _buildTabViews(),
-                    ],
+                  padding: const EdgeInsets.all(24), // Reduced padding
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildOAuthButtons(),
+                        const SizedBox(height: 24), // Reduced spacing
+                        _buildDivider(),
+                        const SizedBox(height: 24), // Reduced spacing
+                        _buildTabBar(),
+                        const SizedBox(height: 20), // Reduced spacing
+                        _buildTabViews(),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -566,11 +641,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   }
 
   Widget _buildTabViews() {
-    return SizedBox(
-      height: 320,
+    return Container(
+      constraints: BoxConstraints(
+        minHeight: 300,
+        maxHeight: 400,
+      ),
       child: TabBarView(
         controller: _tabController,
-        children: [_buildSignInForm(), _buildSignUpForm()],
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 20),
+            child: _buildSignInForm(),
+          ),
+          SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 20),
+            child: _buildSignUpForm(),
+          ),
+        ],
       ),
     );
   }
@@ -609,8 +696,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     : PhosphorIcons.eyeSlash(PhosphorIconsStyle.bold),
                 color: Theme.of(context).colorScheme.primary,
               ),
-              onPressed:
-                  () => setState(() => _obscurePassword = !_obscurePassword),
+              onPressed: () =>
+                  setState(() => _obscurePassword = !_obscurePassword),
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
@@ -696,8 +783,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     : PhosphorIcons.eyeSlash(PhosphorIconsStyle.bold),
                 color: Theme.of(context).colorScheme.primary,
               ),
-              onPressed:
-                  () => setState(() => _obscurePassword = !_obscurePassword),
+              onPressed: () =>
+                  setState(() => _obscurePassword = !_obscurePassword),
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
@@ -723,10 +810,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     : PhosphorIcons.eyeSlash(PhosphorIconsStyle.bold),
                 color: Theme.of(context).colorScheme.primary,
               ),
-              onPressed:
-                  () => setState(
-                    () => _obscureConfirmPassword = !_obscureConfirmPassword,
-                  ),
+              onPressed: () => setState(
+                () => _obscureConfirmPassword = !_obscureConfirmPassword,
+              ),
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
@@ -842,24 +928,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             ],
           ),
           child: Center(
-            child:
-                _isLoading
-                    ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                    : Text(
-                      label,
-                      style: GoogleFonts.rajdhani(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1,
-                      ),
+            child: _isLoading
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
+                  )
+                : Text(
+                    label,
+                    style: GoogleFonts.rajdhani(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1,
+                    ),
+                  ),
           ),
         ),
       ),

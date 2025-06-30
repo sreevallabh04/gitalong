@@ -1,13 +1,32 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
-import '../config/supabase_config.dart';
+import '../config/firebase_config.dart';
 import '../models/models.dart';
+import '../core/utils/logger.dart';
 
-class SwipeService {
-  final SupabaseClient _supabase = SupabaseConfig.client;
+abstract class ISwipeService {
+  Future<List<ProjectModel>> getProjectsToSwipe(String userId);
+  Future<List<UserModel>> getUsersToSwipe(String userId);
+  Future<bool> recordSwipe({
+    required String swiperId,
+    required String targetId,
+    required SwipeDirection direction,
+    required SwipeTargetType targetType,
+  });
+  Future<List<MatchModel>> getUserMatches(String userId);
+  Future<List<ProjectModel>> getSmartRecommendations(String userId);
+}
+
+class SwipeService implements ISwipeService {
+  final FirebaseFirestore _firestore = FirebaseConfig.firestore;
   final Uuid _uuid = const Uuid();
 
-  // Get projects to swipe for contributors
+  static const String _projectsCollection = 'projects';
+  static const String _usersCollection = 'users';
+  static const String _swipesCollection = 'swipes';
+  static const String _matchesCollection = 'matches';
+
+  @override
   Future<List<ProjectModel>> getProjectsToSwipe(String userId) async {
     try {
       // Get projects that user hasn't swiped on
@@ -16,27 +35,28 @@ class SwipeService {
         SwipeTargetType.project,
       );
 
-      var query = _supabase
-          .from('projects')
-          .select('*')
-          .eq('status', 'active')
-          .neq('owner_id', userId);
+      Query<Map<String, dynamic>> query = _firestore
+          .collection(_projectsCollection)
+          .where('status', isEqualTo: 'active')
+          .where('owner_id', isNotEqualTo: userId);
 
       if (swipedProjectIds.isNotEmpty) {
-        query = query.not('id', 'in', swipedProjectIds);
+        query = query.where('id', whereNotIn: swipedProjectIds);
       }
 
-      final response = await query.limit(10);
+      final querySnapshot = await query.limit(10).get();
 
-      return response
-          .map<ProjectModel>((json) => ProjectModel.fromJson(json))
+      return querySnapshot.docs
+          .map(
+              (doc) => ProjectModel.fromJson(_convertFirestoreData(doc.data())))
           .toList();
     } catch (e) {
+      AppLogger.logger.e('Failed to fetch projects', error: e);
       throw SwipeException('Failed to fetch projects: $e');
     }
   }
 
-  // Get users to swipe for maintainers
+  @override
   Future<List<UserModel>> getUsersToSwipe(String userId) async {
     try {
       // Get users that maintainer hasn't swiped on
@@ -45,27 +65,27 @@ class SwipeService {
         SwipeTargetType.user,
       );
 
-      var query = _supabase
-          .from('users')
-          .select('*')
-          .eq('role', 'contributor')
-          .neq('id', userId);
+      Query<Map<String, dynamic>> query = _firestore
+          .collection(_usersCollection)
+          .where('role', isEqualTo: 'contributor')
+          .where('id', isNotEqualTo: userId);
 
       if (swipedUserIds.isNotEmpty) {
-        query = query.not('id', 'in', swipedUserIds);
+        query = query.where('id', whereNotIn: swipedUserIds);
       }
 
-      final response = await query.limit(10);
+      final querySnapshot = await query.limit(10).get();
 
-      return response
-          .map<UserModel>((json) => UserModel.fromJson(json))
+      return querySnapshot.docs
+          .map((doc) => UserModel.fromJson(_convertFirestoreData(doc.data())))
           .toList();
     } catch (e) {
+      AppLogger.logger.e('Failed to fetch users', error: e);
       throw SwipeException('Failed to fetch users: $e');
     }
   }
 
-  // Record a swipe
+  @override
   Future<bool> recordSwipe({
     required String swiperId,
     required String targetId,
@@ -73,16 +93,20 @@ class SwipeService {
     required SwipeTargetType targetType,
   }) async {
     try {
+      final swipeId = _uuid.v4();
       final swipeData = {
-        'id': _uuid.v4(),
+        'id': swipeId,
         'swiper_id': swiperId,
         'target_id': targetId,
         'direction': direction.name,
         'target_type': targetType.name,
-        'created_at': DateTime.now().toIso8601String(),
+        'created_at': Timestamp.fromDate(DateTime.now()),
       };
 
-      await _supabase.from('swipes').insert(swipeData);
+      await _firestore
+          .collection(_swipesCollection)
+          .doc(swipeId)
+          .set(swipeData);
 
       // Check for match if it's a right swipe
       if (direction == SwipeDirection.right) {
@@ -91,42 +115,70 @@ class SwipeService {
 
       return false;
     } catch (e) {
+      AppLogger.logger.e('Failed to record swipe', error: e);
       throw SwipeException('Failed to record swipe: $e');
     }
   }
 
-  // Get matches for a user
+  @override
   Future<List<MatchModel>> getUserMatches(String userId) async {
     try {
-      final response = await _supabase
-          .from('matches')
-          .select('*')
-          .or(
-            'contributor_id.eq.$userId,project_id.in.(select id from projects where owner_id = $userId)',
-          )
-          .eq('status', 'active')
-          .order('created_at', ascending: false);
+      // Get matches where user is contributor
+      final contributorMatchesSnapshot = await _firestore
+          .collection(_matchesCollection)
+          .where('contributor_id', isEqualTo: userId)
+          .where('status', isEqualTo: 'active')
+          .orderBy('created_at', descending: true)
+          .get();
 
-      return response
-          .map<MatchModel>((json) => MatchModel.fromJson(json))
+      // Get matches where user is project owner
+      final ownerProjectsSnapshot = await _firestore
+          .collection(_projectsCollection)
+          .where('owner_id', isEqualTo: userId)
+          .get();
+
+      final projectIds = ownerProjectsSnapshot.docs
+          .map((doc) => doc.data()['id'] as String)
+          .toList();
+
+      List<QueryDocumentSnapshot<Map<String, dynamic>>> ownerMatches = [];
+      if (projectIds.isNotEmpty) {
+        final ownerMatchesSnapshot = await _firestore
+            .collection(_matchesCollection)
+            .where('project_id', whereIn: projectIds)
+            .where('status', isEqualTo: 'active')
+            .orderBy('created_at', descending: true)
+            .get();
+        ownerMatches = ownerMatchesSnapshot.docs;
+      }
+
+      final allMatches = [
+        ...contributorMatchesSnapshot.docs,
+        ...ownerMatches,
+      ];
+
+      return allMatches
+          .map((doc) => MatchModel.fromJson(_convertFirestoreData(doc.data())))
           .toList();
     } catch (e) {
+      AppLogger.logger.e('Failed to fetch matches', error: e);
       throw SwipeException('Failed to fetch matches: $e');
     }
   }
 
-  // Get smart recommendations based on skills
+  @override
   Future<List<ProjectModel>> getSmartRecommendations(String userId) async {
     try {
       // Get user's skills
-      final userResponse =
-          await _supabase
-              .from('users')
-              .select('skills')
-              .eq('id', userId)
-              .single();
+      final userDoc =
+          await _firestore.collection(_usersCollection).doc(userId).get();
 
-      final userSkills = List<String>.from(userResponse['skills'] ?? []);
+      if (!userDoc.exists) {
+        return getProjectsToSwipe(userId);
+      }
+
+      final userData = userDoc.data()!;
+      final userSkills = List<String>.from(userData['skills'] ?? []);
 
       if (userSkills.isEmpty) {
         return getProjectsToSwipe(userId);
@@ -139,23 +191,24 @@ class SwipeService {
       );
 
       // Find projects that match user's skills
-      var query = _supabase
-          .from('projects')
-          .select('*')
-          .eq('status', 'active')
-          .neq('owner_id', userId)
-          .overlaps('skills_required', userSkills);
+      Query<Map<String, dynamic>> query = _firestore
+          .collection(_projectsCollection)
+          .where('status', isEqualTo: 'active')
+          .where('owner_id', isNotEqualTo: userId)
+          .where('skills_required', arrayContainsAny: userSkills);
 
       if (swipedProjectIds.isNotEmpty) {
-        query = query.not('id', 'in', swipedProjectIds);
+        query = query.where('id', whereNotIn: swipedProjectIds);
       }
 
-      final response = await query.limit(10);
+      final querySnapshot = await query.limit(10).get();
 
-      return response
-          .map<ProjectModel>((json) => ProjectModel.fromJson(json))
+      return querySnapshot.docs
+          .map(
+              (doc) => ProjectModel.fromJson(_convertFirestoreData(doc.data())))
           .toList();
     } catch (e) {
+      AppLogger.logger.e('Failed to fetch smart recommendations', error: e);
       throw SwipeException('Failed to fetch smart recommendations: $e');
     }
   }
@@ -166,16 +219,17 @@ class SwipeService {
     SwipeTargetType targetType,
   ) async {
     try {
-      final response = await _supabase
-          .from('swipes')
-          .select('target_id')
-          .eq('swiper_id', userId)
-          .eq('target_type', targetType.name);
+      final querySnapshot = await _firestore
+          .collection(_swipesCollection)
+          .where('swiper_id', isEqualTo: userId)
+          .where('target_type', isEqualTo: targetType.name)
+          .get();
 
-      return response
-          .map<String>((item) => item['target_id'] as String)
+      return querySnapshot.docs
+          .map((doc) => doc.data()['target_id'] as String)
           .toList();
     } catch (e) {
+      AppLogger.logger.e('Failed to get swiped target IDs', error: e);
       return [];
     }
   }
@@ -191,26 +245,25 @@ class SwipeService {
 
       if (targetType == SwipeTargetType.project) {
         // Contributor swiped right on project, check if project owner swiped right on contributor
-        final projectResponse =
-            await _supabase
-                .from('projects')
-                .select('owner_id')
-                .eq('id', targetId)
-                .single();
+        final projectDoc = await _firestore
+            .collection(_projectsCollection)
+            .doc(targetId)
+            .get();
 
-        final ownerId = projectResponse['owner_id'] as String;
+        if (!projectDoc.exists) return false;
 
-        final ownerSwipeResponse =
-            await _supabase
-                .from('swipes')
-                .select('direction')
-                .eq('swiper_id', ownerId)
-                .eq('target_id', swiperId)
-                .eq('target_type', 'user')
-                .eq('direction', 'right')
-                .maybeSingle();
+        final ownerId = projectDoc.data()!['owner_id'] as String;
 
-        hasMatch = ownerSwipeResponse != null;
+        final ownerSwipeQuery = await _firestore
+            .collection(_swipesCollection)
+            .where('swiper_id', isEqualTo: ownerId)
+            .where('target_id', isEqualTo: swiperId)
+            .where('target_type', isEqualTo: 'user')
+            .where('direction', isEqualTo: 'right')
+            .limit(1)
+            .get();
+
+        hasMatch = ownerSwipeQuery.docs.isNotEmpty;
 
         if (hasMatch) {
           // Create match
@@ -218,40 +271,37 @@ class SwipeService {
         }
       } else {
         // Maintainer swiped right on contributor, check if contributor swiped right on any of maintainer's projects
-        final maintainerProjectsResponse = await _supabase
-            .from('projects')
-            .select('id')
-            .eq('owner_id', swiperId);
+        final maintainerProjectsQuery = await _firestore
+            .collection(_projectsCollection)
+            .where('owner_id', isEqualTo: swiperId)
+            .get();
 
-        final projectIds =
-            maintainerProjectsResponse
-                .map<String>((item) => item['id'] as String)
-                .toList();
+        final projectIds = maintainerProjectsQuery.docs
+            .map((doc) => doc.data()['id'] as String)
+            .toList();
 
         if (projectIds.isNotEmpty) {
-          final contributorSwipeResponse =
-              await _supabase
-                  .from('swipes')
-                  .select('target_id')
-                  .eq('swiper_id', targetId)
-                  .eq('target_type', 'project')
-                  .eq('direction', 'right')
-                  .inFilter('target_id', projectIds)
-                  .limit(1)
-                  .maybeSingle();
+          final contributorSwipeQuery = await _firestore
+              .collection(_swipesCollection)
+              .where('swiper_id', isEqualTo: targetId)
+              .where('target_type', isEqualTo: 'project')
+              .where('direction', isEqualTo: 'right')
+              .where('target_id', whereIn: projectIds)
+              .limit(1)
+              .get();
 
-          if (contributorSwipeResponse != null) {
+          if (contributorSwipeQuery.docs.isNotEmpty) {
             hasMatch = true;
-            await _createMatch(
-              targetId,
-              contributorSwipeResponse['target_id'] as String,
-            );
+            final matchedProjectId =
+                contributorSwipeQuery.docs.first.data()['target_id'] as String;
+            await _createMatch(targetId, matchedProjectId);
           }
         }
       }
 
       return hasMatch;
     } catch (e) {
+      AppLogger.logger.e('Failed to check for match', error: e);
       return false;
     }
   }
@@ -259,18 +309,40 @@ class SwipeService {
   // Private helper to create a match
   Future<void> _createMatch(String contributorId, String projectId) async {
     try {
+      final matchId = _uuid.v4();
       final matchData = {
-        'id': _uuid.v4(),
+        'id': matchId,
         'contributor_id': contributorId,
         'project_id': projectId,
-        'created_at': DateTime.now().toIso8601String(),
+        'created_at': Timestamp.fromDate(DateTime.now()),
         'status': 'active',
       };
 
-      await _supabase.from('matches').insert(matchData);
+      await _firestore
+          .collection(_matchesCollection)
+          .doc(matchId)
+          .set(matchData);
     } catch (e) {
+      AppLogger.logger.e('Failed to create match', error: e);
       throw SwipeException('Failed to create match: $e');
     }
+  }
+
+  Map<String, dynamic> _convertFirestoreData(Map<String, dynamic> data) {
+    final convertedData = Map<String, dynamic>.from(data);
+
+    // Convert Firestore Timestamp to ISO string
+    if (convertedData['created_at'] is Timestamp) {
+      convertedData['created_at'] =
+          (convertedData['created_at'] as Timestamp).toDate().toIso8601String();
+    }
+
+    if (convertedData['updated_at'] is Timestamp) {
+      convertedData['updated_at'] =
+          (convertedData['updated_at'] as Timestamp).toDate().toIso8601String();
+    }
+
+    return convertedData;
   }
 }
 

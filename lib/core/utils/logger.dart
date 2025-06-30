@@ -98,7 +98,7 @@ class AppLogPrinter extends LogPrinter {
     }
 
     // Separator
-    output.add('${'-' * 50}');
+    output.add('-' * 50);
 
     return output;
   }
