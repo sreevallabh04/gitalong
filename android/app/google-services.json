@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "123456789",
+    "project_id": "gitalong-c8075",
+    "storage_bucket": "gitalong-c8075.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:123456789:android:abcd1234efgh5678",
+        "android_client_info": {
+          "package_name": "com.example.gitalong"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "123456789-abcd1234efgh5678.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "your-android-api-key-here"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "123456789-abcd1234efgh5678.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+} 

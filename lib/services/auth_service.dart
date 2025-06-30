@@ -1,59 +1,77 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'dart:io';
-import '../config/supabase_config.dart';
+import '../config/firebase_config.dart';
 import '../models/models.dart';
 
 class AuthService {
-  final SupabaseClient _supabase = SupabaseConfig.client;
+  final FirebaseAuth _auth = FirebaseConfig.auth;
+  final FirebaseFirestore _firestore = FirebaseConfig.firestore;
   final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
 
   // Get current user
-  User? get currentUser => _supabase.auth.currentUser;
+  User? get currentUser => _auth.currentUser;
 
   // Get auth state stream
-  Stream<AuthState> get authStateChanges => _supabase.auth.onAuthStateChange;
+  Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   // Check if user is authenticated
   bool get isAuthenticated => currentUser != null;
 
   // Sign up with email and password
-  Future<AuthResponse> signUp({
+  Future<UserCredential> signUp({
     required String email,
     required String password,
     required String name,
   }) async {
     try {
-      final response = await _supabase.auth.signUp(
+      final credential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
-        data: {'name': name, 'avatar_url': null},
       );
-      return response;
+
+      // Update user display name
+      await credential.user?.updateDisplayName(name);
+
+      // Create user profile in Firestore
+      if (credential.user != null) {
+        await _createUserProfile(
+          user: credential.user!,
+          name: name,
+          role: UserRole.contributor, // Default role
+        );
+      }
+
+      return credential;
+    } on FirebaseAuthException catch (e) {
+      throw _handleFirebaseAuthError(e);
     } catch (e) {
-      throw _handleAuthError(e);
+      throw AuthException('Failed to create account: ${e.toString()}');
     }
   }
 
   // Sign in with email and password
-  Future<AuthResponse> signIn({
+  Future<UserCredential> signIn({
     required String email,
     required String password,
   }) async {
     try {
-      final response = await _supabase.auth.signInWithPassword(
+      final credential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-      return response;
+      return credential;
+    } on FirebaseAuthException catch (e) {
+      throw _handleFirebaseAuthError(e);
     } catch (e) {
-      throw _handleAuthError(e);
+      throw AuthException('Failed to sign in: ${e.toString()}');
     }
   }
 
   // Sign in with Google
-  Future<AuthResponse> signInWithGoogle() async {
+  Future<UserCredential> signInWithGoogle() async {
     try {
       // Sign out from any previous Google sessions
       await _googleSignIn.signOut();
@@ -70,20 +88,33 @@ class AuthService {
         throw const AuthException('Failed to get Google credentials');
       }
 
-      final response = await _supabase.auth.signInWithIdToken(
-        provider: OAuthProvider.google,
-        idToken: googleAuth.idToken!,
-        accessToken: googleAuth.accessToken!,
+      // Create a new credential
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
       );
 
-      return response;
+      final userCredential = await _auth.signInWithCredential(credential);
+
+      // Create or update user profile in Firestore
+      if (userCredential.user != null) {
+        await _createOrUpdateUserProfile(
+          user: userCredential.user!,
+          name: googleUser.displayName ?? 'Unknown',
+          role: UserRole.contributor, // Default role
+        );
+      }
+
+      return userCredential;
+    } on FirebaseAuthException catch (e) {
+      throw _handleFirebaseAuthError(e);
     } catch (e) {
-      throw _handleAuthError(e);
+      throw AuthException('Google sign in failed: ${e.toString()}');
     }
   }
 
   // Sign in with Apple (iOS/macOS only)
-  Future<AuthResponse> signInWithApple() async {
+  Future<UserCredential> signInWithApple() async {
     if (!Platform.isIOS && !Platform.isMacOS) {
       throw const AuthException(
         'Apple Sign In is only available on iOS and macOS',
@@ -102,55 +133,60 @@ class AuthService {
         throw const AuthException('Failed to get Apple ID credential');
       }
 
-      final response = await _supabase.auth.signInWithIdToken(
-        provider: OAuthProvider.apple,
-        idToken: credential.identityToken!,
+      // Create a new credential
+      final oauthCredential = OAuthProvider("apple.com").credential(
+        idToken: credential.identityToken,
+        accessToken: credential.authorizationCode,
       );
 
-      return response;
-    } catch (e) {
-      throw _handleAuthError(e);
-    }
-  }
+      final userCredential = await _auth.signInWithCredential(oauthCredential);
 
-  // Sign in with GitHub (using Supabase OAuth)
-  Future<bool> signInWithGitHub() async {
-    try {
-      final response = await _supabase.auth.signInWithOAuth(
-        OAuthProvider.github,
-        redirectTo: 'io.flutter.gitalong://auth-callback',
-      );
-      return response;
+      // Create or update user profile in Firestore
+      if (userCredential.user != null) {
+        final name =
+            credential.givenName != null && credential.familyName != null
+                ? '${credential.givenName} ${credential.familyName}'
+                : userCredential.user!.displayName ?? 'Unknown';
+
+        await _createOrUpdateUserProfile(
+          user: userCredential.user!,
+          name: name,
+          role: UserRole.contributor, // Default role
+        );
+      }
+
+      return userCredential;
+    } on FirebaseAuthException catch (e) {
+      throw _handleFirebaseAuthError(e);
     } catch (e) {
-      throw _handleAuthError(e);
+      throw AuthException('Apple sign in failed: ${e.toString()}');
     }
   }
 
   // Send password reset email
   Future<void> resetPassword(String email) async {
     try {
-      await _supabase.auth.resetPasswordForEmail(
-        email,
-        redirectTo: 'io.flutter.gitalong://reset-password',
-      );
+      await _auth.sendPasswordResetEmail(email: email);
+    } on FirebaseAuthException catch (e) {
+      throw _handleFirebaseAuthError(e);
     } catch (e) {
-      throw _handleAuthError(e);
+      throw AuthException(
+          'Failed to send password reset email: ${e.toString()}');
     }
   }
 
   // Update password
-  Future<UserResponse> updatePassword(String newPassword) async {
+  Future<void> updatePassword(String newPassword) async {
     if (!isAuthenticated) {
       throw const AuthException('User must be authenticated');
     }
 
     try {
-      final response = await _supabase.auth.updateUser(
-        UserAttributes(password: newPassword),
-      );
-      return response;
+      await currentUser!.updatePassword(newPassword);
+    } on FirebaseAuthException catch (e) {
+      throw _handleFirebaseAuthError(e);
     } catch (e) {
-      throw _handleAuthError(e);
+      throw AuthException('Failed to update password: ${e.toString()}');
     }
   }
 
@@ -162,9 +198,9 @@ class AuthService {
         await _googleSignIn.signOut();
       }
 
-      await _supabase.auth.signOut();
+      await _auth.signOut();
     } catch (e) {
-      throw _handleAuthError(e);
+      throw AuthException('Failed to sign out: ${e.toString()}');
     }
   }
 
@@ -173,16 +209,12 @@ class AuthService {
     if (!isAuthenticated) return null;
 
     try {
-      final response =
-          await _supabase
-              .from('users')
-              .select()
-              .eq('id', currentUser!.id)
-              .maybeSingle();
+      final doc =
+          await _firestore.collection('users').doc(currentUser!.uid).get();
 
-      return response != null ? UserModel.fromJson(response) : null;
+      return doc.exists ? UserModel.fromJson(doc.data()!) : null;
     } catch (e) {
-      throw _handleAuthError(e);
+      throw AuthException('Failed to get user profile: ${e.toString()}');
     }
   }
 
@@ -202,13 +234,11 @@ class AuthService {
     final now = DateTime.now();
 
     final userData = {
-      'id': user.id,
+      'id': user.uid,
       'email': user.email!,
       'name': name,
       'role': role.name,
-      'avatar_url':
-          user.userMetadata?['avatar_url'] ??
-          user.userMetadata?['picture'] ??
+      'avatar_url': user.photoURL ??
           'https://ui-avatars.com/api/?name=${Uri.encodeComponent(name)}&background=00F5FF&color=0A0A0F',
       'bio': bio,
       'github_url': githubUrl,
@@ -218,12 +248,14 @@ class AuthService {
     };
 
     try {
-      final response =
-          await _supabase.from('users').upsert(userData).select().single();
+      await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .set(userData, SetOptions(merge: true));
 
-      return UserModel.fromJson(response);
+      return UserModel.fromJson(userData);
     } catch (e) {
-      throw _handleAuthError(e);
+      throw AuthException('Failed to update user profile: ${e.toString()}');
     }
   }
 
@@ -232,14 +264,9 @@ class AuthService {
     if (!isAuthenticated) return false;
 
     try {
-      final response =
-          await _supabase
-              .from('users')
-              .select('id')
-              .eq('id', currentUser!.id)
-              .maybeSingle();
-
-      return response != null;
+      final doc =
+          await _firestore.collection('users').doc(currentUser!.uid).get();
+      return doc.exists;
     } catch (e) {
       return false;
     }
@@ -268,27 +295,17 @@ class AuthService {
     if (avatarUrl != null) updateData['avatar_url'] = avatarUrl;
 
     try {
-      final response =
-          await _supabase
-              .from('users')
-              .update(updateData)
-              .eq('id', currentUser!.id)
-              .select()
-              .single();
+      await _firestore
+          .collection('users')
+          .doc(currentUser!.uid)
+          .update(updateData);
 
-      return UserModel.fromJson(response);
-    } catch (e) {
-      throw _handleAuthError(e);
-    }
-  }
+      final doc =
+          await _firestore.collection('users').doc(currentUser!.uid).get();
 
-  // Refresh session
-  Future<AuthResponse> refreshSession() async {
-    try {
-      final response = await _supabase.auth.refreshSession();
-      return response;
+      return UserModel.fromJson(doc.data()!);
     } catch (e) {
-      throw _handleAuthError(e);
+      throw AuthException('Failed to update user profile: ${e.toString()}');
     }
   }
 
@@ -299,40 +316,99 @@ class AuthService {
     }
 
     try {
-      // Delete user data from database
-      await _supabase.from('users').delete().eq('id', currentUser!.id);
+      // Delete user data from Firestore
+      await _firestore.collection('users').doc(currentUser!.uid).delete();
 
       // Sign out from all providers
       await signOut();
+
+      // Delete the user account
+      await currentUser!.delete();
     } catch (e) {
-      throw _handleAuthError(e);
+      throw AuthException('Failed to delete account: ${e.toString()}');
     }
   }
 
-  // Enhanced error handling
-  AuthException _handleAuthError(dynamic error) {
-    if (error is AuthException) {
-      return error;
-    }
+  // Create user profile in Firestore
+  Future<void> _createUserProfile({
+    required User user,
+    required String name,
+    required UserRole role,
+  }) async {
+    final now = DateTime.now();
+    final userData = {
+      'id': user.uid,
+      'email': user.email!,
+      'name': name,
+      'role': role.name,
+      'avatar_url': user.photoURL ??
+          'https://ui-avatars.com/api/?name=${Uri.encodeComponent(name)}&background=00F5FF&color=0A0A0F',
+      'bio': null,
+      'github_url': null,
+      'skills': <String>[],
+      'created_at': now.toIso8601String(),
+      'updated_at': now.toIso8601String(),
+    };
 
-    String message = 'An unknown error occurred';
+    await _firestore.collection('users').doc(user.uid).set(userData);
+  }
 
-    if (error is PostgrestException) {
-      message = error.message;
-    } else if (error.toString().contains('Invalid login credentials')) {
-      message = 'Invalid email or password';
-    } else if (error.toString().contains('Email not confirmed')) {
-      message = 'Please check your email and click the confirmation link';
-    } else if (error.toString().contains('User already registered')) {
-      message = 'An account with this email already exists';
-    } else if (error.toString().contains('Password should be at least')) {
-      message = 'Password must be at least 6 characters long';
-    } else if (error.toString().contains('Unable to validate email address')) {
-      message = 'Please enter a valid email address';
-    } else if (error.toString().contains('network')) {
-      message = 'Network error. Please check your connection';
+  // Create or update user profile (for social logins)
+  Future<void> _createOrUpdateUserProfile({
+    required User user,
+    required String name,
+    required UserRole role,
+  }) async {
+    final docRef = _firestore.collection('users').doc(user.uid);
+    final doc = await docRef.get();
+
+    if (!doc.exists) {
+      await _createUserProfile(user: user, name: name, role: role);
     } else {
-      message = error.toString().replaceAll('AuthException: ', '');
+      // Update last login time
+      await docRef.update({
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+    }
+  }
+
+  // Enhanced Firebase Auth error handling
+  AuthException _handleFirebaseAuthError(FirebaseAuthException error) {
+    String message;
+
+    switch (error.code) {
+      case 'user-not-found':
+        message = 'No account found with this email address';
+        break;
+      case 'wrong-password':
+        message = 'Incorrect password';
+        break;
+      case 'email-already-in-use':
+        message = 'An account with this email already exists';
+        break;
+      case 'weak-password':
+        message = 'Password must be at least 6 characters long';
+        break;
+      case 'invalid-email':
+        message = 'Please enter a valid email address';
+        break;
+      case 'user-disabled':
+        message = 'This account has been disabled';
+        break;
+      case 'too-many-requests':
+        message = 'Too many failed attempts. Please try again later';
+        break;
+      case 'operation-not-allowed':
+        message = 'This sign-in method is not enabled';
+        break;
+      case 'network-request-failed':
+        message = 'Network error. Please check your connection';
+        break;
+      case 'requires-recent-login':
+        message = 'Please sign in again to complete this action';
+        break;
+      default:
+        message = error.message ?? 'An unknown error occurred';
     }
 
     return AuthException(message);

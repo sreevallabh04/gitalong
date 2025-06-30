@@ -6,9 +6,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:device_preview/device_preview.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:firebase_core/firebase_core.dart';
 
-import 'config/supabase_config.dart';
+import 'config/firebase_config.dart';
 import 'config/app_config.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
@@ -31,8 +31,8 @@ void main() async {
     await Hive.initFlutter();
     await Hive.openBox('app_data');
 
-    // Initialize Supabase
-    await SupabaseConfig.initialize();
+    // Initialize Firebase
+    await FirebaseConfig.initialize();
 
     print('✅ App initialization completed');
 

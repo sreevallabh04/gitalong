@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/models.dart';
 import '../services/auth_service.dart';
 
@@ -15,8 +15,8 @@ final currentUserProvider = StateProvider<User?>((ref) {
 // User profile provider
 final userProfileProvider =
     StateNotifierProvider<UserProfileNotifier, AsyncValue<UserModel?>>((ref) {
-      return UserProfileNotifier(ref.read(authServiceProvider));
-    });
+  return UserProfileNotifier(ref.read(authServiceProvider));
+});
 
 class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
   final AuthService _authService;
@@ -95,7 +95,7 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
 }
 
 // Authentication state provider
-final authStateProvider = StreamProvider<AuthState>((ref) {
+final authStateProvider = StreamProvider<User?>((ref) {
   final authService = ref.read(authServiceProvider);
   return authService.authStateChanges;
 });
