@@ -37,6 +37,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _obscureSignUpPassword = true;
   bool _obscureConfirmPassword = true;
 
   @override
@@ -115,10 +116,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
       if (response.user != null && mounted) {
         _showSuccessSnackBar(
-          'Account created! Please check your email to verify.',
+          'Account created successfully! Welcome to GitAlong!',
         );
-        _tabController.animateTo(0);
-        _clearSignUpForm();
+
+        // Navigate to onboarding to complete profile setup
+        final hasProfile = await ref.read(hasUserProfileProvider.future);
+        if (hasProfile) {
+          _navigateToHome();
+        } else {
+          _navigateToOnboarding();
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -229,13 +236,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     } catch (e) {
       _showErrorSnackBar(e.toString());
     }
-  }
-
-  void _clearSignUpForm() {
-    _signUpNameController.clear();
-    _signUpEmailController.clear();
-    _signUpPasswordController.clear();
-    _confirmPasswordController.clear();
   }
 
   void _navigateToOnboarding() {
@@ -642,7 +642,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
   Widget _buildTabViews() {
     return Container(
-      constraints: BoxConstraints(
+      constraints: const BoxConstraints(
         minHeight: 300,
         maxHeight: 400,
       ),
@@ -682,7 +682,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               return null;
             },
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
 
           _buildTextField(
             controller: _signInPasswordController,
@@ -724,7 +724,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             ),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
           // Sign in button
           _buildActionButton(
@@ -749,10 +749,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               if (value == null || value.trim().isEmpty) {
                 return 'Please enter your name';
               }
+              if (value.trim().length < 2) {
+                return 'Name must be at least 2 characters';
+              }
               return null;
             },
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
 
           _buildTextField(
             controller: _signUpEmailController,
@@ -763,28 +766,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               if (value == null || value.trim().isEmpty) {
                 return 'Please enter your email';
               }
-              if (!value.contains('@')) {
-                return 'Please enter a valid email';
+              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                  .hasMatch(value.trim())) {
+                return 'Please enter a valid email address';
               }
               return null;
             },
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
 
           _buildTextField(
             controller: _signUpPasswordController,
             label: 'Password',
             icon: Icon(PhosphorIcons.lock(PhosphorIconsStyle.bold)),
-            obscureText: _obscurePassword,
+            obscureText: _obscureSignUpPassword,
             suffixIcon: IconButton(
               icon: Icon(
-                _obscurePassword
+                _obscureSignUpPassword
                     ? PhosphorIcons.eye(PhosphorIconsStyle.bold)
                     : PhosphorIcons.eyeSlash(PhosphorIconsStyle.bold),
                 color: Theme.of(context).colorScheme.primary,
               ),
-              onPressed: () =>
-                  setState(() => _obscurePassword = !_obscurePassword),
+              onPressed: () => setState(
+                  () => _obscureSignUpPassword = !_obscureSignUpPassword),
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
@@ -793,10 +797,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               if (value.length < 6) {
                 return 'Password must be at least 6 characters';
               }
+              if (!RegExp(r'^(?=.*[a-zA-Z])(?=.*\d)').hasMatch(value)) {
+                return 'Password must contain letters and numbers';
+              }
               return null;
             },
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
 
           _buildTextField(
             controller: _confirmPasswordController,
@@ -825,7 +832,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             },
           ),
 
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
 
           // Sign up button
           _buildActionButton(
