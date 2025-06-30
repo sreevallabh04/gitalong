@@ -1,0 +1,164 @@
+name: gitalong
+description: "A Tinder-style matchmaking platform for open source contributors and maintainers."
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+# The following defines the version and build number for your application.
+# A version number is three numbers separated by dots, like 1.2.43
+# followed by an optional build number separated by a +.
+# Both the version and the builder number may be overridden in flutter
+# build by specifying --build-name and --build-number, respectively.
+# In Android, build-name is used as versionName while build-number used as versionCode.
+# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
+# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
+# Read more about iOS versioning at
+# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+# In Windows, build-name is used as the major, minor, and patch parts
+# of the product and file versions while build-number is used as the build suffix.
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.2
+
+# Dependencies specify other packages that your package needs in order to work.
+# To automatically upgrade your package dependencies to the latest versions
+# consider running `flutter pub upgrade --major-versions`. Alternatively,
+# dependencies can be manually updated by changing the version numbers below to
+# the latest version available on pub.dev. To see which dependencies have newer
+# versions available, run `flutter pub outdated`.
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Core dependencies
+  cupertino_icons: ^1.0.8
+  
+  # Supabase & Backend
+  supabase_flutter: ^2.5.6
+  
+  # State management & Architecture
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+  freezed_annotation: ^2.4.1
+  json_annotation: ^4.9.0
+  
+  # Responsive Design & UI Framework
+  responsive_framework: ^1.4.0
+  flutter_screenutil: ^5.9.3
+  adaptive_breakpoints: ^0.1.6
+  device_preview: ^1.2.0
+  
+  # Advanced Navigation
+  go_router: ^14.2.7
+  
+  # UI & Animations
+  swipable_stack: ^2.0.0
+  flutter_animate: ^4.5.0
+  google_fonts: ^6.2.1
+  flutter_markdown: ^0.7.3
+  glassmorphism: ^3.0.0
+  shimmer: ^3.0.0
+  lottie: ^3.1.2
+  flutter_staggered_animations: ^1.1.1
+  animated_text_kit: ^4.2.2
+  
+  # Advanced UI Components
+  flutter_hooks: ^0.20.5
+  hooks_riverpod: ^2.5.1
+  flutter_form_builder: ^9.4.1
+  form_builder_validators: ^11.0.0
+  flutter_typeahead: ^5.2.0
+  infinite_scroll_pagination: ^4.0.0
+  pull_to_refresh: ^2.0.0
+  
+  # Authentication & OAuth
+  google_sign_in: ^6.2.1
+  sign_in_with_apple: ^6.1.1
+  
+  # Networking & API
+  dio: ^5.7.0
+  pretty_dio_logger: ^1.4.0
+  connectivity_plus: ^6.0.5
+  internet_connection_checker: ^3.0.1
+  
+  # Storage & Caching
+  hive_flutter: ^1.1.0
+  shared_preferences: ^2.3.2
+  flutter_secure_storage: ^9.2.2
+  path_provider: ^2.1.4
+  
+  # Media & File Handling
+  image_picker: ^1.1.2
+  file_picker: ^8.1.2
+  cached_network_image: ^3.3.1
+  
+  # Utilities & Helpers
+  uuid: ^4.4.0
+  intl: ^0.19.0
+  url_launcher: ^6.3.0
+  package_info_plus: ^8.0.2
+  device_info_plus: ^10.1.2
+  permission_handler: ^11.3.1
+  
+  # Logging & Error Handling
+  logger: ^2.4.0
+  stack_trace: ^1.12.0
+  
+  # Performance & Monitoring
+  # performance: ^0.3.0 # Package not available
+  
+  # Icons & Graphics
+  flutter_svg: ^2.0.10+1
+  phosphor_flutter: ^2.1.0
+  
+  # Testing & Quality
+  mocktail: ^1.0.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # The "flutter_lints" package below contains a set of recommended lints to
+  # encourage good coding practices. The lint set provided by the package is
+  # activated in the `analysis_options.yaml` file located at the root of your
+  # package. See that file for information about deactivating specific lint
+  # rules and activating additional ones.
+  flutter_lints: ^5.0.0
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+
+# The following section is specific to Flutter packages.
+flutter:
+
+  # The following line ensures that the Material Icons font is
+  # included with your application, so that you can use the icons in
+  # the material Icons class.
+  uses-material-design: true
+
+  # To add assets to your application, add an assets section, like this:
+  assets:
+    - assets/animations/
+    - assets/images/
+    - assets/icons/
+    - assets/config/
+
+  # An image asset can refer to one or more resolution-specific "variants", see
+  # https://flutter.dev/to/resolution-aware-images
+
+  # For details regarding adding assets from package dependencies, see
+  # https://flutter.dev/to/asset-from-package
+
+  # To add custom fonts to your application, add a fonts section here,
+  # in this "flutter" section. Each entry in this list should have a
+  # "family" key with the font family name, and a "fonts" key with a
+  # list giving the asset and other descriptors for the font. 
+  # 
+  # We're using Google Fonts package which automatically handles font loading
+  # so no manual font configuration is needed here.
+  #
+  # For details regarding fonts from package dependencies,
+  # see https://flutter.dev/to/font-from-package
+
+
