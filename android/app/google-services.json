@@ -29,6 +29,13 @@
             {
               "client_id": "267802124592-tv5mnvog8sblshvnarf0c78ujf4pjbq7.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "267802124592-imp7fos397ehr9rhpjemv2imcjj2b4o8.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.gitalong"
+              }
             }
           ]
         }
