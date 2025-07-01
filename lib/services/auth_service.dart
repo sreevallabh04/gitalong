@@ -6,6 +6,11 @@ import 'dart:io';
 import '../config/firebase_config.dart';
 import '../models/models.dart';
 import '../core/utils/logger.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+final authServiceProvider = Provider<AuthService>((ref) {
+  return AuthService();
+});
 
 class AuthService {
   // Lazy-loaded Firebase instances to prevent early initialization
@@ -22,289 +27,429 @@ class AuthService {
   // Check if user is authenticated
   bool get isAuthenticated => currentUser != null;
 
-  // Sign up with email and password
-  Future<UserCredential> signUp({
+  /// Sign in with email and password with comprehensive error handling
+  Future<UserCredential> signInWithEmailAndPassword({
     required String email,
     required String password,
-    required String name,
   }) async {
     try {
-      final credential = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      // 1. CREDENTIAL FORMAT SANITY - Trim whitespace
+      final cleanEmail = email.trim();
+      final cleanPassword = password.trim();
 
-      // Update user display name
-      await credential.user?.updateDisplayName(name);
+      AppLogger.logger.auth('🔐 Attempting email sign-in for: $cleanEmail');
 
-      // Create user profile in Firestore
-      if (credential.user != null) {
-        await _createUserProfile(
-          user: credential.user!,
-          name: name,
-          role: UserRole.contributor, // Default role
-        );
+      // 2. Basic validation
+      if (cleanEmail.isEmpty) {
+        throw const FormatException('Email cannot be empty');
+      }
+      if (cleanPassword.isEmpty) {
+        throw const FormatException('Password cannot be empty');
+      }
+      if (!_isValidEmail(cleanEmail)) {
+        throw const FormatException('Invalid email format');
       }
 
+      // 3. Firebase sign-in with proper error handling
+      final credential = await _auth.signInWithEmailAndPassword(
+        email: cleanEmail,
+        password: cleanPassword,
+      );
+
+      AppLogger.logger.auth('✅ Email sign-in successful for: $cleanEmail');
       return credential;
     } on FirebaseAuthException catch (e) {
-      throw _handleFirebaseAuthError(e);
-    } catch (e) {
-      throw AuthException('Failed to create account: ${e.toString()}');
+      AppLogger.logger.e(
+        '❌ Firebase Auth Error during email sign-in',
+        error: e,
+        stackTrace: StackTrace.current,
+      );
+
+      // 4. SPECIFIC ERROR HANDLING for each Firebase error code
+      switch (e.code) {
+        case 'user-not-found':
+          throw AuthException(
+            'No account found with this email. Please sign up first.',
+            code: e.code,
+          );
+        case 'wrong-password':
+          throw AuthException(
+            'Incorrect password. Please try again.',
+            code: e.code,
+          );
+        case 'invalid-credential':
+          throw AuthException(
+            'Invalid email or password. Please check your credentials.',
+            code: e.code,
+          );
+        case 'invalid-email':
+          throw AuthException(
+            'Invalid email format. Please enter a valid email.',
+            code: e.code,
+          );
+        case 'user-disabled':
+          throw AuthException(
+            'This account has been disabled. Please contact support.',
+            code: e.code,
+          );
+        case 'too-many-requests':
+          throw AuthException(
+            'Too many failed attempts. Please try again later.',
+            code: e.code,
+          );
+        case 'operation-not-allowed':
+          throw AuthException(
+            'Email/password sign-in is not enabled. Please contact support.',
+            code: e.code,
+          );
+        case 'network-request-failed':
+          throw AuthException(
+            'Network error. Please check your internet connection.',
+            code: e.code,
+          );
+        default:
+          throw AuthException(
+            'Sign-in failed: ${e.message ?? 'Unknown error'}',
+            code: e.code,
+          );
+      }
+    } on FormatException catch (e) {
+      AppLogger.logger.e('❌ Format validation error', error: e);
+      throw AuthException(e.message, code: 'format-error');
+    } catch (e, stackTrace) {
+      AppLogger.logger.e(
+        '❌ Unexpected error during email sign-in',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      throw AuthException(
+        'An unexpected error occurred. Please try again.',
+        code: 'unknown-error',
+      );
     }
   }
 
-  // Sign in with email and password
-  Future<UserCredential> signIn({
+  /// Create user with email and password with comprehensive error handling
+  Future<UserCredential> createUserWithEmailAndPassword({
     required String email,
     required String password,
   }) async {
     try {
-      final credential = await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
+      // 1. CREDENTIAL FORMAT SANITY - Trim whitespace
+      final cleanEmail = email.trim();
+      final cleanPassword = password.trim();
+
+      AppLogger.logger.auth('🔐 Attempting email sign-up for: $cleanEmail');
+
+      // 2. Basic validation
+      if (cleanEmail.isEmpty) {
+        throw const FormatException('Email cannot be empty');
+      }
+      if (cleanPassword.isEmpty) {
+        throw const FormatException('Password cannot be empty');
+      }
+      if (!_isValidEmail(cleanEmail)) {
+        throw const FormatException('Invalid email format');
+      }
+      if (cleanPassword.length < 6) {
+        throw const FormatException('Password must be at least 6 characters');
+      }
+
+      // 3. Firebase sign-up with proper error handling
+      final credential = await _auth.createUserWithEmailAndPassword(
+        email: cleanEmail,
+        password: cleanPassword,
       );
+
+      AppLogger.logger.auth('✅ Email sign-up successful for: $cleanEmail');
       return credential;
     } on FirebaseAuthException catch (e) {
-      throw _handleFirebaseAuthError(e);
-    } catch (e) {
-      throw AuthException('Failed to sign in: ${e.toString()}');
+      AppLogger.logger.e(
+        '❌ Firebase Auth Error during email sign-up',
+        error: e,
+        stackTrace: StackTrace.current,
+      );
+
+      // 4. SPECIFIC ERROR HANDLING for each Firebase error code
+      switch (e.code) {
+        case 'email-already-in-use':
+          throw AuthException(
+            'An account already exists with this email. Please sign in instead.',
+            code: e.code,
+          );
+        case 'invalid-email':
+          throw AuthException(
+            'Invalid email format. Please enter a valid email.',
+            code: e.code,
+          );
+        case 'weak-password':
+          throw AuthException(
+            'Password is too weak. Please choose a stronger password.',
+            code: e.code,
+          );
+        case 'operation-not-allowed':
+          throw AuthException(
+            'Email/password sign-up is not enabled. Please contact support.',
+            code: e.code,
+          );
+        case 'network-request-failed':
+          throw AuthException(
+            'Network error. Please check your internet connection.',
+            code: e.code,
+          );
+        default:
+          throw AuthException(
+            'Sign-up failed: ${e.message ?? 'Unknown error'}',
+            code: e.code,
+          );
+      }
+    } on FormatException catch (e) {
+      AppLogger.logger.e('❌ Format validation error', error: e);
+      throw AuthException(e.message, code: 'format-error');
+    } catch (e, stackTrace) {
+      AppLogger.logger.e(
+        '❌ Unexpected error during email sign-up',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      throw AuthException(
+        'An unexpected error occurred. Please try again.',
+        code: 'unknown-error',
+      );
     }
   }
 
-  // Sign in with Google
+  /// Google Sign In with comprehensive error handling
   Future<UserCredential> signInWithGoogle() async {
     try {
-      AppLogger.logger.auth('🔐 Starting Google Sign-In process...');
+      AppLogger.logger.auth('🔐 Attempting Google sign-in');
 
-      // Enhanced configuration validation
-      if (_googleSignIn.clientId == null) {
-        AppLogger.logger
-            .e('❌ Google Sign-In not configured - missing client ID');
-        throw const AuthException('🔧 Google Sign-In Configuration Required\n\n'
-            'To enable Google Sign-In:\n'
-            '1. Add SHA-1 fingerprint to Firebase console\n'
-            '2. Download updated google-services.json\n'
-            '3. Rebuild the app\n\n'
-            'See FIREBASE_SETUP_GUIDE.md for details.');
-      }
-
-      // Log Google Sign-In configuration details
-      AppLogger.logger.d('Google Sign-In scopes: ${_googleSignIn.scopes}');
-      AppLogger.logger.d(
-          'Google Sign-In client ID: ${_googleSignIn.clientId != null ? "CONFIGURED" : "NOT_SET"}');
-
-      // Check current sign-in status
-      final bool wasSignedIn = await _googleSignIn.isSignedIn();
-      AppLogger.logger.d('Previous Google sign-in status: $wasSignedIn');
-
-      // Sign out from any previous Google sessions to ensure clean state
-      if (wasSignedIn) {
-        AppLogger.logger.d('Signing out from previous Google session...');
-        await _googleSignIn.signOut();
-      }
-
-      AppLogger.logger.d('Attempting Google Sign-In...');
+      // Trigger the authentication flow
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
       if (googleUser == null) {
-        AppLogger.logger.w('🚫 Google sign-in was cancelled by user');
-        throw const AuthException('Google sign in was cancelled');
+        throw AuthException(
+          'Google sign-in was cancelled by user',
+          code: 'sign-in-cancelled',
+        );
       }
 
-      AppLogger.logger
-          .auth('✅ Google user account selected: ${googleUser.email}');
-      AppLogger.logger.d(
-          'Google user details - Name: ${googleUser.displayName}, ID: ${googleUser.id}');
-
-      AppLogger.logger.d('Getting Google authentication tokens...');
+      // Obtain the auth details from the request
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
 
-      AppLogger.logger.d('Google auth tokens received:');
-      AppLogger.logger.d(
-          '  - Access Token: ${googleAuth.accessToken != null ? "PRESENT" : "MISSING"}');
-      AppLogger.logger.d(
-          '  - ID Token: ${googleAuth.idToken != null ? "PRESENT" : "MISSING"}');
-
       if (googleAuth.accessToken == null || googleAuth.idToken == null) {
-        AppLogger.logger
-            .e('❌ Failed to get Google credentials - tokens are null');
-        throw const AuthException('Failed to get Google credentials');
+        throw AuthException(
+          'Failed to obtain Google authentication tokens',
+          code: 'token-error',
+        );
       }
 
       // Create a new credential
-      AppLogger.logger.d('Creating Firebase credential...');
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      AppLogger.logger
-          .auth('🔑 Attempting Firebase sign-in with Google credential...');
+      // Sign in to Firebase with the Google credential
       final userCredential = await _auth.signInWithCredential(credential);
 
-      AppLogger.logger.auth('🎉 Firebase sign-in successful!');
-      AppLogger.logger.d('Firebase user: ${userCredential.user?.email}');
-
-      // Create or update user profile in Firestore
-      if (userCredential.user != null) {
-        AppLogger.logger.d('👤 Creating/updating user profile in Firestore...');
-        await _createOrUpdateUserProfile(
-          user: userCredential.user!,
-          name: googleUser.displayName ?? 'Unknown',
-          role: UserRole.contributor, // Default role
-        );
-        AppLogger.logger.auth('✅ User profile updated successfully');
-      }
-
+      AppLogger.logger.auth('✅ Google sign-in successful');
       return userCredential;
-    } on FirebaseAuthException catch (e, stackTrace) {
-      AppLogger.logger.e('🔥 Firebase Auth Exception during Google sign-in',
-          error: e, stackTrace: stackTrace);
-      AppLogger.logger.e('Firebase Auth Error Code: ${e.code}');
-      AppLogger.logger.e('Firebase Auth Error Message: ${e.message}');
-      throw _handleFirebaseAuthError(e);
+    } on FirebaseAuthException catch (e) {
+      AppLogger.logger.e(
+        '❌ Firebase Auth Error during Google sign-in',
+        error: e,
+        stackTrace: StackTrace.current,
+      );
+
+      switch (e.code) {
+        case 'account-exists-with-different-credential':
+          throw AuthException(
+            'An account already exists with this email using a different sign-in method.',
+            code: e.code,
+          );
+        case 'invalid-credential':
+          throw AuthException(
+            'Invalid Google credentials. Please try again.',
+            code: e.code,
+          );
+        case 'operation-not-allowed':
+          throw AuthException(
+            'Google sign-in is not enabled. Please contact support.',
+            code: e.code,
+          );
+        case 'user-disabled':
+          throw AuthException(
+            'This account has been disabled. Please contact support.',
+            code: e.code,
+          );
+        case 'network-request-failed':
+          throw AuthException(
+            'Network error. Please check your internet connection.',
+            code: e.code,
+          );
+        default:
+          throw AuthException(
+            'Google sign-in failed: ${e.message ?? 'Unknown error'}',
+            code: e.code,
+          );
+      }
     } catch (e, stackTrace) {
-      AppLogger.logger.e('❌ Google sign-in failed with unexpected error',
-          error: e, stackTrace: stackTrace);
-
-      // Enhanced error analysis for common Google Sign-In issues
-      final errorString = e.toString();
-
-      // Don't show complex error analysis for user cancellation
-      if (errorString.contains('sign in was cancelled')) {
-        rethrow;
-      }
-
-      if (errorString.contains('ApiException: 10')) {
-        AppLogger.logger.e('🔍 DEVELOPER_ERROR (Code 10) Analysis:');
-        AppLogger.logger.e('   ❌ This indicates a configuration problem');
-        AppLogger.logger.e('   📋 Common causes:');
-        AppLogger.logger
-            .e('      • google-services.json is missing or invalid');
-        AppLogger.logger
-            .e('      • SHA-1 fingerprint not added to Firebase console');
-        AppLogger.logger.e(
-            '      • Package name mismatch between app and Firebase project');
-        AppLogger.logger.e('      • OAuth client not properly configured');
-        throw const AuthException('🔧 App Configuration Required\n\n'
-            'Google Sign-In requires proper Firebase configuration.\n\n'
-            '📋 Required Steps:\n'
-            '• Add SHA-1 fingerprint to Firebase console\n'
-            '• Download updated google-services.json\n'
-            '• Rebuild the app\n\n'
-            'See FIREBASE_SETUP_GUIDE.md for detailed instructions.');
-      } else if (errorString.contains('ApiException: 12500')) {
-        AppLogger.logger.e(
-            '🔍 SIGN_IN_REQUIRED (Code 12500): User not signed in to Google Play Services');
-        throw const AuthException('🔐 Google Play Services Required\n\n'
-            'Please sign in to Google Play Services on this device and try again.');
-      } else if (errorString.contains('ApiException: 7')) {
-        AppLogger.logger
-            .e('🔍 NETWORK_ERROR (Code 7): Check internet connectivity');
-        throw const AuthException('🌐 Network Error\n\n'
-            'Please check your internet connection and try again.');
-      } else if (errorString.contains('ApiException: 8')) {
-        AppLogger.logger.e(
-            '🔍 INTERNAL_ERROR (Code 8): Google Play Services internal error');
-        throw const AuthException('⚠️ Google Play Services Error\n\n'
-            'Please update Google Play Services and try again.');
-      }
-
-      throw AuthException('Google sign in failed: ${e.toString()}');
+      AppLogger.logger.e(
+        '❌ Unexpected error during Google sign-in',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      throw AuthException(
+        'Google sign-in failed. Please try again.',
+        code: 'unknown-error',
+      );
     }
   }
 
-  // Sign in with Apple (iOS/macOS only)
+  /// Apple Sign In with comprehensive error handling
   Future<UserCredential> signInWithApple() async {
-    if (!Platform.isIOS && !Platform.isMacOS) {
-      throw const AuthException(
-        'Apple Sign In is only available on iOS and macOS',
-      );
-    }
-
     try {
-      final credential = await SignInWithApple.getAppleIDCredential(
+      AppLogger.logger.auth('🔐 Attempting Apple sign-in');
+
+      // Request credential for the currently signed in Apple account
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
         scopes: [
           AppleIDAuthorizationScopes.email,
           AppleIDAuthorizationScopes.fullName,
         ],
       );
 
-      if (credential.identityToken == null) {
-        throw const AuthException('Failed to get Apple ID credential');
-      }
-
-      // Create a new credential
+      // Create an OAuthCredential from the credential returned by Apple
       final oauthCredential = OAuthProvider("apple.com").credential(
-        idToken: credential.identityToken,
-        accessToken: credential.authorizationCode,
+        idToken: appleCredential.identityToken,
+        accessToken: appleCredential.authorizationCode,
       );
 
+      // Sign in the user with Firebase
       final userCredential = await _auth.signInWithCredential(oauthCredential);
 
-      // Create or update user profile in Firestore
-      if (userCredential.user != null) {
-        final name =
-            credential.givenName != null && credential.familyName != null
-                ? '${credential.givenName} ${credential.familyName}'
-                : userCredential.user!.displayName ?? 'Unknown';
-
-        await _createOrUpdateUserProfile(
-          user: userCredential.user!,
-          name: name,
-          role: UserRole.contributor, // Default role
-        );
-      }
-
+      AppLogger.logger.auth('✅ Apple sign-in successful');
       return userCredential;
     } on FirebaseAuthException catch (e) {
-      throw _handleFirebaseAuthError(e);
-    } catch (e) {
-      throw AuthException('Apple sign in failed: ${e.toString()}');
-    }
-  }
+      AppLogger.logger.e(
+        '❌ Firebase Auth Error during Apple sign-in',
+        error: e,
+        stackTrace: StackTrace.current,
+      );
 
-  // Send password reset email
-  Future<void> resetPassword(String email) async {
-    try {
-      await _auth.sendPasswordResetEmail(email: email);
-    } on FirebaseAuthException catch (e) {
-      throw _handleFirebaseAuthError(e);
-    } catch (e) {
+      switch (e.code) {
+        case 'account-exists-with-different-credential':
+          throw AuthException(
+            'An account already exists with this email using a different sign-in method.',
+            code: e.code,
+          );
+        case 'invalid-credential':
+          throw AuthException(
+            'Invalid Apple credentials. Please try again.',
+            code: e.code,
+          );
+        case 'operation-not-allowed':
+          throw AuthException(
+            'Apple sign-in is not enabled. Please contact support.',
+            code: e.code,
+          );
+        case 'user-disabled':
+          throw AuthException(
+            'This account has been disabled. Please contact support.',
+            code: e.code,
+          );
+        default:
+          throw AuthException(
+            'Apple sign-in failed: ${e.message ?? 'Unknown error'}',
+            code: e.code,
+          );
+      }
+    } catch (e, stackTrace) {
+      AppLogger.logger.e(
+        '❌ Unexpected error during Apple sign-in',
+        error: e,
+        stackTrace: stackTrace,
+      );
       throw AuthException(
-          'Failed to send password reset email: ${e.toString()}');
+        'Apple sign-in failed. Please try again.',
+        code: 'unknown-error',
+      );
     }
   }
 
-  // Update password
-  Future<void> updatePassword(String newPassword) async {
-    if (!isAuthenticated) {
-      throw const AuthException('User must be authenticated');
-    }
-
+  /// Send password reset email
+  Future<void> sendPasswordResetEmail(String email) async {
     try {
-      await currentUser!.updatePassword(newPassword);
+      final cleanEmail = email.trim();
+
+      if (cleanEmail.isEmpty) {
+        throw const FormatException('Email cannot be empty');
+      }
+      if (!_isValidEmail(cleanEmail)) {
+        throw const FormatException('Invalid email format');
+      }
+
+      await _auth.sendPasswordResetEmail(email: cleanEmail);
+
+      AppLogger.logger.auth('✅ Password reset email sent to: $cleanEmail');
     } on FirebaseAuthException catch (e) {
-      throw _handleFirebaseAuthError(e);
-    } catch (e) {
-      throw AuthException('Failed to update password: ${e.toString()}');
+      AppLogger.logger.e('❌ Error sending password reset email', error: e);
+
+      switch (e.code) {
+        case 'user-not-found':
+          throw AuthException(
+            'No account found with this email.',
+            code: e.code,
+          );
+        case 'invalid-email':
+          throw AuthException(
+            'Invalid email format.',
+            code: e.code,
+          );
+        default:
+          throw AuthException(
+            'Failed to send reset email: ${e.message ?? 'Unknown error'}',
+            code: e.code,
+          );
+      }
     }
   }
 
-  // Sign out
+  /// Sign out
   Future<void> signOut() async {
     try {
+      AppLogger.logger.auth('🔐 Signing out user');
+
       // Sign out from Google if signed in
       if (await _googleSignIn.isSignedIn()) {
         await _googleSignIn.signOut();
       }
 
+      // Sign out from Firebase
       await _auth.signOut();
-    } catch (e) {
-      throw AuthException('Failed to sign out: ${e.toString()}');
+
+      AppLogger.logger.auth('✅ User signed out successfully');
+    } catch (e, stackTrace) {
+      AppLogger.logger.e(
+        '❌ Error during sign-out',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      throw AuthException(
+        'Failed to sign out. Please try again.',
+        code: 'sign-out-error',
+      );
     }
+  }
+
+  /// Validate email format using RegExp
+  bool _isValidEmail(String email) {
+    final emailRegex = RegExp(
+      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+    );
+    return emailRegex.hasMatch(email);
   }
 
   // Get current user profile
@@ -317,7 +462,10 @@ class AuthService {
 
       return doc.exists ? UserModel.fromJson(doc.data()!) : null;
     } catch (e) {
-      throw AuthException('Failed to get user profile: ${e.toString()}');
+      throw AuthException(
+        'Failed to get user profile: ${e.toString()}',
+        code: 'profile-fetch-error',
+      );
     }
   }
 
@@ -330,7 +478,10 @@ class AuthService {
     List<String> skills = const [],
   }) async {
     if (!isAuthenticated) {
-      throw const AuthException('User must be authenticated');
+      throw const AuthException(
+        'User must be authenticated',
+        code: 'not-authenticated',
+      );
     }
 
     final user = currentUser!;
@@ -358,7 +509,10 @@ class AuthService {
 
       return UserModel.fromJson(userData);
     } catch (e) {
-      throw AuthException('Failed to update user profile: ${e.toString()}');
+      throw AuthException(
+        'Failed to update user profile: ${e.toString()}',
+        code: 'profile-update-error',
+      );
     }
   }
 
@@ -384,7 +538,10 @@ class AuthService {
     String? avatarUrl,
   }) async {
     if (!isAuthenticated) {
-      throw const AuthException('User must be authenticated');
+      throw const AuthException(
+        'User must be authenticated',
+        code: 'not-authenticated',
+      );
     }
 
     final updateData = <String, dynamic>{
@@ -408,14 +565,20 @@ class AuthService {
 
       return UserModel.fromJson(doc.data()!);
     } catch (e) {
-      throw AuthException('Failed to update user profile: ${e.toString()}');
+      throw AuthException(
+        'Failed to update user profile: ${e.toString()}',
+        code: 'profile-update-error',
+      );
     }
   }
 
   // Delete user account
   Future<void> deleteAccount() async {
     if (!isAuthenticated) {
-      throw const AuthException('User must be authenticated');
+      throw const AuthException(
+        'User must be authenticated',
+        code: 'not-authenticated',
+      );
     }
 
     try {
@@ -428,7 +591,10 @@ class AuthService {
       // Delete the user account
       await currentUser!.delete();
     } catch (e) {
-      throw AuthException('Failed to delete account: ${e.toString()}');
+      throw AuthException(
+        'Failed to delete account: ${e.toString()}',
+        code: 'account-deletion-error',
+      );
     }
   }
 
@@ -474,55 +640,15 @@ class AuthService {
       });
     }
   }
-
-  // Enhanced Firebase Auth error handling
-  AuthException _handleFirebaseAuthError(FirebaseAuthException error) {
-    String message;
-
-    switch (error.code) {
-      case 'user-not-found':
-        message = 'No account found with this email address';
-        break;
-      case 'wrong-password':
-        message = 'Incorrect password';
-        break;
-      case 'email-already-in-use':
-        message = 'An account with this email already exists';
-        break;
-      case 'weak-password':
-        message = 'Password must be at least 6 characters long';
-        break;
-      case 'invalid-email':
-        message = 'Please enter a valid email address';
-        break;
-      case 'user-disabled':
-        message = 'This account has been disabled';
-        break;
-      case 'too-many-requests':
-        message = 'Too many failed attempts. Please try again later';
-        break;
-      case 'operation-not-allowed':
-        message = 'This sign-in method is not enabled';
-        break;
-      case 'network-request-failed':
-        message = 'Network error. Please check your connection';
-        break;
-      case 'requires-recent-login':
-        message = 'Please sign in again to complete this action';
-        break;
-      default:
-        message = error.message ?? 'An unknown error occurred';
-    }
-
-    return AuthException(message);
-  }
 }
 
+/// Custom Auth Exception class for better error handling
 class AuthException implements Exception {
   final String message;
+  final String code;
 
-  const AuthException(this.message);
+  const AuthException(this.message, {required this.code});
 
   @override
-  String toString() => 'AuthException: $message';
+  String toString() => 'AuthException: $message (Code: $code)';
 }

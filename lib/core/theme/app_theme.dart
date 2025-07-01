@@ -4,556 +4,546 @@ import 'package:google_fonts/google_fonts.dart';
 import '../constants/app_constants.dart';
 
 class AppTheme {
-  static ThemeData get lightTheme => _buildTheme(Brightness.light);
-  static ThemeData get darkTheme => _buildTheme(Brightness.dark);
+  // GitHub-inspired color palette
+  static const Color _gitHubBlack = Color(0xFF0D1117);
+  static const Color _gitHubDarkGray = Color(0xFF161B22);
+  static const Color _gitHubGray = Color(0xFF21262D);
+  static const Color _gitHubLightGray = Color(0xFF30363D);
+  static const Color _gitHubGreen = Color(0xFF238636);
+  static const Color _gitHubBrightGreen = Color(0xFF2EA043);
+  static const Color _gitHubLimeGreen = Color(0xFF3FB950);
+  static const Color _gitHubWhite = Color(0xFFF0F6FC);
+  static const Color _gitHubLightText = Color(0xFFE6EDF3);
+  static const Color _gitHubMutedText = Color(0xFF7D8590);
+  static const Color _gitHubBorder = Color(0xFF30363D);
+  static const Color _gitHubRed = Color(0xFFDA3633);
+  static const Color _gitHubYellow = Color(0xFFFBD400);
+  static const Color _gitHubBlue = Color(0xFF1F6FEB);
 
-  static ThemeData _buildTheme(Brightness brightness) {
-    final isDark = brightness == Brightness.dark;
-
+  static ThemeData get theme {
     return ThemeData(
       useMaterial3: true,
-      brightness: brightness,
+      brightness: Brightness.dark,
 
-      // Color Scheme
-      colorScheme: _buildColorScheme(brightness),
-
-      // Typography
-      textTheme: _buildTextTheme(isDark),
-
-      // App Bar
-      appBarTheme: _buildAppBarTheme(isDark),
-
-      // Scaffold
-      scaffoldBackgroundColor: isDark ? AppColors.darkBase : Colors.white,
-
-      // Cards
-      cardTheme: _buildCardTheme(isDark),
-
-      // Buttons
-      elevatedButtonTheme: _buildElevatedButtonTheme(isDark),
-      outlinedButtonTheme: _buildOutlinedButtonTheme(isDark),
-      textButtonTheme: _buildTextButtonTheme(isDark),
-
-      // Input Fields
-      inputDecorationTheme: _buildInputDecorationTheme(isDark),
-
-      // Bottom Navigation
-      bottomNavigationBarTheme: _buildBottomNavigationBarTheme(isDark),
-
-      // Tab Bar
-      tabBarTheme: _buildTabBarTheme(isDark),
-
-      // Dialog
-      dialogTheme: _buildDialogTheme(isDark),
-
-      // Bottom Sheet
-      bottomSheetTheme: _buildBottomSheetTheme(isDark),
-
-      // Snack Bar
-      snackBarTheme: _buildSnackBarTheme(isDark),
-
-      // Chip
-      chipTheme: _buildChipTheme(isDark),
-
-      // Switch
-      switchTheme: _buildSwitchTheme(isDark),
-
-      // Slider
-      sliderTheme: _buildSliderTheme(isDark),
-
-      // Progress Indicator
-      progressIndicatorTheme: _buildProgressIndicatorTheme(isDark),
-
-      // List Tile
-      listTileTheme: _buildListTileTheme(isDark),
-
-      // Divider
-      dividerTheme: _buildDividerTheme(isDark),
-    );
-  }
-
-  static ColorScheme _buildColorScheme(Brightness brightness) {
-    final isDark = brightness == Brightness.dark;
-
-    if (isDark) {
-      return const ColorScheme.dark(
-        primary: AppColors.primaryNeon,
-        secondary: AppColors.secondaryNeon,
-        tertiary: AppColors.accentNeon,
-        surface: AppColors.surfaceGlass,
-        onSurface: AppColors.textPrimary,
-        error: AppColors.errorNeon,
-        onError: Colors.white,
-        outline: AppColors.textTertiary,
-        outlineVariant: AppColors.textSecondary,
-      );
-    } else {
-      return ColorScheme.light(
-        primary: AppColors.primaryNeon,
-        secondary: AppColors.secondaryNeon,
-        tertiary: AppColors.accentNeon,
-        surface: Colors.white,
-        onSurface: Colors.black87,
-        error: AppColors.errorNeon,
-        onError: Colors.white,
-        outline: Colors.grey[400]!,
-        outlineVariant: Colors.grey[300]!,
-      );
-    }
-  }
-
-  static TextTheme _buildTextTheme(bool isDark) {
-    final baseColor = isDark ? AppColors.textPrimary : Colors.black87;
-    final secondaryColor = isDark ? AppColors.textSecondary : Colors.black54;
-
-    return TextTheme(
-      // Display styles
-      displayLarge: GoogleFonts.orbitron(
-        fontSize: 57.sp,
-        fontWeight: FontWeight.w900,
-        color: baseColor,
-        letterSpacing: -0.25,
-        height: 1.12,
-      ),
-      displayMedium: GoogleFonts.orbitron(
-        fontSize: 45.sp,
-        fontWeight: FontWeight.w700,
-        color: baseColor,
-        letterSpacing: 0,
-        height: 1.16,
-      ),
-      displaySmall: GoogleFonts.orbitron(
-        fontSize: 36.sp,
-        fontWeight: FontWeight.w600,
-        color: baseColor,
-        letterSpacing: 0,
-        height: 1.22,
+      // Color scheme inspired by GitHub Dark
+      colorScheme: const ColorScheme.dark(
+        brightness: Brightness.dark,
+        primary: _gitHubGreen,
+        onPrimary: _gitHubBlack,
+        primaryContainer: _gitHubBrightGreen,
+        onPrimaryContainer: _gitHubWhite,
+        secondary: _gitHubLimeGreen,
+        onSecondary: _gitHubBlack,
+        secondaryContainer: _gitHubGray,
+        onSecondaryContainer: _gitHubLightText,
+        tertiary: _gitHubBlue,
+        onTertiary: _gitHubWhite,
+        tertiaryContainer: _gitHubDarkGray,
+        onTertiaryContainer: _gitHubLightText,
+        error: _gitHubRed,
+        onError: _gitHubWhite,
+        errorContainer: Color(0xFF5A1E1E),
+        onErrorContainer: Color(0xFFFFDAD6),
+        surface: _gitHubDarkGray,
+        onSurface: _gitHubLightText,
+        surfaceVariant: _gitHubGray,
+        onSurfaceVariant: _gitHubMutedText,
+        outline: _gitHubBorder,
+        outlineVariant: _gitHubLightGray,
+        shadow: Colors.black87,
+        scrim: Colors.black54,
+        inverseSurface: _gitHubWhite,
+        onInverseSurface: _gitHubBlack,
+        inversePrimary: _gitHubGreen,
+        surfaceTint: _gitHubGreen,
       ),
 
-      // Headline styles
-      headlineLarge: GoogleFonts.rajdhani(
-        fontSize: 32.sp,
-        fontWeight: FontWeight.w700,
-        color: baseColor,
-        letterSpacing: 0,
-        height: 1.25,
-      ),
-      headlineMedium: GoogleFonts.rajdhani(
-        fontSize: 28.sp,
-        fontWeight: FontWeight.w600,
-        color: baseColor,
-        letterSpacing: 0,
-        height: 1.29,
-      ),
-      headlineSmall: GoogleFonts.rajdhani(
-        fontSize: 24.sp,
-        fontWeight: FontWeight.w600,
-        color: baseColor,
-        letterSpacing: 0,
-        height: 1.33,
+      // Background colors
+      scaffoldBackgroundColor: _gitHubBlack,
+      canvasColor: _gitHubDarkGray,
+      cardColor: _gitHubGray,
+      dividerColor: _gitHubBorder,
+
+      // Typography with GitHub-style fonts
+      textTheme: GoogleFonts.interTextTheme().copyWith(
+        displayLarge: GoogleFonts.orbitron(
+          fontSize: 57,
+          fontWeight: FontWeight.w400,
+          letterSpacing: -0.25,
+          color: _gitHubWhite,
+        ),
+        displayMedium: GoogleFonts.orbitron(
+          fontSize: 45,
+          fontWeight: FontWeight.w400,
+          color: _gitHubWhite,
+        ),
+        displaySmall: GoogleFonts.orbitron(
+          fontSize: 36,
+          fontWeight: FontWeight.w400,
+          color: _gitHubWhite,
+        ),
+        headlineLarge: GoogleFonts.inter(
+          fontSize: 32,
+          fontWeight: FontWeight.w600,
+          color: _gitHubWhite,
+        ),
+        headlineMedium: GoogleFonts.inter(
+          fontSize: 28,
+          fontWeight: FontWeight.w600,
+          color: _gitHubWhite,
+        ),
+        headlineSmall: GoogleFonts.inter(
+          fontSize: 24,
+          fontWeight: FontWeight.w600,
+          color: _gitHubWhite,
+        ),
+        titleLarge: GoogleFonts.inter(
+          fontSize: 22,
+          fontWeight: FontWeight.w700,
+          color: _gitHubWhite,
+        ),
+        titleMedium: GoogleFonts.inter(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.15,
+          color: _gitHubLightText,
+        ),
+        titleSmall: GoogleFonts.inter(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.1,
+          color: _gitHubLightText,
+        ),
+        bodyLarge: GoogleFonts.inter(
+          fontSize: 16,
+          fontWeight: FontWeight.w400,
+          letterSpacing: 0.5,
+          color: _gitHubLightText,
+        ),
+        bodyMedium: GoogleFonts.inter(
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+          letterSpacing: 0.25,
+          color: _gitHubLightText,
+        ),
+        bodySmall: GoogleFonts.inter(
+          fontSize: 12,
+          fontWeight: FontWeight.w400,
+          letterSpacing: 0.4,
+          color: _gitHubMutedText,
+        ),
+        labelLarge: GoogleFonts.inter(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.1,
+          color: _gitHubWhite,
+        ),
+        labelMedium: GoogleFonts.inter(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.5,
+          color: _gitHubLightText,
+        ),
+        labelSmall: GoogleFonts.inter(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.5,
+          color: _gitHubMutedText,
+        ),
       ),
 
-      // Title styles
-      titleLarge: GoogleFonts.inter(
-        fontSize: 22.sp,
-        fontWeight: FontWeight.w600,
-        color: baseColor,
-        letterSpacing: 0,
-        height: 1.27,
-      ),
-      titleMedium: GoogleFonts.inter(
-        fontSize: 16.sp,
-        fontWeight: FontWeight.w600,
-        color: baseColor,
-        letterSpacing: 0.15,
-        height: 1.5,
-      ),
-      titleSmall: GoogleFonts.inter(
-        fontSize: 14.sp,
-        fontWeight: FontWeight.w600,
-        color: baseColor,
-        letterSpacing: 0.1,
-        height: 1.43,
-      ),
-
-      // Body styles
-      bodyLarge: GoogleFonts.inter(
-        fontSize: 16.sp,
-        fontWeight: FontWeight.w400,
-        color: baseColor,
-        letterSpacing: 0.5,
-        height: 1.5,
-      ),
-      bodyMedium: GoogleFonts.inter(
-        fontSize: 14.sp,
-        fontWeight: FontWeight.w400,
-        color: secondaryColor,
-        letterSpacing: 0.25,
-        height: 1.43,
-      ),
-      bodySmall: GoogleFonts.inter(
-        fontSize: 12.sp,
-        fontWeight: FontWeight.w400,
-        color: secondaryColor,
-        letterSpacing: 0.4,
-        height: 1.33,
-      ),
-
-      // Label styles
-      labelLarge: GoogleFonts.inter(
-        fontSize: 14.sp,
-        fontWeight: FontWeight.w500,
-        color: baseColor,
-        letterSpacing: 0.1,
-        height: 1.43,
-      ),
-      labelMedium: GoogleFonts.inter(
-        fontSize: 12.sp,
-        fontWeight: FontWeight.w500,
-        color: baseColor,
-        letterSpacing: 0.5,
-        height: 1.33,
-      ),
-      labelSmall: GoogleFonts.inter(
-        fontSize: 11.sp,
-        fontWeight: FontWeight.w500,
-        color: baseColor,
-        letterSpacing: 0.5,
-        height: 1.45,
-      ),
-    );
-  }
-
-  static AppBarTheme _buildAppBarTheme(bool isDark) {
-    return AppBarTheme(
-      backgroundColor: isDark
-          ? AppColors.surfaceGlass.withValues(alpha: 0.1)
-          : Colors.white.withValues(alpha: 0.9),
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      centerTitle: true,
-      titleTextStyle: GoogleFonts.orbitron(
-        fontSize: 20.sp,
-        fontWeight: FontWeight.w600,
-        color: isDark ? AppColors.textPrimary : Colors.black87,
-      ),
-      iconTheme: IconThemeData(
-        color: isDark ? AppColors.textPrimary : Colors.black87,
-        size: 24.w,
-      ),
-    );
-  }
-
-  static CardTheme _buildCardTheme(bool isDark) {
-    return CardTheme(
-      color:
-          isDark ? AppColors.surfaceGlass.withValues(alpha: 0.1) : Colors.white,
-      elevation: isDark ? 0 : 2,
-      shadowColor: isDark ? Colors.transparent : Colors.black12,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSizes.md.r),
-        side: isDark
-            ? BorderSide(
-                color: AppColors.primaryNeon.withValues(alpha: 0.1),
-                width: 1,
-              )
-            : BorderSide.none,
-      ),
-    );
-  }
-
-  static ElevatedButtonThemeData _buildElevatedButtonTheme(bool isDark) {
-    return ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
+      // App Bar Theme
+      appBarTheme: AppBarTheme(
+        backgroundColor: _gitHubBlack,
+        foregroundColor: _gitHubWhite,
         elevation: 0,
-        padding: EdgeInsets.symmetric(
-          horizontal: AppSizes.lg.w,
-          vertical: AppSizes.md.h,
-        ),
-        minimumSize: Size(120.w, AppSizes.buttonHeight.h),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSizes.md.r),
-          side: const BorderSide(color: AppColors.primaryNeon, width: 2),
-        ),
-        textStyle: GoogleFonts.rajdhani(
-          fontSize: 16.sp,
+        scrolledUnderElevation: 1,
+        surfaceTintColor: _gitHubGreen,
+        titleTextStyle: GoogleFonts.inter(
+          fontSize: 20,
           fontWeight: FontWeight.w600,
-          letterSpacing: 1,
+          color: _gitHubWhite,
+        ),
+        iconTheme: const IconThemeData(
+          color: _gitHubWhite,
+          size: 24,
+        ),
+        actionsIconTheme: const IconThemeData(
+          color: _gitHubWhite,
+          size: 24,
         ),
       ),
-    );
-  }
 
-  static OutlinedButtonThemeData _buildOutlinedButtonTheme(bool isDark) {
-    return OutlinedButtonThemeData(
-      style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.secondaryNeon,
-        side: const BorderSide(color: AppColors.secondaryNeon, width: 2),
-        padding: EdgeInsets.symmetric(
-          horizontal: AppSizes.lg.w,
-          vertical: AppSizes.md.h,
-        ),
-        minimumSize: Size(120.w, AppSizes.buttonHeight.h),
+      // Card Theme
+      cardTheme: CardTheme(
+        color: _gitHubGray,
+        shadowColor: Colors.black54,
+        elevation: 2,
+        margin: const EdgeInsets.all(8),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSizes.md.r),
-        ),
-        textStyle: GoogleFonts.rajdhani(
-          fontSize: 16.sp,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 1,
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(
+            color: _gitHubBorder,
+            width: 1,
+          ),
         ),
       ),
-    );
-  }
 
-  static TextButtonThemeData _buildTextButtonTheme(bool isDark) {
-    return TextButtonThemeData(
-      style: TextButton.styleFrom(
-        foregroundColor: AppColors.primaryNeon,
-        padding: EdgeInsets.symmetric(
-          horizontal: AppSizes.md.w,
-          vertical: AppSizes.sm.h,
+      // Elevated Button Theme (Primary GitHub Green)
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _gitHubGreen,
+          foregroundColor: _gitHubWhite,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          elevation: 0,
+          textStyle: GoogleFonts.inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ).copyWith(
+          backgroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+            if (states.contains(MaterialState.hovered)) {
+              return _gitHubBrightGreen;
+            }
+            if (states.contains(MaterialState.pressed)) {
+              return _gitHubLimeGreen;
+            }
+            if (states.contains(MaterialState.disabled)) {
+              return _gitHubLightGray;
+            }
+            return _gitHubGreen;
+          }),
         ),
-        minimumSize: Size(80.w, 40.h),
-        textStyle: GoogleFonts.inter(
-          fontSize: 14.sp,
+      ),
+
+      // Outlined Button Theme (GitHub Style)
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: _gitHubWhite,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          side: const BorderSide(
+            color: _gitHubBorder,
+            width: 1,
+          ),
+          textStyle: GoogleFonts.inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ).copyWith(
+          side: MaterialStateProperty.resolveWith<BorderSide>((states) {
+            if (states.contains(MaterialState.hovered)) {
+              return const BorderSide(color: _gitHubGreen, width: 1);
+            }
+            return const BorderSide(color: _gitHubBorder, width: 1);
+          }),
+          backgroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+            if (states.contains(MaterialState.hovered)) {
+              return _gitHubGray;
+            }
+            return Colors.transparent;
+          }),
+        ),
+      ),
+
+      // Text Button Theme
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: _gitHubGreen,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(6),
+          ),
+          textStyle: GoogleFonts.inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ).copyWith(
+          foregroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+            if (states.contains(MaterialState.hovered)) {
+              return _gitHubBrightGreen;
+            }
+            return _gitHubGreen;
+          }),
+        ),
+      ),
+
+      // Input Decoration Theme (GitHub style)
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: _gitHubDarkGray,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(
+            color: _gitHubBorder,
+            width: 1,
+          ),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(
+            color: _gitHubBorder,
+            width: 1,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(
+            color: _gitHubGreen,
+            width: 2,
+          ),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(
+            color: _gitHubRed,
+            width: 1,
+          ),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(
+            color: _gitHubRed,
+            width: 2,
+          ),
+        ),
+        labelStyle: GoogleFonts.inter(
+          color: _gitHubMutedText,
+          fontSize: 14,
+        ),
+        hintStyle: GoogleFonts.inter(
+          color: _gitHubMutedText,
+          fontSize: 14,
+        ),
+        helperStyle: GoogleFonts.inter(
+          color: _gitHubMutedText,
+          fontSize: 12,
+        ),
+        errorStyle: GoogleFonts.inter(
+          color: _gitHubRed,
+          fontSize: 12,
+        ),
+      ),
+
+      // Floating Action Button Theme
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: _gitHubGreen,
+        foregroundColor: _gitHubWhite,
+        elevation: 4,
+        shape: CircleBorder(),
+      ),
+
+      // Tab Bar Theme
+      tabBarTheme: TabBarTheme(
+        labelColor: _gitHubGreen,
+        unselectedLabelColor: _gitHubMutedText,
+        indicatorColor: _gitHubGreen,
+        indicatorSize: TabBarIndicatorSize.label,
+        labelStyle: GoogleFonts.inter(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
+        unselectedLabelStyle: GoogleFonts.inter(
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+        ),
+      ),
+
+      // Bottom Navigation Bar Theme
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: _gitHubDarkGray,
+        selectedItemColor: _gitHubGreen,
+        unselectedItemColor: _gitHubMutedText,
+        type: BottomNavigationBarType.fixed,
+        elevation: 8,
+      ),
+
+      // Switch Theme
+      switchTheme: SwitchThemeData(
+        thumbColor: MaterialStateProperty.resolveWith<Color>((states) {
+          if (states.contains(MaterialState.selected)) {
+            return _gitHubWhite;
+          }
+          return _gitHubMutedText;
+        }),
+        trackColor: MaterialStateProperty.resolveWith<Color>((states) {
+          if (states.contains(MaterialState.selected)) {
+            return _gitHubGreen;
+          }
+          return _gitHubLightGray;
+        }),
+      ),
+
+      // Checkbox Theme
+      checkboxTheme: CheckboxThemeData(
+        fillColor: MaterialStateProperty.resolveWith<Color>((states) {
+          if (states.contains(MaterialState.selected)) {
+            return _gitHubGreen;
+          }
+          return Colors.transparent;
+        }),
+        checkColor: MaterialStateProperty.all(_gitHubWhite),
+        side: const BorderSide(
+          color: _gitHubBorder,
+          width: 2,
+        ),
+      ),
+
+      // Progress Indicator Theme
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: _gitHubGreen,
+        linearTrackColor: _gitHubLightGray,
+        circularTrackColor: _gitHubLightGray,
+      ),
+
+      // Snack Bar Theme
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: _gitHubGray,
+        contentTextStyle: GoogleFonts.inter(
+          color: _gitHubWhite,
+          fontSize: 14,
+        ),
+        actionTextColor: _gitHubGreen,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        behavior: SnackBarBehavior.floating,
+      ),
+
+      // Dialog Theme
+      dialogTheme: DialogTheme(
+        backgroundColor: _gitHubGray,
+        surfaceTintColor: _gitHubGreen,
+        titleTextStyle: GoogleFonts.inter(
+          color: _gitHubWhite,
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+        ),
+        contentTextStyle: GoogleFonts.inter(
+          color: _gitHubLightText,
+          fontSize: 14,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(
+            color: _gitHubBorder,
+            width: 1,
+          ),
+        ),
+      ),
+
+      // List Tile Theme
+      listTileTheme: ListTileThemeData(
+        tileColor: Colors.transparent,
+        textColor: _gitHubLightText,
+        iconColor: _gitHubMutedText,
+        titleTextStyle: GoogleFonts.inter(
+          color: _gitHubWhite,
+          fontSize: 16,
           fontWeight: FontWeight.w500,
         ),
-      ),
-    );
-  }
-
-  static InputDecorationTheme _buildInputDecorationTheme(bool isDark) {
-    return InputDecorationTheme(
-      filled: true,
-      fillColor: isDark
-          ? AppColors.surfaceGlass.withValues(alpha: 0.1)
-          : Colors.grey[50],
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppSizes.md.r),
-        borderSide: BorderSide(
-          color: isDark
-              ? AppColors.primaryNeon.withValues(alpha: 0.3)
-              : Colors.grey[300]!,
+        subtitleTextStyle: GoogleFonts.inter(
+          color: _gitHubMutedText,
+          fontSize: 14,
         ),
       ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppSizes.md.r),
-        borderSide: BorderSide(
-          color: isDark
-              ? AppColors.primaryNeon.withValues(alpha: 0.3)
-              : Colors.grey[300]!,
+
+      // Chip Theme
+      chipTheme: ChipThemeData(
+        backgroundColor: _gitHubGray,
+        selectedColor: _gitHubGreen,
+        secondarySelectedColor: _gitHubBrightGreen,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        labelStyle: GoogleFonts.inter(
+          color: _gitHubLightText,
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
+        secondaryLabelStyle: GoogleFonts.inter(
+          color: _gitHubWhite,
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
+        brightness: Brightness.dark,
+        side: const BorderSide(
+          color: _gitHubBorder,
+          width: 1,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
         ),
       ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppSizes.md.r),
-        borderSide: const BorderSide(color: AppColors.primaryNeon, width: 2),
+
+      // Icon Theme
+      iconTheme: const IconThemeData(
+        color: _gitHubLightText,
+        size: 24,
       ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppSizes.md.r),
-        borderSide: const BorderSide(color: AppColors.errorNeon, width: 2),
+
+      // Primary Icon Theme
+      primaryIconTheme: const IconThemeData(
+        color: _gitHubGreen,
+        size: 24,
       ),
-      labelStyle: GoogleFonts.inter(
-        color: isDark ? AppColors.textSecondary : Colors.grey[600],
-        fontSize: 14.sp,
-      ),
-      hintStyle: GoogleFonts.inter(
-        color: isDark
-            ? AppColors.textSecondary.withValues(alpha: 0.7)
-            : Colors.grey[500],
-        fontSize: 14.sp,
-      ),
-      contentPadding: EdgeInsets.symmetric(
-        horizontal: AppSizes.md.w,
-        vertical: AppSizes.md.h,
+
+      // Divider Theme
+      dividerTheme: const DividerThemeData(
+        color: _gitHubBorder,
+        thickness: 1,
+        space: 1,
       ),
     );
   }
 
-  static BottomNavigationBarThemeData _buildBottomNavigationBarTheme(
-    bool isDark,
-  ) {
-    return BottomNavigationBarThemeData(
-      backgroundColor:
-          isDark ? AppColors.surfaceGlass.withValues(alpha: 0.1) : Colors.white,
-      selectedItemColor: AppColors.primaryNeon,
-      unselectedItemColor: isDark ? AppColors.textSecondary : Colors.grey[600],
-      type: BottomNavigationBarType.fixed,
-      elevation: 0,
-      selectedLabelStyle: GoogleFonts.inter(
-        fontSize: 12.sp,
-        fontWeight: FontWeight.w500,
-      ),
-      unselectedLabelStyle: GoogleFonts.inter(
-        fontSize: 12.sp,
-        fontWeight: FontWeight.w400,
-      ),
-    );
-  }
+  // Custom GitHub-style gradients
+  static const LinearGradient gitHubGreenGradient = LinearGradient(
+    colors: [_gitHubGreen, _gitHubBrightGreen],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
 
-  static TabBarTheme _buildTabBarTheme(bool isDark) {
-    return TabBarTheme(
-      labelColor: AppColors.primaryNeon,
-      unselectedLabelColor: isDark ? AppColors.textSecondary : Colors.grey[600],
-      indicator: BoxDecoration(
-        color: AppColors.primaryNeon.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(AppSizes.md.r),
-        border: Border.all(color: AppColors.primaryNeon, width: 1),
-      ),
-      labelStyle: GoogleFonts.rajdhani(
-        fontSize: 16.sp,
-        fontWeight: FontWeight.w600,
-      ),
-      unselectedLabelStyle: GoogleFonts.rajdhani(
-        fontSize: 16.sp,
-        fontWeight: FontWeight.w400,
-      ),
-      indicatorSize: TabBarIndicatorSize.tab,
-    );
-  }
+  static const LinearGradient gitHubDarkGradient = LinearGradient(
+    colors: [_gitHubBlack, _gitHubDarkGray],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+  );
 
-  static DialogTheme _buildDialogTheme(bool isDark) {
-    return DialogTheme(
-      backgroundColor: isDark ? AppColors.surfaceDark : Colors.white,
-      elevation: isDark ? 0 : 8,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSizes.lg.r),
-        side: isDark
-            ? BorderSide(
-                color: AppColors.primaryNeon.withValues(alpha: 0.2),
-                width: 1,
-              )
-            : BorderSide.none,
-      ),
-      titleTextStyle: GoogleFonts.orbitron(
-        fontSize: 20.sp,
-        fontWeight: FontWeight.w600,
-        color: isDark ? AppColors.textPrimary : Colors.black87,
-      ),
-      contentTextStyle: GoogleFonts.inter(
-        fontSize: 14.sp,
-        color: isDark ? AppColors.textSecondary : Colors.black54,
-      ),
-    );
-  }
+  static const LinearGradient gitHubAccentGradient = LinearGradient(
+    colors: [_gitHubGreen, _gitHubLimeGreen],
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+  );
 
-  static BottomSheetThemeData _buildBottomSheetTheme(bool isDark) {
-    return BottomSheetThemeData(
-      backgroundColor: isDark ? AppColors.surfaceDark : Colors.white,
-      elevation: isDark ? 0 : 8,
-      modalElevation: isDark ? 0 : 16,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppSizes.lg.r),
-        ),
-        side: isDark
-            ? BorderSide(
-                color: AppColors.primaryNeon.withValues(alpha: 0.2),
-                width: 1,
-              )
-            : BorderSide.none,
-      ),
-    );
-  }
+  // GitHub-style box shadows
+  static const List<BoxShadow> gitHubShadow = [
+    BoxShadow(
+      color: Colors.black26,
+      blurRadius: 8,
+      offset: Offset(0, 2),
+    ),
+  ];
 
-  static SnackBarThemeData _buildSnackBarTheme(bool isDark) {
-    return SnackBarThemeData(
-      backgroundColor: isDark ? AppColors.surfaceDark : Colors.grey[800],
-      contentTextStyle: GoogleFonts.inter(fontSize: 14.sp, color: Colors.white),
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSizes.sm.r),
-      ),
-    );
-  }
+  static const List<BoxShadow> gitHubGlowShadow = [
+    BoxShadow(
+      color: _gitHubGreen,
+      blurRadius: 20,
+      spreadRadius: 2,
+      offset: Offset(0, 0),
+    ),
+  ];
 
-  static ChipThemeData _buildChipTheme(bool isDark) {
-    return ChipThemeData(
-      backgroundColor: isDark
-          ? AppColors.surfaceGlass.withValues(alpha: 0.1)
-          : Colors.grey[200],
-      selectedColor: AppColors.primaryNeon.withValues(alpha: 0.2),
-      side: BorderSide(
-        color: isDark
-            ? AppColors.primaryNeon.withValues(alpha: 0.3)
-            : Colors.grey[300]!,
-      ),
-      labelStyle: GoogleFonts.inter(
-        fontSize: 12.sp,
-        fontWeight: FontWeight.w500,
-        color: isDark ? AppColors.textPrimary : Colors.black87,
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSizes.lg.r),
-      ),
-    );
-  }
-
-  static SwitchThemeData _buildSwitchTheme(bool isDark) {
-    return SwitchThemeData(
-      thumbColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.selected)) {
-          return AppColors.primaryNeon;
-        }
-        return isDark ? AppColors.textSecondary : Colors.grey[400];
-      }),
-      trackColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.selected)) {
-          return AppColors.primaryNeon.withValues(alpha: 0.3);
-        }
-        return isDark
-            ? AppColors.textTertiary.withValues(alpha: 0.3)
-            : Colors.grey[300];
-      }),
-    );
-  }
-
-  static SliderThemeData _buildSliderTheme(bool isDark) {
-    return SliderThemeData(
-      activeTrackColor: AppColors.primaryNeon,
-      inactiveTrackColor: isDark
-          ? AppColors.textTertiary.withValues(alpha: 0.3)
-          : Colors.grey[300],
-      thumbColor: AppColors.primaryNeon,
-      overlayColor: AppColors.primaryNeon.withValues(alpha: 0.2),
-    );
-  }
-
-  static ProgressIndicatorThemeData _buildProgressIndicatorTheme(bool isDark) {
-    return const ProgressIndicatorThemeData(
-      color: AppColors.primaryNeon,
-      linearTrackColor: Colors.transparent,
-      circularTrackColor: Colors.transparent,
-    );
-  }
-
-  static ListTileThemeData _buildListTileTheme(bool isDark) {
-    return ListTileThemeData(
-      iconColor: isDark ? AppColors.textSecondary : Colors.grey[600],
-      textColor: isDark ? AppColors.textPrimary : Colors.black87,
-      tileColor: isDark
-          ? AppColors.surfaceGlass.withValues(alpha: 0.05)
-          : Colors.transparent,
-      selectedTileColor: AppColors.primaryNeon.withValues(alpha: 0.1),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSizes.sm.r),
-      ),
-      contentPadding: EdgeInsets.symmetric(
-        horizontal: AppSizes.md.w,
-        vertical: AppSizes.sm.h,
-      ),
-    );
-  }
-
-  static DividerThemeData _buildDividerTheme(bool isDark) {
-    return DividerThemeData(
-      color: isDark
-          ? AppColors.primaryNeon.withValues(alpha: 0.1)
-          : Colors.grey[300],
-      thickness: 1,
-      space: 1,
-    );
-  }
+  // Custom colors for specific use cases
+  static const Color success = _gitHubLimeGreen;
+  static const Color warning = _gitHubYellow;
+  static const Color error = _gitHubRed;
+  static const Color info = _gitHubBlue;
+  static const Color codeBackground = Color(0xFF161B22);
+  static const Color terminalGreen = Color(0xFF39D353);
 }

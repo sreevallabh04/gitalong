@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -12,81 +13,101 @@ import 'core/utils/error_handler.dart';
 import 'core/utils/logger.dart';
 import 'providers/app_lifecycle_provider.dart';
 import 'screens/splash_screen.dart';
+import 'core/router/app_router.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize logging first - critical for production debugging
-  AppLogger.initialize();
-  AppLogger.logger.i('🚀 GitAlong starting up...');
-
-  // Set up global error handling before anything else
-  _setupErrorHandling();
-
   try {
-    // Initialize app configuration
-    AppLogger.logger.i('⚙️ Initializing App Configuration...');
-    await AppConfig.initialize();
-    AppLogger.logger.success(
-      'App Config initialized - Environment: ${AppConfig.environment}, Version: ${AppConfig.version}',
-    );
+    // Ensure Flutter binding is initialized
+    WidgetsFlutterBinding.ensureInitialized();
 
-    // Initialize Hive for local storage
-    AppLogger.logger.i('💾 Initializing Hive...');
-    await Hive.initFlutter();
-    await Hive.openBox('app_data');
-    AppLogger.logger.success('Hive initialized successfully');
+    // Initialize logging first - critical for production debugging
+    AppLogger.initialize();
+    AppLogger.logger.i('🚀 Starting GitAlong app initialization...');
 
-    // Initialize Firebase - this is critical for authentication
-    AppLogger.logger.i('🔥 About to initialize Firebase...');
-    await FirebaseConfig.initialize();
-    AppLogger.logger.success('Firebase initialization completed');
-
-    AppLogger.logger.success('🎉 App initialization completed successfully');
-
-    runApp(
-      ProviderScope(
-        observers: [AppProviderObserver()],
-        child: const MyApp(),
+    // Configure system UI overlay style for GitHub theme
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Color(0xFF0D1117), // GitHub black
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        systemNavigationBarColor: Color(0xFF161B22), // GitHub dark gray
+        systemNavigationBarIconBrightness: Brightness.light,
+        systemNavigationBarDividerColor: Color(0xFF30363D), // GitHub border
       ),
     );
-  } catch (e, stackTrace) {
-    // Log the critical initialization error
+
+    // Lock orientation to portrait (optional - remove if you want landscape support)
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+
+    // Initialize Firebase
+    AppLogger.logger.i('🔥 Initializing Firebase...');
+    await FirebaseConfig.initialize();
+    AppLogger.logger.success('✅ Firebase initialized successfully');
+
+    // Run the app
+    AppLogger.logger.i('🎯 Launching GitAlong app...');
+    runApp(
+      const ProviderScope(
+        child: GitAlongApp(),
+      ),
+    );
+  } catch (error, stackTrace) {
     AppLogger.logger.e(
-      '💥 CRITICAL: App initialization failed',
-      error: e,
+      '💥 Critical error during app initialization',
+      error: error,
       stackTrace: stackTrace,
     );
 
-    // Provide user-friendly error information
-    String errorMessage = 'Initialization Error';
-    String errorDetails = e.toString();
-
-    if (e.toString().contains('Firebase')) {
-      errorMessage = 'Firebase Configuration Error';
-      errorDetails = 'Please check your Firebase setup:\n'
-          '1. Ensure google-services.json is properly configured\n'
-          '2. Check your internet connection\n'
-          '3. Run: dart scripts/setup_firebase.dart\n\n'
-          'Error: ${e.toString()}';
-    } else if (e.toString().contains('Hive')) {
-      errorMessage = 'Storage Initialization Error';
-      errorDetails = 'Local storage could not be initialized.\n'
-          'Please restart the app.\n\n'
-          'Error: ${e.toString()}';
-    }
-
-    // Show minimal error app that still allows debugging
+    // Show a simple error message and still try to start the app
     runApp(
       MaterialApp(
-        title: 'GitAlong - Error',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        home: _ErrorScreen(
-          title: errorMessage,
-          details: errorDetails,
-          error: e,
-          stackTrace: stackTrace,
+        theme: AppTheme.theme,
+        home: Scaffold(
+          backgroundColor: const Color(0xFF0D1117),
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  color: Color(0xFFDA3633),
+                  size: 64,
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'GitAlong',
+                  style: TextStyle(
+                    color: Color(0xFFF0F6FC),
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Failed to initialize the app.\nPlease restart the application.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Color(0xFF7D8590),
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                Text(
+                  'Error: ${error.toString()}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xFF7D8590),
+                    fontSize: 12,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -115,37 +136,42 @@ void _setupErrorHandling() {
   };
 }
 
-class MyApp extends ConsumerWidget {
-  const MyApp({super.key});
+class GitAlongApp extends ConsumerWidget {
+  const GitAlongApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Watch app lifecycle
+    // Watch the app lifecycle state for better resource management
     ref.watch(appLifecycleProvider);
 
     return ScreenUtilInit(
-      designSize: const Size(375, 812), // iPhone 13 design size
+      designSize: const Size(375, 812), // iPhone 13 mini size as baseline
       minTextAdapt: true,
       splitScreenMode: true,
+      useInheritedMediaQuery: true,
       builder: (context, child) {
         return MaterialApp(
           title: 'GitAlong',
           debugShowCheckedModeBanner: false,
-          theme: AppTheme.lightTheme,
-          darkTheme: AppTheme.darkTheme,
-          themeMode: ThemeMode.dark,
+
+          // Use the bleeding GitHub theme
+          theme: AppTheme.theme,
+
+          // Start with splash screen
           home: const SplashScreen(),
-          // Global error handling for route errors
-          builder: (context, widget) {
-            ErrorWidget.builder = (FlutterErrorDetails errorDetails) {
-              AppLogger.logger.e(
-                '🎨 Widget Error in build phase',
-                error: errorDetails.exception,
-                stackTrace: errorDetails.stack,
-              );
-              return _ErrorWidget(errorDetails: errorDetails);
-            };
-            return widget!;
+
+          // Builder for additional global configuration
+          builder: (context, child) {
+            // Ensure text scaling doesn't break the UI
+            final mediaQuery = MediaQuery.of(context);
+            return MediaQuery(
+              data: mediaQuery.copyWith(
+                textScaler: TextScaler.linear(
+                  mediaQuery.textScaleFactor.clamp(0.8, 1.2),
+                ),
+              ),
+              child: child ?? const SizedBox.shrink(),
+            );
           },
         );
       },

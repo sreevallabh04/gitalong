@@ -1,11 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:glassmorphism/glassmorphism.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'dart:io';
-import '../../providers/auth_provider.dart';
+import '../../services/auth_service.dart';
+import '../../core/utils/logger.dart';
 import '../onboarding/onboarding_screen.dart';
 import '../home/main_navigation_screen.dart';
 
@@ -25,9 +26,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   final GlobalKey<FormState> _signUpFormKey = GlobalKey<FormState>();
 
   // Controllers
-  final TextEditingController _signInEmailController = TextEditingController();
-  final TextEditingController _signInPasswordController =
-      TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _signUpNameController = TextEditingController();
   final TextEditingController _signUpEmailController = TextEditingController();
   final TextEditingController _signUpPasswordController =
@@ -39,6 +39,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   bool _obscurePassword = true;
   bool _obscureSignUpPassword = true;
   bool _obscureConfirmPassword = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -60,8 +61,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   void dispose() {
     _tabController.dispose();
     _cardController.dispose();
-    _signInEmailController.dispose();
-    _signInPasswordController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
     _signUpNameController.dispose();
     _signUpEmailController.dispose();
     _signUpPasswordController.dispose();
@@ -70,256 +71,260 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   }
 
   // Authentication methods
-  Future<void> _signIn() async {
-    if (!_signInFormKey.currentState!.validate()) return;
+  void _signIn() async {
+    if (_signInFormKey.currentState?.validate() != true) return;
 
-    setState(() => _isLoading = true);
-
-    try {
-      final authService = ref.read(authServiceProvider);
-      final response = await authService.signIn(
-        email: _signInEmailController.text.trim(),
-        password: _signInPasswordController.text,
-      );
-
-      if (response.user != null && mounted) {
-        final hasProfile = await ref.read(hasUserProfileProvider.future);
-        if (hasProfile) {
-          _navigateToHome();
-        } else {
-          _navigateToOnboarding();
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        _showErrorSnackBar(e.toString());
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  Future<void> _signUp() async {
-    if (!_signUpFormKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
     try {
-      final authService = ref.read(authServiceProvider);
-      final response = await authService.signUp(
-        email: _signUpEmailController.text.trim(),
-        password: _signUpPasswordController.text,
-        name: _signUpNameController.text.trim(),
-      );
+      // Use the improved AuthService with proper credential validation
+      await ref.read(authServiceProvider).signInWithEmailAndPassword(
+            email: _emailController.text, // Already trimmed in AuthService
+            password:
+                _passwordController.text, // Already trimmed in AuthService
+          );
 
-      if (response.user != null && mounted) {
-        _showSuccessSnackBar(
-          'Account created successfully! Welcome to GitAlong!',
+      if (mounted) {
+        // Navigate to home screen
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
         );
-
-        // Navigate to onboarding to complete profile setup
-        final hasProfile = await ref.read(hasUserProfileProvider.future);
-        if (hasProfile) {
-          _navigateToHome();
-        } else {
-          _navigateToOnboarding();
-        }
       }
-    } catch (e) {
+    } on AuthException catch (e) {
+      AppLogger.logger.e('❌ Auth error during sign-in', error: e);
+
       if (mounted) {
-        _showErrorSnackBar(e.toString());
+        setState(() {
+          _errorMessage = e.message; // This will now be a user-friendly message
+        });
+      }
+    } catch (e, stackTrace) {
+      AppLogger.logger.e(
+        '❌ Unexpected error during sign-in',
+        error: e,
+        stackTrace: stackTrace,
+      );
+
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'An unexpected error occurred. Please try again.';
+        });
       }
     } finally {
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
 
-  Future<void> _signInWithGoogle() async {
-    setState(() => _isLoading = true);
+  void _signUp() async {
+    if (_signUpFormKey.currentState?.validate() != true) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
     try {
-      final authService = ref.read(authServiceProvider);
-      final response = await authService.signInWithGoogle();
+      // Use the improved AuthService with proper credential validation
+      await ref.read(authServiceProvider).createUserWithEmailAndPassword(
+            email: _emailController.text, // Already trimmed in AuthService
+            password:
+                _passwordController.text, // Already trimmed in AuthService
+          );
 
-      if (response.user != null && mounted) {
-        final hasProfile = await ref.read(hasUserProfileProvider.future);
-        if (hasProfile) {
-          _navigateToHome();
-        } else {
-          _navigateToOnboarding();
-        }
-      }
-    } catch (e) {
       if (mounted) {
-        // Production-ready error handling for Google Sign-In
-        String errorMessage;
+        // Navigate to onboarding screen for new users
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+        );
+      }
+    } on AuthException catch (e) {
+      AppLogger.logger.e('❌ Auth error during sign-up', error: e);
 
-        if (e.toString().contains('ApiException: 10') ||
-            e.toString().contains('DEVELOPER_ERROR')) {
-          errorMessage = '🔧 App Configuration Required\n\n'
-              'To enable Google Sign-In, the Firebase project needs to be properly configured.\n\n'
-              '📋 Required Steps:\n'
-              '• Add SHA-1 fingerprint to Firebase console\n'
-              '• Download real google-services.json\n'
-              '• Update Firebase configuration\n\n'
-              'See FIREBASE_SETUP_GUIDE.md for detailed instructions.\n\n'
-              'For now, you can use Email/Password sign-in below.';
-        } else if (e.toString().contains('ApiException: 12500')) {
-          errorMessage = '🔐 Google Play Services Required\n\n'
-              'Please sign in to Google Play Services on this device and try again.';
-        } else if (e.toString().contains('ApiException: 7')) {
-          errorMessage = '🌐 Network Error\n\n'
-              'Please check your internet connection and try again.';
-        } else if (e.toString().contains('sign in was cancelled')) {
-          // Don't show error for user cancellation
-          return;
-        } else {
-          errorMessage = '❌ Google Sign-In Failed\n\n'
-              'Please try email/password sign-in below or check your network connection.\n\n'
-              'Error: ${e.toString().replaceAll('AuthException: ', '')}';
-        }
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.message; // This will now be a user-friendly message
+        });
+      }
+    } catch (e, stackTrace) {
+      AppLogger.logger.e(
+        '❌ Unexpected error during sign-up',
+        error: e,
+        stackTrace: stackTrace,
+      );
 
-        _showErrorSnackBar(errorMessage);
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'An unexpected error occurred. Please try again.';
+        });
       }
     } finally {
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
 
-  Future<void> _signInWithApple() async {
-    if (!Platform.isIOS && !Platform.isMacOS) {
-      _showErrorSnackBar('Apple Sign In is only available on iOS and macOS');
+  void _signInWithGoogle() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      // Use the improved AuthService with comprehensive error handling
+      await ref.read(authServiceProvider).signInWithGoogle();
+
+      if (mounted) {
+        // Navigate to home screen
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
+        );
+      }
+    } on AuthException catch (e) {
+      AppLogger.logger.e('❌ Auth error during Google sign-in', error: e);
+
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.message; // This will now be a user-friendly message
+        });
+      }
+    } catch (e, stackTrace) {
+      AppLogger.logger.e(
+        '❌ Unexpected error during Google sign-in',
+        error: e,
+        stackTrace: stackTrace,
+      );
+
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Google sign-in failed. Please try again.';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _signInWithApple() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      // Use the improved AuthService with comprehensive error handling
+      await ref.read(authServiceProvider).signInWithApple();
+
+      if (mounted) {
+        // Navigate to home screen
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
+        );
+      }
+    } on AuthException catch (e) {
+      AppLogger.logger.e('❌ Auth error during Apple sign-in', error: e);
+
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.message; // This will now be a user-friendly message
+        });
+      }
+    } catch (e, stackTrace) {
+      AppLogger.logger.e(
+        '❌ Unexpected error during Apple sign-in',
+        error: e,
+        stackTrace: stackTrace,
+      );
+
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Apple sign-in failed. Please try again.';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _forgotPassword() async {
+    if (_emailController.text.trim().isEmpty) {
+      setState(() {
+        _errorMessage = 'Please enter your email address first.';
+      });
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
     try {
-      final authService = ref.read(authServiceProvider);
-      final response = await authService.signInWithApple();
+      // Use the improved AuthService for password reset
+      await ref.read(authServiceProvider).sendPasswordResetEmail(
+            _emailController.text, // Already trimmed in AuthService
+          );
 
-      if (response.user != null && mounted) {
-        final hasProfile = await ref.read(hasUserProfileProvider.future);
-        if (hasProfile) {
-          _navigateToHome();
-        } else {
-          _navigateToOnboarding();
-        }
-      }
-    } catch (e) {
       if (mounted) {
-        _showErrorSnackBar(e.toString());
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  Future<void> _resetPassword() async {
-    if (_signInEmailController.text.trim().isEmpty) {
-      _showErrorSnackBar('Please enter your email address first.');
-      return;
-    }
-
-    try {
-      final authService = ref.read(authServiceProvider);
-      await authService.resetPassword(_signInEmailController.text.trim());
-      _showSuccessSnackBar('Password reset email sent!');
-    } catch (e) {
-      _showErrorSnackBar(e.toString());
-    }
-  }
-
-  void _navigateToOnboarding() {
-    if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-    );
-  }
-
-  void _navigateToHome() {
-    if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
-    );
-  }
-
-  void _showErrorSnackBar(String message) {
-    if (!mounted) return;
-
-    // For multi-line messages, show dialog instead of snackbar
-    if (message.contains('\n\n')) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Row(
-            children: [
-              Icon(
-                Icons.error_outline,
-                color: Theme.of(context).colorScheme.error,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Authentication Error',
-                style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-          content: Text(
-            message.replaceAll('AuthException: ', ''),
-            style: GoogleFonts.inter(),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(
-                'OK',
-                style: GoogleFonts.inter(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Password reset email sent to ${_emailController.text.trim()}',
+              style: GoogleFonts.inter(color: const Color(0xFFF0F6FC)),
             ),
-          ],
-        ),
-      );
-    } else {
-      // Simple messages show as snackbar
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            message.replaceAll('AuthException: ', ''),
-            style: GoogleFonts.inter(),
+            backgroundColor: const Color(0xFF238636), // GitHub green
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
-          backgroundColor: Theme.of(context).colorScheme.error,
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
-    }
-  }
+        );
+      }
+    } on AuthException catch (e) {
+      AppLogger.logger.e('❌ Auth error during password reset', error: e);
 
-  void _showSuccessSnackBar(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: GoogleFonts.inter()),
-        backgroundColor: Theme.of(context).colorScheme.tertiary,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.message; // This will now be a user-friendly message
+        });
+      }
+    } catch (e, stackTrace) {
+      AppLogger.logger.e(
+        '❌ Unexpected error during password reset',
+        error: e,
+        stackTrace: stackTrace,
+      );
+
+      if (mounted) {
+        setState(() {
+          _errorMessage =
+              'Failed to send password reset email. Please try again.';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -350,9 +355,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         center: Alignment.topRight,
         radius: 1.5,
         colors: [
-          Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
-          Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
-          Theme.of(context).scaffoldBackgroundColor,
+          const Color(0xFF238636).withValues(alpha: 0.1), // GitHub green
+          const Color(0xFF161B22).withValues(alpha: 0.8), // GitHub dark gray
+          const Color(0xFF0D1117), // GitHub black
         ],
       ),
     );
@@ -361,23 +366,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   Widget _buildHeader() {
     return Column(
       children: [
-        // Logo with glow effect
+        // Logo with GitHub-style glow effect
         Container(
           width: 100,
           height: 100,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
+            gradient: const LinearGradient(
               colors: [
-                Theme.of(context).colorScheme.primary,
-                Theme.of(context).colorScheme.secondary,
+                Color(0xFF238636), // GitHub green
+                Color(0xFF2EA043), // GitHub bright green
               ],
             ),
             borderRadius: BorderRadius.circular(25),
             boxShadow: [
               BoxShadow(
-                color: Theme.of(
-                  context,
-                ).colorScheme.primary.withValues(alpha: 0.3),
+                color: const Color(0xFF238636).withValues(alpha: 0.4),
                 blurRadius: 20,
                 spreadRadius: 2,
               ),
@@ -388,12 +391,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
         const SizedBox(height: 24),
 
-        // App title
+        // App title with GitHub-style gradient
         ShaderMask(
-          shaderCallback: (bounds) => LinearGradient(
+          shaderCallback: (bounds) => const LinearGradient(
             colors: [
-              Theme.of(context).colorScheme.primary,
-              Theme.of(context).colorScheme.secondary,
+              Color(0xFF238636), // GitHub green
+              Color(0xFF3FB950), // GitHub lime green
             ],
           ).createShader(bounds),
           child: Text(
@@ -409,14 +412,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
         const SizedBox(height: 12),
 
-        // Subtitle
+        // Subtitle with GitHub-style muted text
         Text(
           'Connect • Collaborate • Create',
           style: GoogleFonts.inter(
             fontSize: 16,
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.7),
+            color: const Color(0xFF7D8590), // GitHub muted text
             letterSpacing: 1,
           ),
         ).animate(delay: 600.ms).fadeIn(duration: 800.ms).slideY(begin: 0.3),
@@ -449,22 +450,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Theme.of(
-                      context,
-                    ).colorScheme.surface.withValues(alpha: 0.1),
-                    Theme.of(
-                      context,
-                    ).colorScheme.surface.withValues(alpha: 0.05),
+                    const Color(
+                      0xFF21262D,
+                    ).withValues(alpha: 0.2), // GitHub gray
+                    const Color(
+                      0xFF161B22,
+                    ).withValues(alpha: 0.1), // GitHub dark gray
                   ],
                 ),
                 borderGradient: LinearGradient(
                   colors: [
-                    Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: 0.2),
-                    Theme.of(
-                      context,
-                    ).colorScheme.secondary.withValues(alpha: 0.2),
+                    const Color(
+                      0xFF238636,
+                    ).withValues(alpha: 0.3), // GitHub green
+                    const Color(
+                      0xFF30363D,
+                    ).withValues(alpha: 0.2), // GitHub border
                   ],
                 ),
                 child: Padding(
@@ -498,10 +499,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         // Google Sign In
         _buildOAuthButton(
           onPressed: _isLoading ? null : _signInWithGoogle,
-          icon: Icon(PhosphorIcons.googleLogo(PhosphorIconsStyle.bold)),
+          icon: Icons.g_mobiledata,
           label: 'Continue with Google',
-          backgroundColor: Colors.white,
-          textColor: Colors.black87,
+          backgroundColor: const Color(0xFF21262D), // GitHub gray
+          borderColor: const Color(0xFF30363D), // GitHub border
+          textColor: const Color(0xFFF0F6FC), // GitHub white
         ),
 
         const SizedBox(height: 16),
@@ -510,10 +512,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         if (Platform.isIOS || Platform.isMacOS)
           _buildOAuthButton(
             onPressed: _isLoading ? null : _signInWithApple,
-            icon: Icon(PhosphorIcons.appleLogo(PhosphorIconsStyle.bold)),
+            icon: Icons.apple,
             label: 'Continue with Apple',
-            backgroundColor: Colors.black,
-            textColor: Colors.white,
+            backgroundColor: const Color(0xFF21262D), // GitHub gray
+            borderColor: const Color(0xFF30363D), // GitHub border
+            textColor: const Color(0xFFF0F6FC), // GitHub white
           ),
       ],
     );
@@ -521,42 +524,53 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
   Widget _buildOAuthButton({
     required VoidCallback? onPressed,
-    required Widget icon,
+    required IconData icon,
     required String label,
     required Color backgroundColor,
+    required Color borderColor,
     required Color textColor,
   }) {
     return SizedBox(
       width: double.infinity,
       height: 56,
-      child: ElevatedButton(
+      child: ElevatedButton.icon(
         onPressed: onPressed,
+        icon: Icon(icon, size: 24, color: textColor),
+        label: Text(
+          label,
+          style: GoogleFonts.inter(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: textColor,
+          ),
+        ),
         style: ElevatedButton.styleFrom(
           backgroundColor: backgroundColor,
           foregroundColor: textColor,
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(
-              color: Theme.of(
-                context,
-              ).colorScheme.primary.withValues(alpha: 0.2),
-            ),
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: borderColor, width: 1),
           ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            icon,
-            const SizedBox(width: 12),
-            Text(
-              label,
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
+        ).copyWith(
+          backgroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+            if (states.contains(MaterialState.hovered)) {
+              return const Color(0xFF30363D); // GitHub light gray
+            }
+            if (states.contains(MaterialState.pressed)) {
+              return const Color(0xFF238636); // GitHub green
+            }
+            return backgroundColor;
+          }),
+          side: MaterialStateProperty.resolveWith<BorderSide>((states) {
+            if (states.contains(MaterialState.hovered)) {
+              return const BorderSide(
+                color: Color(0xFF238636),
+                width: 1,
+              ); // GitHub green
+            }
+            return BorderSide(color: borderColor, width: 1);
+          }),
         ),
       ),
     );
@@ -568,14 +582,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         Expanded(
           child: Container(
             height: 1,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.transparent,
-                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-                ],
-              ),
-            ),
+            color: const Color(0xFF30363D), // GitHub border
           ),
         ),
         Padding(
@@ -583,24 +590,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           child: Text(
             'or',
             style: GoogleFonts.inter(
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.6),
               fontSize: 14,
+              color: const Color(0xFF7D8590), // GitHub muted text
+              fontWeight: FontWeight.w500,
             ),
           ),
         ),
         Expanded(
           child: Container(
             height: 1,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-                  Colors.transparent,
-                ],
-              ),
-            ),
+            color: const Color(0xFF30363D), // GitHub border
           ),
         ),
       ],
@@ -642,10 +641,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
   Widget _buildTabViews() {
     return Container(
-      constraints: const BoxConstraints(
-        minHeight: 300,
-        maxHeight: 400,
-      ),
+      constraints: const BoxConstraints(minHeight: 300, maxHeight: 400),
       child: TabBarView(
         controller: _tabController,
         children: [
@@ -668,7 +664,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       child: Column(
         children: [
           _buildTextField(
-            controller: _signInEmailController,
+            controller: _emailController,
             label: 'Email',
             icon: Icon(PhosphorIcons.envelope(PhosphorIconsStyle.bold)),
             keyboardType: TextInputType.emailAddress,
@@ -685,7 +681,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           const SizedBox(height: 16),
 
           _buildTextField(
-            controller: _signInPasswordController,
+            controller: _passwordController,
             label: 'Password',
             icon: Icon(PhosphorIcons.lock(PhosphorIconsStyle.bold)),
             obscureText: _obscurePassword,
@@ -713,7 +709,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           Align(
             alignment: Alignment.centerRight,
             child: TextButton(
-              onPressed: _resetPassword,
+              onPressed: _forgotPassword,
               child: Text(
                 'Forgot Password?',
                 style: GoogleFonts.inter(
@@ -766,8 +762,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               if (value == null || value.trim().isEmpty) {
                 return 'Please enter your email';
               }
-              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                  .hasMatch(value.trim())) {
+              if (!RegExp(
+                r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+              ).hasMatch(value.trim())) {
                 return 'Please enter a valid email address';
               }
               return null;
@@ -788,7 +785,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 color: Theme.of(context).colorScheme.primary,
               ),
               onPressed: () => setState(
-                  () => _obscureSignUpPassword = !_obscureSignUpPassword),
+                () => _obscureSignUpPassword = !_obscureSignUpPassword,
+              ),
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
