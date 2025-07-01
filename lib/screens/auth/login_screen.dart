@@ -134,15 +134,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     try {
       // Use the improved AuthService with proper credential validation
       await ref.read(authServiceProvider).createUserWithEmailAndPassword(
-            email: _emailController.text, // Already trimmed in AuthService
-            password:
-                _passwordController.text, // Already trimmed in AuthService
+            email:
+                _signUpEmailController.text, // Already trimmed in AuthService
+            password: _signUpPasswordController
+                .text, // Already trimmed in AuthService
           );
 
       if (mounted) {
-        // Navigate using GoRouter - this will trigger the auth redirect to onboarding
-        AppLogger.logger
-            .navigation('✅ Sign-up successful, navigating to onboarding');
+        // Navigate to onboarding for profile setup instead of home
+        AppLogger.logger.navigation(
+            '✅ Sign-up successful, navigating to onboarding for profile setup');
         context.goToOnboarding();
       }
     } on AuthException catch (e) {
@@ -162,7 +163,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
       if (mounted) {
         setState(() {
-          _errorMessage = 'An unexpected error occurred. Please try again.';
+          _errorMessage = 'Failed to create account. Please try again.';
         });
       }
     } finally {
@@ -836,7 +837,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           // Sign up button
           _buildActionButton(
             onPressed: _isLoading ? null : _signUp,
-            label: 'Create Account',
+            label: 'Create Account & Set Up Profile',
           ),
         ],
       ),

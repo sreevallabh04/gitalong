@@ -27,12 +27,12 @@ void main() async {
     // Configure system UI overlay style for GitHub theme
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
-        statusBarColor: Color(0xFF0D1117), // GitHub black
+        statusBarColor: GitAlongTheme.carbonBlack,
         statusBarIconBrightness: Brightness.light,
         statusBarBrightness: Brightness.dark,
-        systemNavigationBarColor: Color(0xFF161B22), // GitHub dark gray
+        systemNavigationBarColor: GitAlongTheme.surfaceGray,
         systemNavigationBarIconBrightness: Brightness.light,
-        systemNavigationBarDividerColor: Color(0xFF30363D), // GitHub border
+        systemNavigationBarDividerColor: GitAlongTheme.borderGray,
       ),
     );
 
@@ -65,7 +65,7 @@ void main() async {
     runApp(
       MaterialApp(
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.theme,
+        theme: GitAlongTheme.theme,
         home: Scaffold(
           backgroundColor: const Color(0xFF0D1117),
           body: Center(
@@ -158,7 +158,7 @@ class GitAlongApp extends ConsumerWidget {
           debugShowCheckedModeBanner: false,
 
           // Use the bleeding GitHub theme
-          theme: AppTheme.theme,
+          theme: GitAlongTheme.theme,
 
           // GoRouter configuration - this is the key!
           routerConfig: router,
