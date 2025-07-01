@@ -1,33 +1,33 @@
 {
   "project_info": {
-    "project_number": "123456789",
+    "project_number": "267802124592",
     "project_id": "gitalong-c8075",
-    "storage_bucket": "gitalong-c8075.appspot.com"
+    "storage_bucket": "gitalong-c8075.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:123456789:android:abcd1234efgh5678",
+        "mobilesdk_app_id": "1:267802124592:android:6e28b610dbc2fb2c4d28f5",
         "android_client_info": {
           "package_name": "com.example.gitalong"
         }
       },
       "oauth_client": [
         {
-          "client_id": "123456789-abcd1234efgh5678.apps.googleusercontent.com",
+          "client_id": "267802124592-tv5mnvog8sblshvnarf0c78ujf4pjbq7.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "your-android-api-key-here"
+          "current_key": "AIzaSyA230tZ7fhgNx1hgHM2yZBR2Zr1NZ0Dtzc"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "123456789-abcd1234efgh5678.apps.googleusercontent.com",
+              "client_id": "267802124592-tv5mnvog8sblshvnarf0c78ujf4pjbq7.apps.googleusercontent.com",
               "client_type": 3
             }
           ]
@@ -36,4 +36,4 @@
     }
   ],
   "configuration_version": "1"
-} 
+}

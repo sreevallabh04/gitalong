@@ -35,7 +35,7 @@ class ErrorHandler {
     _recordError(appError);
 
     if (kDebugMode) {
-      print('❌ Platform Error: ${appError.message}');
+      AppLogger.logger.e('❌ Platform Error: ${appError.message}');
     }
 
     // Return true to prevent the error from propagating

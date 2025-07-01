@@ -75,18 +75,30 @@ class AuthService {
   // Sign in with Google
   Future<UserCredential> signInWithGoogle() async {
     try {
-      AppLogger.logger.i('🔐 Starting Google Sign-In process...');
+      AppLogger.logger.auth('🔐 Starting Google Sign-In process...');
+
+      // Enhanced configuration validation
+      if (_googleSignIn.clientId == null) {
+        AppLogger.logger
+            .e('❌ Google Sign-In not configured - missing client ID');
+        throw const AuthException('🔧 Google Sign-In Configuration Required\n\n'
+            'To enable Google Sign-In:\n'
+            '1. Add SHA-1 fingerprint to Firebase console\n'
+            '2. Download updated google-services.json\n'
+            '3. Rebuild the app\n\n'
+            'See FIREBASE_SETUP_GUIDE.md for details.');
+      }
 
       // Log Google Sign-In configuration details
       AppLogger.logger.d('Google Sign-In scopes: ${_googleSignIn.scopes}');
       AppLogger.logger.d(
-          'Google Sign-In client ID: ${_googleSignIn.clientId ?? "NOT_SET"}');
+          'Google Sign-In client ID: ${_googleSignIn.clientId != null ? "CONFIGURED" : "NOT_SET"}');
 
       // Check current sign-in status
       final bool wasSignedIn = await _googleSignIn.isSignedIn();
       AppLogger.logger.d('Previous Google sign-in status: $wasSignedIn');
 
-      // Sign out from any previous Google sessions
+      // Sign out from any previous Google sessions to ensure clean state
       if (wasSignedIn) {
         AppLogger.logger.d('Signing out from previous Google session...');
         await _googleSignIn.signOut();
@@ -100,7 +112,8 @@ class AuthService {
         throw const AuthException('Google sign in was cancelled');
       }
 
-      AppLogger.logger.i('✅ Google user account selected: ${googleUser.email}');
+      AppLogger.logger
+          .auth('✅ Google user account selected: ${googleUser.email}');
       AppLogger.logger.d(
           'Google user details - Name: ${googleUser.displayName}, ID: ${googleUser.id}');
 
@@ -128,10 +141,10 @@ class AuthService {
       );
 
       AppLogger.logger
-          .d('🔑 Attempting Firebase sign-in with Google credential...');
+          .auth('🔑 Attempting Firebase sign-in with Google credential...');
       final userCredential = await _auth.signInWithCredential(credential);
 
-      AppLogger.logger.i('🎉 Firebase sign-in successful!');
+      AppLogger.logger.auth('🎉 Firebase sign-in successful!');
       AppLogger.logger.d('Firebase user: ${userCredential.user?.email}');
 
       // Create or update user profile in Firestore
@@ -142,7 +155,7 @@ class AuthService {
           name: googleUser.displayName ?? 'Unknown',
           role: UserRole.contributor, // Default role
         );
-        AppLogger.logger.i('✅ User profile updated successfully');
+        AppLogger.logger.auth('✅ User profile updated successfully');
       }
 
       return userCredential;
@@ -158,6 +171,12 @@ class AuthService {
 
       // Enhanced error analysis for common Google Sign-In issues
       final errorString = e.toString();
+
+      // Don't show complex error analysis for user cancellation
+      if (errorString.contains('sign in was cancelled')) {
+        rethrow;
+      }
+
       if (errorString.contains('ApiException: 10')) {
         AppLogger.logger.e('🔍 DEVELOPER_ERROR (Code 10) Analysis:');
         AppLogger.logger.e('   ❌ This indicates a configuration problem');
@@ -169,15 +188,28 @@ class AuthService {
         AppLogger.logger.e(
             '      • Package name mismatch between app and Firebase project');
         AppLogger.logger.e('      • OAuth client not properly configured');
+        throw const AuthException('🔧 App Configuration Required\n\n'
+            'Google Sign-In requires proper Firebase configuration.\n\n'
+            '📋 Required Steps:\n'
+            '• Add SHA-1 fingerprint to Firebase console\n'
+            '• Download updated google-services.json\n'
+            '• Rebuild the app\n\n'
+            'See FIREBASE_SETUP_GUIDE.md for detailed instructions.');
       } else if (errorString.contains('ApiException: 12500')) {
         AppLogger.logger.e(
             '🔍 SIGN_IN_REQUIRED (Code 12500): User not signed in to Google Play Services');
+        throw const AuthException('🔐 Google Play Services Required\n\n'
+            'Please sign in to Google Play Services on this device and try again.');
       } else if (errorString.contains('ApiException: 7')) {
         AppLogger.logger
             .e('🔍 NETWORK_ERROR (Code 7): Check internet connectivity');
+        throw const AuthException('🌐 Network Error\n\n'
+            'Please check your internet connection and try again.');
       } else if (errorString.contains('ApiException: 8')) {
         AppLogger.logger.e(
             '🔍 INTERNAL_ERROR (Code 8): Google Play Services internal error');
+        throw const AuthException('⚠️ Google Play Services Error\n\n'
+            'Please update Google Play Services and try again.');
       }
 
       throw AuthException('Google sign in failed: ${e.toString()}');

@@ -41,46 +41,51 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'your-web-api-key',
-    appId: '1:123456789:web:abcd1234',
-    messagingSenderId: '123456789',
+    apiKey: 'AIzaSyBytVrwbv4D2pLCgMYrxB-56unop4W6QpE',
+    appId: '1:267802124592:web:2a53ff6d5d0e5eae4d28f5',
+    messagingSenderId: '267802124592',
     projectId: 'gitalong-c8075',
     authDomain: 'gitalong-c8075.firebaseapp.com',
-    storageBucket: 'gitalong-c8075.appspot.com',
+    storageBucket: 'gitalong-c8075.firebasestorage.app',
+    measurementId: 'G-5BZKJKTNKJ',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'your-android-api-key',
-    appId: '1:123456789:android:abcd1234',
-    messagingSenderId: '123456789',
+    apiKey: 'AIzaSyA230tZ7fhgNx1hgHM2yZBR2Zr1NZ0Dtzc',
+    appId: '1:267802124592:android:6e28b610dbc2fb2c4d28f5',
+    messagingSenderId: '267802124592',
     projectId: 'gitalong-c8075',
-    storageBucket: 'gitalong-c8075.appspot.com',
+    storageBucket: 'gitalong-c8075.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'your-ios-api-key',
-    appId: '1:123456789:ios:abcd1234',
-    messagingSenderId: '123456789',
+    apiKey: 'AIzaSyAbMQVwYiutRtm5USkpgvDgYEivLX1xIYI',
+    appId: '1:267802124592:ios:3c02047f8a1695d24d28f5',
+    messagingSenderId: '267802124592',
     projectId: 'gitalong-c8075',
-    storageBucket: 'gitalong-c8075.appspot.com',
+    storageBucket: 'gitalong-c8075.firebasestorage.app',
+    iosClientId: '267802124592-imp7fos397ehr9rhpjemv2imcjj2b4o8.apps.googleusercontent.com',
     iosBundleId: 'com.example.gitalong',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'your-macos-api-key',
-    appId: '1:123456789:ios:abcd1234',
-    messagingSenderId: '123456789',
+    apiKey: 'AIzaSyAbMQVwYiutRtm5USkpgvDgYEivLX1xIYI',
+    appId: '1:267802124592:ios:3c02047f8a1695d24d28f5',
+    messagingSenderId: '267802124592',
     projectId: 'gitalong-c8075',
-    storageBucket: 'gitalong-c8075.appspot.com',
+    storageBucket: 'gitalong-c8075.firebasestorage.app',
+    iosClientId: '267802124592-imp7fos397ehr9rhpjemv2imcjj2b4o8.apps.googleusercontent.com',
     iosBundleId: 'com.example.gitalong',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'your-windows-api-key',
-    appId: '1:123456789:web:abcd1234',
-    messagingSenderId: '123456789',
+    apiKey: 'AIzaSyBytVrwbv4D2pLCgMYrxB-56unop4W6QpE',
+    appId: '1:267802124592:web:ed245cf7e89482014d28f5',
+    messagingSenderId: '267802124592',
     projectId: 'gitalong-c8075',
     authDomain: 'gitalong-c8075.firebaseapp.com',
-    storageBucket: 'gitalong-c8075.appspot.com',
+    storageBucket: 'gitalong-c8075.firebasestorage.app',
+    measurementId: 'G-6B59981K34',
   );
+
 }

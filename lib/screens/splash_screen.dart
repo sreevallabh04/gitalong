@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:glassmorphism/glassmorphism.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/auth_provider.dart';
+import '../core/utils/logger.dart';
 import 'auth/login_screen.dart';
 import 'onboarding/onboarding_screen.dart';
 import 'home/main_navigation_screen.dart';
@@ -22,10 +23,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   late AnimationController _textController;
 
   bool _hasNavigated = false;
+  String _statusMessage = 'Initializing...';
 
   @override
   void initState() {
     super.initState();
+    AppLogger.logger.ui('📱 SplashScreen initialized');
+
     _logoController = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,
@@ -64,36 +68,94 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       await Future.delayed(const Duration(milliseconds: 500));
       if (mounted) _particleController.forward();
     } catch (e) {
-      // Animation controller disposed, ignore
+      AppLogger.logger
+          .w('⚠️ Animation controller disposed during initialization');
+    }
+  }
+
+  void _updateStatus(String message) {
+    if (mounted) {
+      setState(() {
+        _statusMessage = message;
+      });
+      AppLogger.logger.ui('📱 Splash status: $message');
     }
   }
 
   void _checkAuthStatus() async {
     try {
-      await Future.delayed(const Duration(seconds: 3));
+      AppLogger.logger.auth('🔍 Starting authentication check...');
+      _updateStatus('Checking authentication...');
+
+      // Give Firebase time to initialize
+      await Future.delayed(const Duration(seconds: 2));
 
       if (!mounted || _hasNavigated) return;
 
-      final authService = ref.read(authServiceProvider);
+      // Check auth state with error handling
+      try {
+        _updateStatus('Verifying credentials...');
+        final authService = ref.read(authServiceProvider);
 
-      if (authService.isAuthenticated) {
-        // Check if user has completed onboarding
-        final hasProfile = await ref.read(hasUserProfileProvider.future);
+        AppLogger.logger.auth('🔐 Auth service obtained, checking status...');
 
-        if (mounted && !_hasNavigated) {
-          if (hasProfile) {
-            _navigateToHome();
-          } else {
-            _navigateToOnboarding();
+        if (authService.isAuthenticated) {
+          AppLogger.logger.auth('✅ User is authenticated, checking profile...');
+          _updateStatus('Loading profile...');
+
+          // Check if user has completed onboarding
+          final hasProfile = await ref.read(hasUserProfileProvider.future);
+
+          AppLogger.logger.auth('📋 Profile check result: $hasProfile');
+
+          if (mounted && !_hasNavigated) {
+            if (hasProfile) {
+              AppLogger.logger.navigation('🏠 Navigating to home screen');
+              _navigateToHome();
+            } else {
+              AppLogger.logger.navigation('📝 Navigating to onboarding screen');
+              _navigateToOnboarding();
+            }
+          }
+        } else {
+          AppLogger.logger.auth('❌ User not authenticated');
+          if (mounted && !_hasNavigated) {
+            AppLogger.logger.navigation('🔐 Navigating to login screen');
+            _navigateToLogin();
           }
         }
-      } else {
+      } catch (authError, stackTrace) {
+        AppLogger.logger.e(
+          '❌ Authentication check failed',
+          error: authError,
+          stackTrace: stackTrace,
+        );
+
+        // Handle specific auth errors
+        if (authError.toString().contains('Firebase')) {
+          _updateStatus('Firebase connection issue...');
+          await Future.delayed(const Duration(seconds: 2));
+        }
+
         if (mounted && !_hasNavigated) {
+          AppLogger.logger
+              .navigation('⚠️ Auth error - defaulting to login screen');
           _navigateToLogin();
         }
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      AppLogger.logger.e(
+        '❌ Critical error during splash screen initialization',
+        error: e,
+        stackTrace: stackTrace,
+      );
+
+      // Always try to navigate somewhere, even if there's an error
       if (mounted && !_hasNavigated) {
+        _updateStatus('Initialization error...');
+        await Future.delayed(const Duration(seconds: 1));
+        AppLogger.logger
+            .navigation('🚨 Critical error - defaulting to login screen');
         _navigateToLogin();
       }
     }
@@ -102,11 +164,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   void _navigateToLogin() {
     if (!mounted || _hasNavigated) return;
     _hasNavigated = true;
+    AppLogger.logger.navigation('🔐 Navigating to LoginScreen');
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const LoginScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+            transitionDuration: const Duration(milliseconds: 300),
+          ),
         );
       }
     });
@@ -115,11 +186,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   void _navigateToOnboarding() {
     if (!mounted || _hasNavigated) return;
     _hasNavigated = true;
+    AppLogger.logger.navigation('📝 Navigating to OnboardingScreen');
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const OnboardingScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+            transitionDuration: const Duration(milliseconds: 300),
+          ),
         );
       }
     });
@@ -128,11 +208,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   void _navigateToHome() {
     if (!mounted || _hasNavigated) return;
     _hasNavigated = true;
+    AppLogger.logger.navigation('🏠 Navigating to MainNavigationScreen');
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const MainNavigationScreen(),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+            transitionDuration: const Duration(milliseconds: 300),
+          ),
         );
       }
     });
@@ -176,7 +265,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                   _buildTagline(),
                   const SizedBox(height: 60),
 
-                  // Loading indicator
+                  // Loading indicator with status
                   _buildLoadingIndicator(),
                 ],
               ),
@@ -369,7 +458,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             .scale(begin: const Offset(0.5, 0.5)),
         const SizedBox(height: 20),
         Text(
-          'Initializing...',
+          _statusMessage,
           style: GoogleFonts.inter(
             fontSize: 14,
             color: Theme.of(

@@ -1,228 +1,139 @@
 import 'package:flutter/foundation.dart';
 import 'package:device_info_plus/device_info_plus.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../core/constants/app_constants.dart';
-
-enum Environment { development, staging, production }
+import '../core/utils/logger.dart';
 
 class AppConfig {
-  static late Environment environment;
-  static late DeviceInfoPlugin deviceInfo;
-  static late SharedPreferences preferences;
+  static late String _environment;
+  static late String _version;
+  static late String _buildNumber;
+  static late String _platformVersion;
+  static late String _deviceModel;
+  static late String _deviceId;
 
-  // API Configuration
-  static String get apiBaseUrl {
-    switch (environment) {
-      case Environment.development:
-        return 'https://dev-api.gitalong.dev';
-      case Environment.staging:
-        return 'https://staging-api.gitalong.dev';
-      case Environment.production:
-        return 'https://api.gitalong.dev';
+  // App configuration
+  static String get environment => _environment;
+  static String get version => _version;
+  static String get buildNumber => _buildNumber;
+  static String get platformVersion => _platformVersion;
+  static String get deviceModel => _deviceModel;
+  static String get deviceId => _deviceId;
+
+  // Environment checks
+  static bool get isDevelopment => _environment == 'development';
+  static bool get isProduction => _environment == 'production';
+  static bool get isStaging => _environment == 'staging';
+
+  // API endpoints based on environment
+  static String get baseUrl {
+    switch (_environment) {
+      case 'production':
+        return 'https://api.gitalong.app';
+      case 'staging':
+        return 'https://staging-api.gitalong.app';
+      default:
+        return 'https://dev-api.gitalong.app';
     }
   }
-
-  // WebSocket Configuration
-  static String get wsBaseUrl {
-    switch (environment) {
-      case Environment.development:
-        return 'wss://dev-ws.gitalong.dev';
-      case Environment.staging:
-        return 'wss://staging-ws.gitalong.dev';
-      case Environment.production:
-        return 'wss://ws.gitalong.dev';
-    }
-  }
-
-  // Feature Flags
-  static bool get enableAnalytics =>
-      !kDebugMode && environment == Environment.production;
-  static bool get enableCrashlytics => !kDebugMode;
-  static bool get enablePerformanceMonitoring => !kDebugMode;
-  static bool get enableDebugLogging =>
-      kDebugMode || environment == Environment.development;
-  static bool get enableDevicePreview =>
-      kDebugMode && environment == Environment.development;
-
-  // App Information
-  static String get appName => environment.name;
-  static String get packageName => 'com.example.app';
-  static String get version => '1.0.0+1';
-  static String get buildNumber => '1';
-  static String get appVersion => '$version+$buildNumber';
-
-  // Cache Configuration
-  static Duration get cacheTimeout =>
-      const Duration(hours: AppConstants.cacheValidityDuration);
-  static int get maxCacheSize => 100 * 1024 * 1024; // 100 MB
-
-  // Network Configuration
-  static Duration get apiTimeout =>
-      const Duration(seconds: AppConstants.apiTimeoutDuration);
-  static int get maxRetryAttempts => AppConstants.retryAttempts;
-
-  // Security Configuration
-  static bool get useSecureStorage => true;
-  static bool get enableBiometrics => true;
-  static Duration get sessionTimeout => const Duration(hours: 24);
 
   static Future<void> initialize() async {
     try {
-      // Initialize environment
-      environment = _getEnvironment();
+      AppLogger.logger.i('🔧 Initializing App Configuration...');
 
-      // Initialize device info
-      deviceInfo = DeviceInfoPlugin();
-
-      // Initialize shared preferences
-      preferences = await SharedPreferences.getInstance();
-
+      // Set environment based on build mode
       if (kDebugMode) {
-        print(
-          '✅ App Config initialized - Environment: ${environment.name}, Version: $appVersion',
-        );
+        _environment = 'development';
+      } else if (kProfileMode) {
+        _environment = 'staging';
+      } else {
+        _environment = 'production';
       }
-    } catch (e) {
-      if (kDebugMode) {
-        print('❌ Failed to initialize app config: $e');
-      }
-      rethrow;
+
+      // App version info (you might want to get this from package_info_plus)
+      _version = '1.0.0';
+      _buildNumber = '1';
+
+      // Get device information
+      await _getDeviceInfo();
+
+      AppLogger.logger.i('✅ App Configuration initialized successfully');
+      AppLogger.logger.d('📋 Configuration Details:');
+      AppLogger.logger.d('   🌍 Environment: $_environment');
+      AppLogger.logger.d('   📱 Version: $_version ($_buildNumber)');
+      AppLogger.logger.d('   🔧 Platform: $_platformVersion');
+      AppLogger.logger.d('   📟 Device: $_deviceModel');
+      AppLogger.logger.d('   🆔 Device ID: ${_deviceId.substring(0, 8)}...');
+      AppLogger.logger.d('   🌐 API Base URL: $baseUrl');
+    } catch (e, stackTrace) {
+      AppLogger.logger.e(
+        '❌ Failed to initialize app config',
+        error: e,
+        stackTrace: stackTrace,
+      );
+
+      // Set fallback values
+      _environment = 'development';
+      _version = '1.0.0';
+      _buildNumber = '1';
+      _platformVersion = 'Unknown';
+      _deviceModel = 'Unknown';
+      _deviceId = 'unknown-device';
     }
   }
 
-  static Environment _getEnvironment() {
-    if (kDebugMode) {
-      return Environment.development;
-    }
-
-    // You can add more sophisticated environment detection here
-    // For example, based on build flavors or environment variables
-    const String envString = String.fromEnvironment('ENVIRONMENT');
-
-    switch (envString.toLowerCase()) {
-      case 'development':
-      case 'dev':
-        return Environment.development;
-      case 'staging':
-      case 'stage':
-        return Environment.staging;
-      case 'production':
-      case 'prod':
-      default:
-        return Environment.production;
-    }
-  }
-
-  // Device Information
-  static Future<Map<String, dynamic>> getDeviceInfo() async {
+  static Future<void> _getDeviceInfo() async {
     try {
+      final deviceInfo = DeviceInfoPlugin();
+
       if (defaultTargetPlatform == TargetPlatform.android) {
         final androidInfo = await deviceInfo.androidInfo;
-        return {
-          'platform': 'Android',
-          'model': androidInfo.model,
-          'brand': androidInfo.brand,
-          'version': androidInfo.version.release,
-          'sdkInt': androidInfo.version.sdkInt,
-          'manufacturer': androidInfo.manufacturer,
-          'isPhysicalDevice': androidInfo.isPhysicalDevice,
-        };
+        _platformVersion = 'Android ${androidInfo.version.release}';
+        _deviceModel = '${androidInfo.manufacturer} ${androidInfo.model}';
+        _deviceId = androidInfo.id;
       } else if (defaultTargetPlatform == TargetPlatform.iOS) {
         final iosInfo = await deviceInfo.iosInfo;
-        return {
-          'platform': 'iOS',
-          'model': iosInfo.model,
-          'name': iosInfo.name,
-          'systemVersion': iosInfo.systemVersion,
-          'isPhysicalDevice': iosInfo.isPhysicalDevice,
-        };
-      } else if (kIsWeb) {
-        final webInfo = await deviceInfo.webBrowserInfo;
-        return {
-          'platform': 'Web',
-          'browserName': webInfo.browserName.name,
-          'userAgent': webInfo.userAgent,
-        };
+        _platformVersion = 'iOS ${iosInfo.systemVersion}';
+        _deviceModel = iosInfo.model;
+        _deviceId = iosInfo.identifierForVendor ?? 'unknown-ios-device';
+      } else if (defaultTargetPlatform == TargetPlatform.windows) {
+        final windowsInfo = await deviceInfo.windowsInfo;
+        _platformVersion = 'Windows ${windowsInfo.displayVersion}';
+        _deviceModel = windowsInfo.computerName;
+        _deviceId = windowsInfo.deviceId;
+      } else if (defaultTargetPlatform == TargetPlatform.macOS) {
+        final macosInfo = await deviceInfo.macOsInfo;
+        _platformVersion = 'macOS ${macosInfo.osRelease}';
+        _deviceModel = macosInfo.model;
+        _deviceId = macosInfo.systemGUID ?? 'unknown-macos-device';
+      } else if (defaultTargetPlatform == TargetPlatform.linux) {
+        final linuxInfo = await deviceInfo.linuxInfo;
+        _platformVersion = '${linuxInfo.name} ${linuxInfo.version}';
+        _deviceModel = linuxInfo.prettyName;
+        _deviceId = linuxInfo.machineId ?? 'unknown-linux-device';
+      } else {
+        // Web or unknown platform
+        _platformVersion = 'Web/Unknown';
+        _deviceModel = 'Web Browser';
+        _deviceId = 'web-device';
       }
-
-      return {'platform': 'Unknown'};
     } catch (e) {
-      if (kDebugMode) {
-        print('⚠️ Failed to get device info: $e');
-      }
-      return {'platform': 'Unknown'};
+      AppLogger.logger.w('⚠️ Failed to get device info: $e');
+      // Set fallback values
+      _platformVersion = 'Unknown Platform';
+      _deviceModel = 'Unknown Device';
+      _deviceId = 'unknown-device-${DateTime.now().millisecondsSinceEpoch}';
     }
   }
 
-  // User Preferences
-  static bool getPreference(String key, {bool defaultValue = false}) {
-    return preferences.getBool(key) ?? defaultValue;
-  }
+  // Configuration constants
+  static const int requestTimeoutSeconds = 30;
+  static const int maxRetryAttempts = 3;
+  static const bool enableAnalytics = true;
+  static const bool enableCrashReporting = true;
 
-  static Future<void> setPreference(String key, bool value) async {
-    await preferences.setBool(key, value);
-  }
-
-  static String getStringPreference(String key, {String defaultValue = ''}) {
-    return preferences.getString(key) ?? defaultValue;
-  }
-
-  static Future<void> setStringPreference(String key, String value) async {
-    await preferences.setString(key, value);
-  }
-
-  static int getIntPreference(String key, {int defaultValue = 0}) {
-    return preferences.getInt(key) ?? defaultValue;
-  }
-
-  static Future<void> setIntPreference(String key, int value) async {
-    await preferences.setInt(key, value);
-  }
-
-  static double getDoublePreference(String key, {double defaultValue = 0.0}) {
-    return preferences.getDouble(key) ?? defaultValue;
-  }
-
-  static Future<void> setDoublePreference(String key, double value) async {
-    await preferences.setDouble(key, value);
-  }
-
-  static Future<void> clearPreferences() async {
-    await preferences.clear();
-  }
-
-  // App State
-  static bool get isFirstRun {
-    return !getPreference('has_run_before');
-  }
-
-  static Future<void> markFirstRunComplete() async {
-    await setPreference('has_run_before', true);
-  }
-
-  static bool get isOnboardingComplete {
-    return getPreference(AppConstants.onboardingCompletedKey);
-  }
-
-  static Future<void> markOnboardingComplete() async {
-    await setPreference(AppConstants.onboardingCompletedKey, true);
-  }
-
-  // Debug utilities
-  static Map<String, dynamic> getDebugInfo() {
-    return {
-      'environment': environment.name,
-      'appName': appName,
-      'packageName': packageName,
-      'version': version,
-      'buildNumber': buildNumber,
-      'apiBaseUrl': apiBaseUrl,
-      'wsBaseUrl': wsBaseUrl,
-      'enableAnalytics': enableAnalytics,
-      'enableCrashlytics': enableCrashlytics,
-      'enableDebugLogging': enableDebugLogging,
-      'isFirstRun': isFirstRun,
-      'isOnboardingComplete': isOnboardingComplete,
-    };
-  }
+  // Feature flags
+  static bool get enableGoogleSignIn => true;
+  static bool get enableAppleSignIn =>
+      defaultTargetPlatform == TargetPlatform.iOS ||
+      defaultTargetPlatform == TargetPlatform.macOS;
+  static bool get enableBiometricAuth => !kIsWeb;
 }
