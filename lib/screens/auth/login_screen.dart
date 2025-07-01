@@ -7,8 +7,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../services/auth_service.dart';
 import '../../core/utils/logger.dart';
+import '../../core/router/app_router.dart';
 import '../onboarding/onboarding_screen.dart';
 import '../home/main_navigation_screen.dart';
+import 'package:go_router/go_router.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -88,10 +90,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           );
 
       if (mounted) {
-        // Navigate to home screen
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
-        );
+        // Navigate using GoRouter - this will trigger the auth redirect
+        AppLogger.logger.navigation('✅ Sign-in successful, navigating to home');
+        context.goToHome();
       }
     } on AuthException catch (e) {
       AppLogger.logger.e('❌ Auth error during sign-in', error: e);
@@ -139,10 +140,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           );
 
       if (mounted) {
-        // Navigate to onboarding screen for new users
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-        );
+        // Navigate using GoRouter - this will trigger the auth redirect to onboarding
+        AppLogger.logger
+            .navigation('✅ Sign-up successful, navigating to onboarding');
+        context.goToOnboarding();
       }
     } on AuthException catch (e) {
       AppLogger.logger.e('❌ Auth error during sign-up', error: e);
@@ -184,10 +185,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       await ref.read(authServiceProvider).signInWithGoogle();
 
       if (mounted) {
-        // Navigate to home screen
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
-        );
+        // Navigate using GoRouter - this will trigger the auth redirect
+        AppLogger.logger
+            .navigation('✅ Google sign-in successful, navigating to home');
+        context.goToHome();
       }
     } on AuthException catch (e) {
       AppLogger.logger.e('❌ Auth error during Google sign-in', error: e);
@@ -229,10 +230,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       await ref.read(authServiceProvider).signInWithApple();
 
       if (mounted) {
-        // Navigate to home screen
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
-        );
+        // Navigate using GoRouter - this will trigger the auth redirect
+        AppLogger.logger
+            .navigation('✅ Apple sign-in successful, navigating to home');
+        context.goToHome();
       }
     } on AuthException catch (e) {
       AppLogger.logger.e('❌ Auth error during Apple sign-in', error: e);

@@ -47,8 +47,8 @@ void main() async {
     await FirebaseConfig.initialize();
     AppLogger.logger.success('✅ Firebase initialized successfully');
 
-    // Run the app
-    AppLogger.logger.i('🎯 Launching GitAlong app...');
+    // Run the app with GoRouter
+    AppLogger.logger.i('🎯 Launching GitAlong app with GoRouter...');
     runApp(
       const ProviderScope(
         child: GitAlongApp(),
@@ -144,21 +144,24 @@ class GitAlongApp extends ConsumerWidget {
     // Watch the app lifecycle state for better resource management
     ref.watch(appLifecycleProvider);
 
+    // Get the router from provider
+    final router = ref.watch(routerProvider);
+
     return ScreenUtilInit(
       designSize: const Size(375, 812), // iPhone 13 mini size as baseline
       minTextAdapt: true,
       splitScreenMode: true,
       useInheritedMediaQuery: true,
       builder: (context, child) {
-        return MaterialApp(
+        return MaterialApp.router(
           title: 'GitAlong',
           debugShowCheckedModeBanner: false,
 
           // Use the bleeding GitHub theme
           theme: AppTheme.theme,
 
-          // Start with splash screen
-          home: const SplashScreen(),
+          // GoRouter configuration - this is the key!
+          routerConfig: router,
 
           // Builder for additional global configuration
           builder: (context, child) {

@@ -1,8 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../models/models.dart';
 import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
+import '../models/user_model.dart';
 import '../core/utils/logger.dart';
+
+// Firestore service provider
+final firestoreServiceProvider = Provider<FirestoreService>((ref) {
+  return FirestoreService();
+});
 
 // Auth service provider - lazy initialization to prevent early Firebase access
 final authServiceProvider = Provider<AuthService>((ref) {
@@ -45,34 +51,35 @@ final currentUserProvider = StateProvider<User?>((ref) {
 final userProfileProvider =
     StateNotifierProvider<UserProfileNotifier, AsyncValue<UserModel?>>((ref) {
   AppLogger.logger.auth('🔧 Creating UserProfileNotifier');
-  return UserProfileNotifier(ref.read(authServiceProvider));
+  return UserProfileNotifier(ref);
 });
 
 class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
-  final AuthService _authService;
+  final Ref _ref;
 
-  UserProfileNotifier(this._authService) : super(const AsyncValue.loading()) {
+  UserProfileNotifier(this._ref) : super(const AsyncValue.loading()) {
     AppLogger.logger.auth('🔧 UserProfileNotifier initialized');
     _loadUserProfile();
   }
 
   Future<void> _loadUserProfile() async {
+    final user = _ref.read(authStateProvider).value;
+
+    if (user == null) {
+      state = const AsyncValue.data(null);
+      return;
+    }
+
     try {
       AppLogger.logger.auth('📝 Loading user profile...');
 
-      if (_authService.isAuthenticated) {
-        AppLogger.logger.auth('✅ User is authenticated, fetching profile');
-        final profile = await _authService.getCurrentUserProfile();
+      final profile = await FirestoreService.getUserProfile(user.uid);
 
-        if (profile != null) {
-          AppLogger.logger.auth('✅ User profile loaded: ${profile.email}');
-          state = AsyncValue.data(profile);
-        } else {
-          AppLogger.logger.auth('⚠️ User authenticated but no profile found');
-          state = const AsyncValue.data(null);
-        }
+      if (profile != null) {
+        AppLogger.logger.auth('✅ User profile loaded: ${profile.email}');
+        state = AsyncValue.data(profile);
       } else {
-        AppLogger.logger.auth('❌ User not authenticated');
+        AppLogger.logger.auth('⚠️ User authenticated but no profile found');
         state = const AsyncValue.data(null);
       }
     } catch (error, stackTrace) {
@@ -87,68 +94,67 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
 
   Future<void> createProfile({
     required String name,
-    required UserRole role,
-    String? bio,
-    String? githubUrl,
-    List<String> skills = const [],
+    required String bio,
+    required String role,
   }) async {
-    AppLogger.logger.auth('📝 Creating user profile for: $name');
-    state = const AsyncValue.loading();
+    final user = _ref.read(authStateProvider).value;
+
+    if (user == null) {
+      throw Exception('User not authenticated');
+    }
 
     try {
-      final profile = await _authService.upsertUserProfile(
+      state = const AsyncValue.loading();
+
+      // Create user profile
+      final userModel = UserModel(
+        id: user.uid,
+        email: user.email ?? '',
         name: name,
-        role: role,
         bio: bio,
-        githubUrl: githubUrl,
-        skills: skills,
+        role: UserRole.values.byName(role),
+        avatarUrl: user.photoURL,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        skills: const [],
       );
 
-      AppLogger.logger.auth('✅ User profile created successfully');
-      state = AsyncValue.data(profile);
+      await FirestoreService.createUserProfile(userModel);
+
+      state = AsyncValue.data(userModel);
+      AppLogger.logger.success('✅ User profile created successfully');
     } catch (error, stackTrace) {
-      AppLogger.logger.e(
-        '❌ Failed to create user profile',
-        error: error,
-        stackTrace: stackTrace,
-      );
+      AppLogger.logger.e('❌ Error creating user profile',
+          error: error, stackTrace: stackTrace);
       state = AsyncValue.error(error, stackTrace);
+      rethrow;
     }
   }
 
-  Future<void> updateProfile({
-    String? name,
-    String? bio,
-    String? githubUrl,
-    List<String>? skills,
-  }) async {
-    AppLogger.logger.auth('📝 Updating user profile...');
-    state = const AsyncValue.loading();
-
+  Future<void> updateProfile(UserModel updatedProfile) async {
     try {
-      final profile = await _authService.updateUserProfile(
-        name: name,
-        bio: bio,
-        githubUrl: githubUrl,
-        skills: skills,
+      state = const AsyncValue.loading();
+
+      await FirestoreService.updateUserProfile(
+        updatedProfile.id,
+        updatedProfile.toJson(),
       );
 
-      AppLogger.logger.auth('✅ User profile updated successfully');
-      state = AsyncValue.data(profile);
+      state = AsyncValue.data(updatedProfile);
+      AppLogger.logger.success('✅ User profile updated successfully');
     } catch (error, stackTrace) {
-      AppLogger.logger.e(
-        '❌ Failed to update user profile',
-        error: error,
-        stackTrace: stackTrace,
-      );
+      AppLogger.logger.e('❌ Error updating user profile',
+          error: error, stackTrace: stackTrace);
       state = AsyncValue.error(error, stackTrace);
+      rethrow;
     }
   }
 
   Future<void> signOut() async {
     try {
       AppLogger.logger.auth('🚪 Signing out user...');
-      await _authService.signOut();
+      final authService = _ref.read(authServiceProvider);
+      await authService.signOut();
       AppLogger.logger.auth('✅ User signed out successfully');
       state = const AsyncValue.data(null);
     } catch (error, stackTrace) {
@@ -219,21 +225,20 @@ final isAuthenticatedProvider = Provider<bool>((ref) {
   }
 });
 
-// Has user profile provider
+// Provider for checking if user has completed profile setup
 final hasUserProfileProvider = FutureProvider<bool>((ref) async {
+  final user = ref.watch(authStateProvider).value;
+
+  if (user == null) {
+    return false;
+  }
+
   try {
-    AppLogger.logger.auth('🔍 Checking if user has profile...');
-    final authService = ref.read(authServiceProvider);
-    final hasProfile = await authService.hasUserProfile();
-    AppLogger.logger.auth('📋 User has profile: $hasProfile');
-    return hasProfile;
-  } catch (e, stackTrace) {
-    AppLogger.logger.e(
-      '❌ Error checking user profile existence',
-      error: e,
-      stackTrace: stackTrace,
-    );
-    // Firebase not initialized yet - return false but don't mask error
+    // Check if user profile exists in Firestore
+    final profile = await FirestoreService.getUserProfile(user.uid);
+    return profile != null;
+  } catch (e) {
+    AppLogger.logger.e('❌ Error checking user profile', error: e);
     return false;
   }
 });

@@ -3,6 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../home/main_navigation_screen.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import '../../core/utils/logger.dart';
+import '../../core/router/app_router.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -100,42 +105,41 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Future<void> _completeOnboarding() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
-      await ref
-          .read(userProfileProvider.notifier)
-          .createProfile(
+      // Create user profile
+      await ref.read(userProfileProvider.notifier).createProfile(
             name: _nameController.text.trim(),
-            role: _selectedRole,
-            bio:
-                _bioController.text.trim().isEmpty
-                    ? null
-                    : _bioController.text.trim(),
-            githubUrl:
-                _githubController.text.trim().isEmpty
-                    ? null
-                    : _githubController.text.trim(),
-            skills: _selectedSkills,
+            bio: _bioController.text.trim(),
+            role: _selectedRole.name,
           );
 
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
-        );
+        AppLogger.logger
+            .navigation('✅ Onboarding completed, navigating to home');
+        context.goToHome();
       }
     } catch (e) {
+      AppLogger.logger.e('❌ Error completing onboarding', error: e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to create profile: $e'),
-            backgroundColor: Colors.red,
+            content: Text(
+              'Failed to complete profile setup. Please try again.',
+              style: GoogleFonts.inter(color: Colors.white),
+            ),
+            backgroundColor: const Color(0xFFDA3633), // GitHub red
           ),
         );
       }
     } finally {
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
@@ -145,13 +149,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Setup Your Profile'),
-        leading:
-            _currentPage > 0
-                ? IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: _previousPage,
-                )
-                : null,
+        leading: _currentPage > 0
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: _previousPage,
+              )
+            : null,
       ),
       body: Form(
         key: _formKey,
@@ -194,16 +197,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _nextPage,
-                      child:
-                          _isLoading
-                              ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                              : Text(_currentPage == 2 ? 'Complete' : 'Next'),
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Text(_currentPage == 2 ? 'Complete' : 'Next'),
                     ),
                   ),
                 ],
@@ -236,7 +238,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             ).textTheme.bodyLarge?.copyWith(color: Colors.grey[400]),
           ),
           const SizedBox(height: 48),
-
           _buildRoleCard(
             role: UserRole.contributor,
             title: 'Contributor',
@@ -275,10 +276,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color:
-                      isSelected
-                          ? Theme.of(context).colorScheme.primary
-                          : Colors.grey[700],
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.grey[700],
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: Colors.white, size: 24),
@@ -291,8 +291,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     Text(
                       title,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -337,7 +337,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             ).textTheme.bodyLarge?.copyWith(color: Colors.grey[400]),
           ),
           const SizedBox(height: 48),
-
           TextFormField(
             controller: _nameController,
             decoration: const InputDecoration(
@@ -352,7 +351,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             },
           ),
           const SizedBox(height: 24),
-
           TextFormField(
             controller: _bioController,
             decoration: const InputDecoration(
@@ -363,7 +361,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             maxLength: 200,
           ),
           const SizedBox(height: 24),
-
           TextFormField(
             controller: _githubController,
             decoration: const InputDecoration(
@@ -406,37 +403,34 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             ).textTheme.bodyLarge?.copyWith(color: Colors.grey[400]),
           ),
           const SizedBox(height: 24),
-
           Text(
             'Selected: ${_selectedSkills.length}/5',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-            ),
+                  color: Theme.of(context).colorScheme.primary,
+                ),
           ),
           const SizedBox(height: 16),
-
           Expanded(
             child: SingleChildScrollView(
               child: Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children:
-                    _availableSkills.map((skill) {
-                      final isSelected = _selectedSkills.contains(skill);
-                      return FilterChip(
-                        label: Text(skill),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          setState(() {
-                            if (selected && _selectedSkills.length < 5) {
-                              _selectedSkills.add(skill);
-                            } else if (!selected) {
-                              _selectedSkills.remove(skill);
-                            }
-                          });
-                        },
-                      );
-                    }).toList(),
+                children: _availableSkills.map((skill) {
+                  final isSelected = _selectedSkills.contains(skill);
+                  return FilterChip(
+                    label: Text(skill),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      setState(() {
+                        if (selected && _selectedSkills.length < 5) {
+                          _selectedSkills.add(skill);
+                        } else if (!selected) {
+                          _selectedSkills.remove(skill);
+                        }
+                      });
+                    },
+                  );
+                }).toList(),
               ),
             ),
           ),
