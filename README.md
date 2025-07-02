@@ -1,5 +1,11 @@
 # GitAlong - Find Your Perfect Open Source Match
 
+<div align="center">
+  <img src="assets/icons/app_icon.jpg" alt="GitAlong App Icon" width="120" height="120" style="border-radius: 20px;">
+  
+  <p><em>Created by Sreevallabh Kakarala</em></p>
+</div>
+
 GitAlong is a Flutter application that connects developers with open source projects through a Tinder-like interface. Find projects that match your skills, interests, and availability.
 
 ## 🚀 Production-Ready Features
@@ -166,7 +172,9 @@ flutter run -d <device-id>
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+**Author**: Sreevallabh Kakarala
 
 ## 🔗 Links
 
