@@ -65,26 +65,25 @@ class SwipeService implements ISwipeService {
   @override
   Future<List<ProjectModel>> getProjectsToSwipe(String userId) async {
     return await safeQuery(() async {
-          final swipedProjectIds = await _getSwipedTargetIds(
-            userId,
-            SwipeTargetType.project,
-          );
-          Query<Map<String, dynamic>> query = _firestore
+          // Add timeout to prevent hanging
+          return await _firestore
               .collection(_projectsCollection)
               .where('status', isEqualTo: 'active')
-              .where('owner_id', isNotEqualTo: userId)
-              .orderBy('owner_id')
-              .orderBy('id');
-          if (swipedProjectIds.isNotEmpty) {
-            query = query.where('id', whereNotIn: swipedProjectIds);
-          }
-          final querySnapshot = await query.limit(10).get();
-          return querySnapshot.docs
-              .map((doc) =>
-                  ProjectModel.fromJson(_convertFirestoreData(doc.data())))
-              .toList();
+              .orderBy('created_at', descending: true)
+              .limit(10)
+              .get()
+              .timeout(const Duration(seconds: 10))
+              .then((querySnapshot) {
+            return querySnapshot.docs
+                .where((doc) =>
+                    doc.data()['owner_id'] != userId) // Filter locally for now
+                .map((doc) =>
+                    ProjectModel.fromJson(_convertFirestoreData(doc.data())))
+                .take(10)
+                .toList();
+          });
         }, onError: (e) {
-          // Optionally show a user-friendly error
+          AppLogger.logger.e('❌ Error loading projects', error: e);
         }) ??
         [];
   }
@@ -92,24 +91,25 @@ class SwipeService implements ISwipeService {
   @override
   Future<List<UserModel>> getUsersToSwipe(String userId) async {
     return await safeQuery(() async {
-          final swipedUserIds = await _getSwipedTargetIds(
-            userId,
-            SwipeTargetType.user,
-          );
-          Query<Map<String, dynamic>> query = _firestore
+          // Add timeout to prevent hanging
+          return await _firestore
               .collection(_usersCollection)
               .where('role', isEqualTo: 'contributor')
-              .where('id', isNotEqualTo: userId);
-          if (swipedUserIds.isNotEmpty) {
-            query = query.where('id', whereNotIn: swipedUserIds);
-          }
-          final querySnapshot = await query.limit(10).get();
-          return querySnapshot.docs
-              .map((doc) =>
-                  UserModel.fromJson(_convertFirestoreData(doc.data())))
-              .toList();
+              .orderBy('created_at', descending: true)
+              .limit(10)
+              .get()
+              .timeout(const Duration(seconds: 10))
+              .then((querySnapshot) {
+            return querySnapshot.docs
+                .where((doc) =>
+                    doc.data()['id'] != userId) // Filter locally for now
+                .map((doc) =>
+                    UserModel.fromJson(_convertFirestoreData(doc.data())))
+                .take(10)
+                .toList();
+          });
         }, onError: (e) {
-          // Optionally show a user-friendly error
+          AppLogger.logger.e('❌ Error loading users', error: e);
         }) ??
         [];
   }
