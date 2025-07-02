@@ -9,6 +9,7 @@ import '../../screens/auth/login_screen.dart';
 import '../../screens/onboarding/onboarding_screen.dart';
 import '../../screens/home/main_navigation_screen.dart';
 import '../../core/utils/logger.dart';
+import '../../widgets/email_verification_banner.dart';
 
 // ============================================================================
 // 🎯 ROUTE PATHS - CENTRALIZED DIVINE NAVIGATION
@@ -61,6 +62,10 @@ class _AuthGateState extends ConsumerState<AuthGate> {
         context.go(AppRoutes.login);
       });
       return const _SplashLoadingScreen();
+    }
+
+    if (user != null && !user.emailVerified) {
+      return _EmailVerificationBlock(user: user);
     }
 
     // User is authenticated, check profile status
@@ -697,4 +702,83 @@ class EditProfileScreen extends StatelessWidget {
 // Export the router
 class AppRouter {
   static GoRouter get router => _router;
+}
+
+class _EmailVerificationBlock extends StatefulWidget {
+  final User user;
+  const _EmailVerificationBlock({required this.user});
+  @override
+  State<_EmailVerificationBlock> createState() =>
+      _EmailVerificationBlockState();
+}
+
+class _EmailVerificationBlockState extends State<_EmailVerificationBlock> {
+  bool _isLoading = false;
+  String? _message;
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0D1117),
+      body: Column(
+        children: [
+          if (_message != null)
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(_message!,
+                  style: const TextStyle(color: Color(0xFF2EA043))),
+            ),
+          EmailVerificationBanner(
+            onRefresh: !_isLoading ? () => _onRefresh() : () {},
+            onResend: !_isLoading ? () => _onResend() : () {},
+          ),
+          if (_isLoading)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: CircularProgressIndicator(color: Color(0xFF2EA043)),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _onRefresh() async {
+    setState(() => _isLoading = true);
+    try {
+      await widget.user.reload();
+      final refreshed = FirebaseAuth.instance.currentUser;
+      if (refreshed != null && refreshed.emailVerified) {
+        setState(() => _message = '✅ Email verified! Redirecting...');
+        // Give user a moment to see the success message, then trigger navigation
+        await Future.delayed(const Duration(seconds: 1));
+        if (mounted) {
+          // This will trigger the auth state change and navigate appropriately
+        }
+      } else {
+        setState(() =>
+            _message = '⏳ Email not yet verified. Please check your inbox.');
+      }
+    } catch (e) {
+      setState(() =>
+          _message = '❌ Error checking verification status. Please try again.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _onResend() async {
+    setState(() => _isLoading = true);
+    try {
+      await widget.user.sendEmailVerification();
+      setState(() {
+        _isLoading = false;
+        _message =
+            '📧 Verification email sent! Check your inbox and spam folder.';
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _message = '❌ Failed to send verification email. Please try again.';
+      });
+    }
+  }
 }

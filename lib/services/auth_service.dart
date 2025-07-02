@@ -16,7 +16,12 @@ class AuthService {
   // Lazy-loaded Firebase instances to prevent early initialization
   FirebaseAuth get _auth => FirebaseConfig.auth;
   FirebaseFirestore get _firestore => FirebaseConfig.firestore;
-  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email', 'profile'],
+    // Add client ID for better compatibility
+    serverClientId:
+        '267802124592-tv5mnvog8sblshvnarf0c78ujf4pjbq7.apps.googleusercontent.com',
+  );
 
   // Get current user
   User? get currentUser => _auth.currentUser;
@@ -160,6 +165,17 @@ class AuthService {
         email: cleanEmail,
         password: cleanPassword,
       );
+
+      // 4. AUTOMATICALLY SEND EMAIL VERIFICATION
+      if (credential.user != null && !credential.user!.emailVerified) {
+        try {
+          await credential.user!.sendEmailVerification();
+          AppLogger.logger.auth('📧 Email verification sent to: $cleanEmail');
+        } catch (e) {
+          AppLogger.logger.w('⚠️ Failed to send verification email', error: e);
+          // Don't throw error here - account creation was successful
+        }
+      }
 
       AppLogger.logger.auth('✅ Email sign-up successful for: $cleanEmail');
       return credential;
@@ -638,6 +654,131 @@ class AuthService {
       await docRef.update({
         'updated_at': DateTime.now().toIso8601String(),
       });
+    }
+  }
+
+  /// Send email verification to current user
+  Future<void> sendEmailVerification() async {
+    final user = currentUser;
+    if (user == null) {
+      throw const AuthException(
+        'No user is currently signed in.',
+        code: 'no-current-user',
+      );
+    }
+
+    if (user.emailVerified) {
+      throw const AuthException(
+        'Email is already verified.',
+        code: 'already-verified',
+      );
+    }
+
+    try {
+      await user.sendEmailVerification();
+      AppLogger.logger.auth('📧 Email verification sent to: ${user.email}');
+    } on FirebaseAuthException catch (e) {
+      AppLogger.logger.e('❌ Error sending email verification', error: e);
+
+      switch (e.code) {
+        case 'too-many-requests':
+          throw const AuthException(
+            'Too many verification emails sent. Please wait before requesting another.',
+            code: 'too-many-requests',
+          );
+        case 'invalid-email':
+          throw const AuthException(
+            'Invalid email address.',
+            code: 'invalid-email',
+          );
+        default:
+          throw AuthException(
+            'Failed to send verification email: ${e.message ?? 'Unknown error'}',
+            code: e.code,
+          );
+      }
+    } catch (e) {
+      AppLogger.logger
+          .e('❌ Unexpected error sending email verification', error: e);
+      throw const AuthException(
+        'Failed to send verification email. Please try again.',
+        code: 'unknown-error',
+      );
+    }
+  }
+
+  /// Reload current user to check latest email verification status
+  Future<void> reloadUser() async {
+    final user = currentUser;
+    if (user == null) {
+      throw const AuthException(
+        'No user is currently signed in.',
+        code: 'no-current-user',
+      );
+    }
+
+    try {
+      await user.reload();
+      AppLogger.logger.auth('🔄 User data reloaded for: ${user.email}');
+    } catch (e) {
+      AppLogger.logger.e('❌ Error reloading user', error: e);
+      throw const AuthException(
+        'Failed to refresh user data. Please try again.',
+        code: 'reload-error',
+      );
+    }
+  }
+
+  /// Send verification email to a specific user by email (for existing users)
+  Future<void> sendVerificationToUser(String email) async {
+    if (!isAuthenticated) {
+      throw const AuthException(
+        'Must be authenticated to perform this action.',
+        code: 'unauthenticated',
+      );
+    }
+
+    try {
+      final cleanEmail = email.trim();
+      if (!_isValidEmail(cleanEmail)) {
+        throw const AuthException(
+          'Invalid email format.',
+          code: 'invalid-email',
+        );
+      }
+
+      // Check if user exists in Firestore
+      final userQuery = await _firestore
+          .collection('users')
+          .where('email', isEqualTo: cleanEmail)
+          .limit(1)
+          .get();
+
+      if (userQuery.docs.isEmpty) {
+        throw const AuthException(
+          'User not found with this email.',
+          code: 'user-not-found',
+        );
+      }
+
+      // For existing users, we can't directly send verification emails through Admin SDK in client
+      // We'll create a notification in Firestore that triggers a Cloud Function
+      await _firestore.collection('email_notifications').add({
+        'email': cleanEmail,
+        'type': 'verification_reminder',
+        'message': 'Please sign in to verify your email address.',
+        'created_at': DateTime.now().toIso8601String(),
+        'processed': false,
+      });
+
+      AppLogger.logger
+          .auth('📧 Verification reminder created for: $cleanEmail');
+    } catch (e) {
+      AppLogger.logger.e('❌ Error sending verification reminder', error: e);
+      throw AuthException(
+        'Failed to send verification reminder: ${e.toString()}',
+        code: 'verification-reminder-error',
+      );
     }
   }
 }

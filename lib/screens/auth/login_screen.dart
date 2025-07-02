@@ -171,22 +171,61 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     });
 
     try {
-      // Use the improved AuthService with comprehensive error handling
-      await ref.read(authServiceProvider).signInWithGoogle();
+      AppLogger.logger.auth('🔐 Starting Google Sign-In process...');
 
-      if (mounted) {
-        // Navigate using GoRouter - this will trigger the auth redirect
+      // Use the improved AuthService with comprehensive error handling
+      final credential = await ref.read(authServiceProvider).signInWithGoogle();
+
+      if (credential.user != null) {
         AppLogger.logger
-            .navigation('✅ Google sign-in successful, navigating to home');
-        context.goToHome();
+            .auth('✅ Google sign-in successful for: ${credential.user!.email}');
+
+        if (mounted) {
+          // Navigate using GoRouter - this will trigger the auth redirect
+          AppLogger.logger
+              .navigation('✅ Google sign-in successful, navigating to home');
+          context.goToHome();
+        }
+      } else {
+        throw const auth.AuthException(
+          'Google sign-in completed but no user was returned.',
+          code: 'no-user-returned',
+        );
       }
     } on auth.AuthException catch (e) {
       AppLogger.logger.e('❌ Auth error during Google sign-in', error: e);
 
       if (mounted) {
+        String userFriendlyMessage;
+
+        // Provide more specific error messages based on the error code
+        switch (e.code) {
+          case 'sign-in-cancelled':
+            userFriendlyMessage =
+                'Google sign-in was cancelled. Please try again.';
+            break;
+          case 'network-request-failed':
+            userFriendlyMessage =
+                'Network error. Please check your connection and try again.';
+            break;
+          case 'operation-not-allowed':
+            userFriendlyMessage =
+                'Google sign-in is not enabled. Please contact support.';
+            break;
+          case 'invalid-credential':
+            userFriendlyMessage =
+                'Invalid credentials. Please try signing in again.';
+            break;
+          default:
+            userFriendlyMessage = e.message;
+        }
+
         setState(() {
-          _errorMessage = e.message; // This will now be a user-friendly message
+          _errorMessage = userFriendlyMessage;
         });
+
+        // Show snackbar for better visibility
+        _showErrorSnackbar(userFriendlyMessage);
       }
     } catch (e, stackTrace) {
       AppLogger.logger.e(
@@ -196,9 +235,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       );
 
       if (mounted) {
+        String errorMessage = 'Google sign-in failed. Please try again.';
+
+        // Handle specific platform errors
+        if (e.toString().contains('DEVELOPER_ERROR') ||
+            e.toString().contains('Error 10')) {
+          errorMessage =
+              'Google sign-in configuration error. Please contact support.';
+        } else if (e.toString().contains('network') ||
+            e.toString().contains('connection')) {
+          errorMessage =
+              'Network error. Please check your internet connection.';
+        }
+
         setState(() {
-          _errorMessage = 'Google sign-in failed. Please try again.';
+          _errorMessage = errorMessage;
         });
+
+        _showErrorSnackbar(errorMessage);
       }
     } finally {
       if (mounted) {

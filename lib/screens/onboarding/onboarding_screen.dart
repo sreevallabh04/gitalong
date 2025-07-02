@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/models.dart';
-import '../../providers/auth_provider.dart';
 import '../home/main_navigation_screen.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -9,6 +8,8 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../core/utils/logger.dart';
 import '../../core/router/app_router.dart';
 import '../../core/utils/firestore_utils.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../providers/auth_provider.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -149,17 +150,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
   }
 
-  Future<T?> safeQuery<T>(Future<T> Function() query,
-      {Function(dynamic)? onError}) async {
-    try {
-      return await query();
-    } catch (e) {
-      AppLogger.logger.e('Firestore error: $e');
-      if (onError != null) onError(e);
-      return null;
-    }
-  }
-
   Future<void> _completeOnboarding() async {
     // Validate all form data
     if (!_validateAllData()) {
@@ -179,15 +169,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     try {
       final trimmedName = _nameController.text.trim();
       final githubUrl = _githubController.text.trim();
-
-      AppLogger.logger.auth('🚀 Starting profile creation...');
-      AppLogger.logger.auth('📋 Name: $trimmedName');
-      AppLogger.logger.auth('📝 Bio: ${_bioController.text.trim()}');
-      AppLogger.logger
-          .auth('🏷️ Role: ${_selectedRole.toString().split('.').last}');
-      AppLogger.logger.auth('💼 Skills: ${_selectedSkills.join(', ')}');
-      AppLogger.logger.auth('🔗 GitHub: $githubUrl');
-
       final result = await safeQuery(() async {
         await ref.read(userProfileProvider.notifier).createProfile(
               name: trimmedName,
@@ -207,30 +188,48 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         }
       });
       if (result == null) return;
+      // After profile creation, check isMaintainer
+      final auth = ref.read(authServiceProvider);
+      final user = auth.currentUser;
+      if (user == null) {
+        _showError('User not authenticated.');
+        return;
+      }
+      final userDoc = await safeQuery(() async {
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        return doc.data();
+      });
+      if (userDoc != null && userDoc['isMaintainer'] == true) {
+        if (mounted) {
+          Navigator.of(context).pushReplacementNamed('/maintainer-dashboard');
+        }
+      } else {
+        if (mounted) {
+          AppLogger.logger
+              .navigation('✅ Onboarding completed, navigating to home');
 
-      // Check if widget is still mounted before navigation
-      if (mounted) {
-        AppLogger.logger
-            .navigation('✅ Onboarding completed, navigating to home');
-
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Welcome to GitAlong! Your profile has been created successfully.',
-              style: GoogleFonts.inter(color: Colors.white),
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Welcome to GitAlong! Your profile has been created successfully.',
+                style: GoogleFonts.inter(color: Colors.white),
+              ),
+              backgroundColor: const Color(0xFF238636),
+              duration: const Duration(seconds: 3),
             ),
-            backgroundColor: const Color(0xFF238636),
-            duration: const Duration(seconds: 3),
-          ),
-        );
+          );
 
-        // Navigate to home
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            context.goToHome();
-          }
-        });
+          // Navigate to home
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              context.goToHome();
+            }
+          });
+        }
       }
     } catch (e, stackTrace) {
       AppLogger.logger
