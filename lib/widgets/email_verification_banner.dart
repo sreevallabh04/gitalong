@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 class EmailVerificationBanner extends StatelessWidget {
   final VoidCallback onRefresh;
   final VoidCallback onResend;
-  const EmailVerificationBanner(
-      {Key? key, required this.onRefresh, required this.onResend})
-      : super(key: key);
+
+  const EmailVerificationBanner({
+    super.key,
+    required this.onRefresh,
+    required this.onResend,
+  });
 
   @override
   Widget build(BuildContext context) {

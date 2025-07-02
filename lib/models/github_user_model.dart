@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 /// GitHub user model that integrates with real GitHub API data
 /// This makes our profile cards incredibly rich and developer-focused
 class GitHubUser {

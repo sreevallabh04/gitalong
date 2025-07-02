@@ -1,37 +1,20 @@
 import 'package:flutter/material.dart';
+import '../models/contribution_model.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../core/theme/app_theme.dart';
 import 'commit_dot.dart';
 import 'dart:math';
 
 /// GitHub-style contribution graph that displays commit activity over time
 /// This is the crown jewel of our developer-focused UI
 class ContributionGraph extends StatefulWidget {
+  final List<ContributionDay> contributions;
+  final int weeks;
+
   const ContributionGraph({
     super.key,
-    this.data,
-    this.title = 'Contribution Activity',
-    this.showLabels = true,
-    this.animateOnLoad = true,
-    this.weeks = 12,
-    this.days = 7,
+    required this.contributions,
+    this.weeks = 52,
   });
-
-  /// Commit data to display. If null, generates sample data
-  final List<CommitData>? data;
-
-  /// Title shown above the graph
-  final String title;
-
-  /// Whether to show month and day labels
-  final bool showLabels;
-
-  /// Whether to animate when first loaded
-  final bool animateOnLoad;
-
-  final int weeks;
-  final int days;
 
   @override
   State<ContributionGraph> createState() => _ContributionGraphState();
@@ -46,7 +29,7 @@ class _ContributionGraphState extends State<ContributionGraph>
   @override
   void initState() {
     super.initState();
-    _data = widget.data ?? CommitData.generateSampleData();
+    _data = CommitData.generateSampleData();
 
     _titleController = AnimationController(
       duration: const Duration(milliseconds: 800),
@@ -58,9 +41,7 @@ class _ContributionGraphState extends State<ContributionGraph>
       curve: Curves.easeOutCubic,
     );
 
-    if (widget.animateOnLoad) {
-      _titleController.forward();
-    }
+    _titleController.forward();
   }
 
   @override
@@ -157,7 +138,8 @@ class _ContributionGraphState extends State<ContributionGraph>
 
   @override
   Widget build(BuildContext context) {
-    final grid = List.generate(widget.weeks * widget.days, (i) => _data.length > i ? _data[i].commitCount : 0);
+    final grid = List.generate(
+        widget.weeks, (i) => _data.length > i ? _data[i].commitCount : 0);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -184,7 +166,7 @@ class _ContributionGraphState extends State<ContributionGraph>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            widget.title,
+                            'Contribution Activity',
                             style: GitAlongTheme.titleStyle,
                           ),
                           const SizedBox(height: 4),
@@ -225,49 +207,46 @@ class _ContributionGraphState extends State<ContributionGraph>
           const SizedBox(height: 24),
 
           // Month Labels
-          if (widget.showLabels) ...[
-            Row(
-              children: [
-                const SizedBox(width: 40), // Space for day labels
-                Expanded(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: _monthLabels.map((month) {
-                      return Text(
-                        month,
-                        style: GitAlongTheme.terminalStyle,
-                      );
-                    }).toList(),
-                  ),
+          Row(
+            children: [
+              const SizedBox(width: 40), // Space for day labels
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: _monthLabels.map((month) {
+                    return Text(
+                      month,
+                      style: GitAlongTheme.terminalStyle,
+                    );
+                  }).toList(),
                 ),
-              ],
-            ),
-            const SizedBox(height: 8),
-          ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
 
           // Main Graph
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Day Labels
-              if (widget.showLabels)
-                Column(
-                  children: [
-                    const SizedBox(height: 14), // Align with first row
-                    ...['Mon', 'Wed', 'Fri'].map((day) {
-                      return Container(
-                        height: 16,
-                        margin: const EdgeInsets.only(bottom: 2),
-                        child: Text(
-                          day,
-                          style: GitAlongTheme.terminalStyle,
-                        ),
-                      );
-                    }),
-                  ],
-                ),
+              Column(
+                children: [
+                  const SizedBox(height: 14), // Align with first row
+                  ...['Mon', 'Wed', 'Fri'].map((day) {
+                    return Container(
+                      height: 16,
+                      margin: const EdgeInsets.only(bottom: 2),
+                      child: Text(
+                        day,
+                        style: GitAlongTheme.terminalStyle,
+                      ),
+                    );
+                  }),
+                ],
+              ),
 
-              if (widget.showLabels) const SizedBox(width: 8),
+              const SizedBox(width: 8),
 
               // Commit Grid
               Expanded(
@@ -275,18 +254,19 @@ class _ContributionGraphState extends State<ContributionGraph>
                   scrollDirection: Axis.horizontal,
                   child: SizedBox(
                     width: widget.weeks * 14,
-                    height: widget.days * 14,
+                    height: 14 * 7,
                     child: GridView.builder(
                       physics: const NeverScrollableScrollPhysics(),
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: widget.days,
+                        crossAxisCount: 7,
                         mainAxisSpacing: 2,
                         crossAxisSpacing: 2,
                       ),
-                      itemCount: widget.weeks * widget.days,
+                      itemCount: widget.weeks,
                       itemBuilder: (context, i) {
                         return AnimatedContainer(
-                          duration: Duration(milliseconds: 400 + Random().nextInt(400)),
+                          duration: Duration(
+                              milliseconds: 400 + Random().nextInt(400)),
                           decoration: BoxDecoration(
                             color: _colorForLevel(grid[i]),
                             borderRadius: BorderRadius.circular(2),

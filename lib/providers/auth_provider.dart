@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
@@ -5,7 +6,7 @@ import '../services/firestore_service.dart';
 import '../models/user_model.dart';
 import '../core/utils/logger.dart';
 import '../core/utils/firestore_utils.dart';
-import 'package:flutter/foundation.dart';
+import '../services/email_service.dart';
 
 // Firestore service provider
 final firestoreServiceProvider = Provider<FirestoreService>((ref) {
@@ -58,38 +59,42 @@ final userProfileProvider =
 
 class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
   final Ref _ref;
+  late StreamSubscription<User?> _authStateSubscription;
 
   UserProfileNotifier(this._ref) : super(const AsyncValue.loading()) {
     AppLogger.logger.auth('🔧 UserProfileNotifier initialized');
-    _loadUserProfile();
+    _initializeProfile();
+  }
+
+  void _initializeProfile() {
+    // Listen to auth state changes using stream
+    _authStateSubscription =
+        _ref.read(authServiceProvider).authStateChanges.listen((user) {
+      if (user != null) {
+        _loadUserProfile();
+      } else {
+        state = const AsyncValue.data(null);
+      }
+    });
+
+    // Load initial profile if user is already signed in
+    if (_ref.read(authServiceProvider).isAuthenticated) {
+      _loadUserProfile();
+    }
   }
 
   Future<void> _loadUserProfile() async {
-    final user = _ref.read(authStateProvider).value;
-
-    if (user == null) {
-      state = const AsyncValue.data(null);
-      return;
-    }
-
     try {
-      AppLogger.logger.auth('📝 Loading user profile...');
+      state = const AsyncValue.loading();
 
-      final profile = await FirestoreService.getUserProfile(user.uid);
+      final profile =
+          await _ref.read(authServiceProvider).getCurrentUserProfile();
+      state = AsyncValue.data(profile);
 
-      if (profile != null) {
-        AppLogger.logger.auth('✅ User profile loaded: ${profile.email}');
-        state = AsyncValue.data(profile);
-      } else {
-        AppLogger.logger.auth('⚠️ User authenticated but no profile found');
-        state = const AsyncValue.data(null);
-      }
+      AppLogger.logger.d('✅ Profile loaded: ${profile?.name ?? "No profile"}');
     } catch (error, stackTrace) {
-      AppLogger.logger.e(
-        '❌ Failed to load user profile',
-        error: error,
-        stackTrace: stackTrace,
-      );
+      AppLogger.logger
+          .e('❌ Error loading profile', error: error, stackTrace: stackTrace);
       state = AsyncValue.error(error, stackTrace);
     }
   }
@@ -121,7 +126,7 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
       AppLogger.logger.auth('📧 Email: ${user.email}');
       AppLogger.logger.auth('📋 Name: $name');
       AppLogger.logger.auth('🏷️ Role: $role');
-      AppLogger.logger.auth('�� Skills: ${skills?.join(', ') ?? 'None'}');
+      AppLogger.logger.auth(' Skills: ${skills?.join(', ') ?? 'None'}');
       AppLogger.logger.auth('🔗 GitHub: ${githubUrl ?? 'None'}');
 
       // Validate inputs before processing
@@ -162,23 +167,15 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
             'Too many skills selected. Please select up to 10 skills.');
       }
 
-      // Create user profile with validated data
-      final userModel = UserModel(
-        id: user.uid,
-        email: user.email!,
-        name: trimmedName,
-        bio: trimmedBio.isEmpty ? null : trimmedBio,
-        role: parsedRole,
-        avatarUrl: user.photoURL,
-        githubUrl: trimmedGithubUrl?.isEmpty == true ? null : trimmedGithubUrl,
-        skills: List<String>.from(skillsList), // Create defensive copy
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-
-      AppLogger.logger.auth('🔄 Calling FirestoreService.createUserProfile...');
+      AppLogger.logger.auth('🔄 Calling AuthService.upsertUserProfile...');
       final createdProfile =
-          await FirestoreService.createUserProfile(userModel);
+          await _ref.read(authServiceProvider).upsertUserProfile(
+                name: trimmedName,
+                role: parsedRole,
+                bio: trimmedBio.isEmpty ? null : trimmedBio,
+                githubUrl: trimmedGithubUrl,
+                skills: skillsList,
+              );
 
       state = AsyncValue.data(createdProfile);
       AppLogger.logger.success('✅ User profile created successfully');
@@ -227,10 +224,13 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
 
   Future<void> updateProfile(UserModel updatedProfile) async {
     await safeQuery(() async {
-      await FirestoreService.updateUserProfile(
-        updatedProfile.id,
-        updatedProfile.toJson(),
-      );
+      await _ref.read(authServiceProvider).upsertUserProfile(
+            name: updatedProfile.name,
+            role: updatedProfile.role,
+            bio: updatedProfile.bio,
+            githubUrl: updatedProfile.githubUrl,
+            skills: updatedProfile.skills,
+          );
       state = AsyncValue.data(updatedProfile);
       AppLogger.logger.success('✅ User profile updated successfully');
     }, onError: (e) {
@@ -242,8 +242,7 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
   Future<void> signOut() async {
     try {
       AppLogger.logger.auth('🚪 Signing out user...');
-      final authService = _ref.read(authServiceProvider);
-      await authService.signOut();
+      await _ref.read(authServiceProvider).signOut();
       AppLogger.logger.auth('✅ User signed out successfully');
       state = const AsyncValue.data(null);
     } catch (error, stackTrace) {
@@ -260,6 +259,12 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
     AppLogger.logger.auth('🔄 Refreshing user profile...');
     _loadUserProfile();
   }
+
+  @override
+  void dispose() {
+    _authStateSubscription.cancel();
+    super.dispose();
+  }
 }
 
 // Authentication state provider with proper error handling
@@ -268,12 +273,11 @@ final authStateProvider = StreamProvider<User?>((ref) {
     AppLogger.logger.auth('🔧 Setting up auth state stream');
     final authService = ref.read(authServiceProvider);
 
-    // Add logging to the auth state stream
-    return authService.authStateChanges.map((user) {
+    // Listen to auth state changes and trigger email verification check
+    return authService.authStateChanges.asyncMap((user) async {
       if (user != null) {
-        AppLogger.logger.auth('✅ Auth state: User signed in (${user.email})');
-      } else {
-        AppLogger.logger.auth('❌ Auth state: User signed out');
+        // Check if email was just verified and trigger welcome email
+        await _checkEmailVerificationAndTriggerWelcome(user);
       }
       return user;
     }).handleError((error, stackTrace) {
@@ -295,6 +299,23 @@ final authStateProvider = StreamProvider<User?>((ref) {
     return Stream.error(e, stackTrace);
   }
 });
+
+// Helper function to check email verification and trigger welcome email
+Future<void> _checkEmailVerificationAndTriggerWelcome(User user) async {
+  try {
+    // Reload user to get fresh verification status
+    await user.reload();
+    final refreshedUser = FirebaseAuth.instance.currentUser;
+
+    if (refreshedUser != null && refreshedUser.emailVerified) {
+      // Trigger welcome email after verification
+      await EmailService.checkAndTriggerWelcomeEmail();
+    }
+  } catch (error) {
+    AppLogger.logger
+        .w('⚠️ Error checking email verification status', error: error);
+  }
+}
 
 // Is authenticated provider
 final isAuthenticatedProvider = Provider<bool>((ref) {
@@ -331,3 +352,119 @@ final hasUserProfileProvider = FutureProvider<bool>((ref) async {
     return false;
   }
 });
+
+// 📧 EMAIL VERIFICATION PROVIDER - Track email verification status
+final emailVerificationProvider = StreamProvider<bool>((ref) {
+  final authState = ref.watch(authStateProvider);
+
+  return authState.when(
+    data: (user) {
+      if (user == null) return Stream.value(false);
+
+      // Create a stream that starts with current status then periodically checks
+      return Stream.value(user.emailVerified).asyncExpand((initialStatus) {
+        return Stream.periodic(const Duration(seconds: 5)).asyncMap((_) async {
+          try {
+            await user.reload();
+            final refreshedUser = FirebaseAuth.instance.currentUser;
+            final isVerified = refreshedUser?.emailVerified ?? false;
+
+            // If just verified, trigger welcome email
+            if (isVerified && refreshedUser != null) {
+              await EmailService.checkAndTriggerWelcomeEmail();
+            }
+
+            return isVerified;
+          } catch (e) {
+            AppLogger.logger.w('Error checking email verification', error: e);
+            return user.emailVerified;
+          }
+        });
+      });
+    },
+    loading: () => Stream.value(false),
+    error: (_, __) => Stream.value(false),
+  );
+});
+
+// 🔔 USER NOTIFICATIONS PROVIDER - Get user notifications
+final userNotificationsProvider =
+    StreamProvider.family<List<Map<String, dynamic>>, String>((ref, userId) {
+  return EmailService.getUserNotifications(userId);
+});
+
+// 📊 AUTH STATUS PROVIDER - Comprehensive auth status
+final authStatusProvider = Provider<AuthStatus>((ref) {
+  final authState = ref.watch(authStateProvider);
+  final profileState = ref.watch(userProfileProvider);
+
+  return authState.when(
+    data: (user) {
+      if (user == null) return AuthStatus.unauthenticated;
+
+      if (!user.emailVerified) return AuthStatus.unverified;
+
+      return profileState.when(
+        data: (profile) {
+          if (profile == null) return AuthStatus.needsProfile;
+          return AuthStatus.authenticated;
+        },
+        loading: () => AuthStatus.loading,
+        error: (_, __) => AuthStatus.error,
+      );
+    },
+    loading: () => AuthStatus.loading,
+    error: (_, __) => AuthStatus.error,
+  );
+});
+
+// 🔐 AUTH STATUS ENUM
+enum AuthStatus {
+  loading,
+  unauthenticated,
+  unverified,
+  needsProfile,
+  authenticated,
+  error,
+}
+
+// 📧 EMAIL ACTIONS PROVIDER - Email related actions
+final emailActionsProvider = Provider<EmailActions>((ref) {
+  return EmailActions(ref);
+});
+
+class EmailActions {
+  final Ref _ref;
+
+  EmailActions(this._ref);
+
+  /// Send verification email
+  Future<void> sendVerificationEmail() async {
+    try {
+      await EmailService.sendCustomVerificationEmail();
+    } catch (error) {
+      AppLogger.logger.e('❌ Error sending verification email', error: error);
+      rethrow;
+    }
+  }
+
+  /// Check and trigger welcome email
+  Future<void> checkWelcomeEmail() async {
+    try {
+      await EmailService.checkAndTriggerWelcomeEmail();
+    } catch (error) {
+      AppLogger.logger.e('❌ Error checking welcome email', error: error);
+      rethrow;
+    }
+  }
+
+  /// Mark notification as read
+  Future<void> markNotificationAsRead(String notificationId) async {
+    try {
+      await EmailService.markNotificationAsRead(notificationId);
+    } catch (error) {
+      AppLogger.logger.e('❌ Error marking notification as read', error: error);
+      rethrow;
+    }
+  }
+}

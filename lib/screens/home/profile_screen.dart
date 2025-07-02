@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../core/utils/logger.dart';
+import '../../widgets/email_admin_widget.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -538,6 +539,11 @@ class _ProfileContentWidget extends StatelessWidget {
               ),
             ),
           ),
+
+          const SizedBox(height: 24),
+
+          // Email Admin Widget for testing
+          const EmailAdminWidget(),
         ],
       ),
     );

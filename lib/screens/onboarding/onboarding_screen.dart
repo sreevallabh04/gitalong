@@ -223,10 +223,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             ),
           );
 
-          // Navigate to home
+          // Navigate to home using direct router replacement
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) {
-              context.goToHome();
+              try {
+                // Use go instead of goToHome for more direct navigation
+                context.go(AppRoutes.home);
+              } catch (e) {
+                AppLogger.logger.e('❌ Navigation error', error: e);
+                // Fallback: Use pushReplacementNamed
+                Navigator.of(context).pushReplacementNamed('/home');
+              }
             }
           });
         }

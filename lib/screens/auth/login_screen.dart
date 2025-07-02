@@ -5,10 +5,10 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:glassmorphism/glassmorphism.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../services/auth_service.dart' as auth;
 import '../../providers/auth_provider.dart';
@@ -17,7 +17,6 @@ import '../../core/utils/logger.dart';
 import '../../core/router/app_router.dart';
 import '../onboarding/onboarding_screen.dart';
 import '../home/main_navigation_screen.dart';
-import 'package:go_router/go_router.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});

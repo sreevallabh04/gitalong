@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../providers/auth_provider.dart';
-import '../core/utils/logger.dart';
-import 'auth/login_screen.dart';
-import 'onboarding/onboarding_screen.dart';
+import '../../core/utils/logger.dart';
 import 'home/main_navigation_screen.dart';
+import 'onboarding/onboarding_screen.dart';
+import 'auth/login_screen.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -21,8 +19,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   late AnimationController _textController;
   late AnimationController _backgroundController;
 
-  bool _hasNavigated = false;
-  String _statusMessage = 'Initializing...';
+  final bool _hasNavigated = false;
 
   @override
   void initState() {
@@ -126,8 +123,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             center: Alignment.center,
             radius: 1.2,
             colors: [
-              const Color(0xFF238636).withOpacity(0.1), // GitHub green glow
-              const Color(0xFF161B22).withOpacity(0.8), // GitHub dark gray
+              const Color(0xFF238636)
+                  .withValues(alpha: 0.1), // GitHub green glow
+              const Color(0xFF161B22)
+                  .withValues(alpha: 0.8), // GitHub dark gray
               const Color(0xFF0D1117), // GitHub black
             ],
           ),
@@ -158,12 +157,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                           borderRadius: BorderRadius.circular(30),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF238636).withOpacity(0.6),
+                              color: const Color(0xFF238636)
+                                  .withValues(alpha: 0.6),
                               blurRadius: 40,
                               spreadRadius: 5,
                             ),
                             BoxShadow(
-                              color: const Color(0xFF238636).withOpacity(0.3),
+                              color: const Color(0xFF238636)
+                                  .withValues(alpha: 0.3),
                               blurRadius: 80,
                               spreadRadius: 10,
                             ),
@@ -191,13 +192,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                     child: Opacity(
                       opacity: _textController.value,
                       child: ShaderMask(
-                        shaderCallback: (bounds) => LinearGradient(
+                        shaderCallback: (bounds) => const LinearGradient(
                           colors: [
-                            const Color(0xFF238636), // GitHub green
-                            const Color(0xFF3FB950), // GitHub lime green
-                            const Color(0xFF238636), // GitHub green
+                            Color(0xFF238636), // GitHub green
+                            Color(0xFF3FB950), // GitHub lime green
+                            Color(0xFF238636), // GitHub green
                           ],
-                          stops: const [0.0, 0.5, 1.0],
+                          stops: [0.0, 0.5, 1.0],
                         ).createShader(bounds),
                         child: Text(
                           'GitAlong',
@@ -246,15 +247,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 builder: (context, child) {
                   return Opacity(
                     opacity: _backgroundController.value * 0.7,
-                    child: SizedBox(
+                    child: const SizedBox(
                       width: 40,
                       height: 40,
                       child: CircularProgressIndicator(
                         valueColor: AlwaysStoppedAnimation<Color>(
-                          const Color(0xFF238636), // GitHub green
+                          Color(0xFF238636), // GitHub green
                         ),
-                        backgroundColor:
-                            const Color(0xFF30363D), // GitHub border
+                        backgroundColor: Color(0xFF30363D), // GitHub border
                         strokeWidth: 3,
                       ),
                     ),

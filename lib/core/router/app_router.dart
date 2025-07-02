@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../providers/auth_provider.dart';
-import '../../screens/splash_screen.dart';
 import '../../screens/auth/login_screen.dart';
 import '../../screens/onboarding/onboarding_screen.dart';
 import '../../screens/home/main_navigation_screen.dart';
