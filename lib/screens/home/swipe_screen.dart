@@ -233,8 +233,8 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
         child: SizedBox(
           height: 600,
           child: PageView.builder(
-            itemCount: projects.length,
-            itemBuilder: (context, index) {
+      itemCount: projects.length,
+      itemBuilder: (context, index) {
               return _buildEnhancedProjectCard(projects[index]);
             },
           ),
@@ -253,8 +253,8 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
         child: SizedBox(
           height: 600,
           child: PageView.builder(
-            itemCount: users.length,
-            itemBuilder: (context, index) {
+      itemCount: users.length,
+      itemBuilder: (context, index) {
               return _buildEnhancedUserCard(users[index]);
             },
           ),
