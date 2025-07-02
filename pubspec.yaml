@@ -73,6 +73,9 @@ dependencies:
   # Network and API
   dio: ^5.4.3+1
   connectivity_plus: ^5.0.2
+  http: ^1.1.0
+  oauth2: ^2.0.2
+  url_launcher: ^6.2.1
   
   # Device and platform
   device_info_plus: ^10.1.0
@@ -96,6 +99,9 @@ dependencies:
   
   # Package Info
   package_info_plus: ^8.0.0
+  
+  # JSON serialization
+  json_annotation: ^4.8.1
 
 dev_dependencies:
   flutter_test:
@@ -110,8 +116,18 @@ dev_dependencies:
   build_runner: ^2.4.7
   riverpod_generator: ^2.3.9
   freezed: ^2.4.6
-  json_annotation: ^4.8.1
+  json_serializable: ^6.7.1
   flutter_launcher_icons: ^0.13.1
+  
+  # Testing dependencies for comprehensive test suite
+  mockito: ^5.4.4
+  fake_cloud_firestore: ^2.4.1+1
+  firebase_auth_mocks: ^0.13.0
+  integration_test:
+    sdk: flutter
+  patrol: ^3.6.1
+  golden_toolkit: ^0.15.0
+  network_image_mock: ^2.1.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

@@ -225,7 +225,7 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
   Future<void> updateProfile(UserModel updatedProfile) async {
     await safeQuery(() async {
       await _ref.read(authServiceProvider).upsertUserProfile(
-            name: updatedProfile.name,
+            name: updatedProfile.name ?? '',
             role: updatedProfile.role,
             bio: updatedProfile.bio,
             githubUrl: updatedProfile.githubUrl,

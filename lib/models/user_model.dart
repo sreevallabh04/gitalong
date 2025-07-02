@@ -160,6 +160,10 @@ class UserModel {
   @override
   int get hashCode => id.hashCode;
 
+  // Convenience getters for compatibility
+  String? get name => displayName;
+  String? get avatarUrl => photoURL;
+
   @override
   String toString() {
     return 'UserModel{id: $id, email: $email, name: $displayName, role: $role}';

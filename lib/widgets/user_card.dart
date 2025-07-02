@@ -34,7 +34,7 @@ class UserCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        user.name,
+                        user.name ?? user.id,
                         style: Theme.of(context)
                             .textTheme
                             .headlineSmall

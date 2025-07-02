@@ -7,6 +7,7 @@ import 'swipe_screen.dart';
 import 'messages_screen.dart';
 import 'saved_screen.dart';
 import 'profile_screen.dart';
+import '../github/github_explore_screen.dart';
 
 class MainNavigationScreen extends ConsumerStatefulWidget {
   final int initialIndex;
@@ -28,6 +29,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
     const SwipeScreen(),
     const MessagesScreen(),
     const SavedScreen(),
+    const GitHubExploreScreen(),
     const ProfileScreen(),
   ];
 
@@ -46,6 +48,11 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
       icon: Icon(PhosphorIcons.bookmark(PhosphorIconsStyle.regular)),
       selectedIcon: Icon(PhosphorIcons.bookmark(PhosphorIconsStyle.fill)),
       label: 'Saved',
+    ),
+    NavigationDestination(
+      icon: Icon(PhosphorIcons.gitBranch(PhosphorIconsStyle.regular)),
+      selectedIcon: Icon(PhosphorIcons.gitBranch(PhosphorIconsStyle.fill)),
+      label: 'GitHub',
     ),
     NavigationDestination(
       icon: Icon(PhosphorIcons.user(PhosphorIconsStyle.regular)),
@@ -81,6 +88,9 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
         context.goToSaved();
         break;
       case 3:
+        // GitHub Explorer - no route update needed as it's embedded
+        break;
+      case 4:
         context.goToProfile();
         break;
     }

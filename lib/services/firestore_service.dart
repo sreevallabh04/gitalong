@@ -4,6 +4,12 @@ import '../config/firebase_config.dart';
 import '../models/models.dart';
 import '../core/utils/logger.dart';
 import '../core/utils/firestore_utils.dart';
+import '../models/user_model.dart';
+import '../models/project_model.dart';
+import '../models/swipe_model.dart';
+import '../models/match_model.dart';
+import '../core/monitoring/analytics_service.dart';
+import '../core/monitoring/crashlytics_service.dart';
 
 /// Custom exception for Firestore authentication errors
 class FirestoreAuthException implements Exception {
@@ -17,519 +23,586 @@ class FirestoreAuthException implements Exception {
 }
 
 class FirestoreService {
-  // Collection references with type safety
-  static CollectionReference<Map<String, dynamic>> get _usersCollection =>
-      FirebaseConfig.collection('users');
+  static late FirebaseFirestore _firestore;
+  static late FirebaseAuth _auth;
+  static bool _initialized = false;
 
-  static CollectionReference<Map<String, dynamic>> get _projectsCollection =>
-      FirebaseConfig.collection('projects');
+  // Collection references
+  static CollectionReference get users => _firestore.collection('users');
+  static CollectionReference get projects => _firestore.collection('projects');
+  static CollectionReference get swipes => _firestore.collection('swipes');
+  static CollectionReference get matches => _firestore.collection('matches');
+  static CollectionReference get analytics =>
+      _firestore.collection('analytics');
 
-  static CollectionReference<Map<String, dynamic>> get _matchesCollection =>
-      FirebaseConfig.collection('matches');
+  /// Initialize Firestore with comprehensive configuration
+  static Future<void> initialize() async {
+    try {
+      _firestore = FirebaseFirestore.instance;
+      _auth = FirebaseAuth.instance;
 
-  static CollectionReference<Map<String, dynamic>> get _messagesCollection =>
-      FirebaseConfig.collection('messages');
+      // Configure Firestore settings for production
+      await _firestore.enablePersistence();
 
-  // ============================================================================
-  // 🔐 AUTHENTICATION VALIDATION
-  // ============================================================================
-
-  /// Validate user authentication and refresh token if needed
-  static Future<User> _validateAuth() async {
-    final user = FirebaseAuth.instance.currentUser;
-
-    if (user == null) {
-      AppLogger.logger.e('❌ User not authenticated');
-      throw const FirestoreAuthException(
-        'User not authenticated. Please sign in again.',
-        code: 'unauthenticated',
+      _initialized = true;
+      AppLogger.logger.i('✅ Firestore initialized successfully');
+    } catch (e, stackTrace) {
+      AppLogger.logger.e('❌ Failed to initialize Firestore',
+          error: e, stackTrace: stackTrace);
+      await CrashlyticsService.recordCustomError(
+        'FirestoreInitError',
+        'Failed to initialize Firestore: $e',
+        stackTrace: stackTrace,
+        fatal: true,
       );
     }
+  }
+
+  /// Create a new user profile
+  static Future<void> createUser(UserModel user) async {
+    if (!_initialized) throw Exception('Firestore not initialized');
+
+    final stopwatch = Stopwatch()..start();
 
     try {
-      // Refresh ID token to ensure it's valid
-      await user.getIdToken(true);
-      AppLogger.logger.d('✅ Auth token refreshed successfully');
-      return user;
-    } catch (e) {
-      AppLogger.logger.e('❌ Failed to refresh auth token', error: e);
-      throw const FirestoreAuthException(
-        'Authentication expired. Please sign in again.',
-        code: 'token-expired',
+      await users.doc(user.id).set(user.toJson());
+
+      AppLogger.logger.i('👤 User created: ${user.id}');
+
+      // Track analytics
+      await AnalyticsService.trackCustomEvent(
+        eventName: 'user_created',
+        parameters: {
+          'user_id': user.id,
+          'creation_method': user.authMethod ?? 'unknown',
+        },
+      );
+    } catch (e, stackTrace) {
+      AppLogger.logger
+          .e('❌ Failed to create user', error: e, stackTrace: stackTrace);
+
+      await CrashlyticsService.recordBusinessError(
+        'createUser',
+        'Failed to create user: $e',
+        context: {'user_id': user.id},
+      );
+
+      await AnalyticsService.trackError(
+        errorType: 'database_error',
+        errorMessage: 'Failed to create user: $e',
+        errorLocation: 'FirestoreService.createUser',
+      );
+
+      rethrow;
+    } finally {
+      stopwatch.stop();
+      await AnalyticsService.trackPerformance(
+        operation: 'createUser',
+        duration: stopwatch.elapsed,
+        success: true,
       );
     }
   }
 
-  /// Handle Firestore permission and auth errors with user-friendly messages
-  static Exception _handleFirestoreError(dynamic error, String operation) {
-    AppLogger.logger.e('❌ Firestore error during $operation', error: error);
+  /// Get user profile by ID
+  static Future<UserModel?> getUser(String userId) async {
+    if (!_initialized) throw Exception('Firestore not initialized');
 
-    if (error is FirebaseException) {
-      switch (error.code) {
-        case 'permission-denied':
-          return FirestoreAuthException(
-            'Permission denied. Please check your authentication or try signing in again.',
-            code: error.code,
-          );
-        case 'unauthenticated':
-          return FirestoreAuthException(
-            'Authentication required. Please sign in to continue.',
-            code: error.code,
-          );
-        case 'unavailable':
-          return Exception(
-              'Service temporarily unavailable. Please try again in a moment.');
-        case 'deadline-exceeded':
-          return Exception(
-              'Request timed out. Please check your connection and try again.');
-        case 'resource-exhausted':
-          return Exception(
-              'Service is currently busy. Please try again in a moment.');
-        case 'invalid-argument':
-          return Exception(
-              'Invalid data provided. Please check your input and try again.');
-        case 'not-found':
-          return Exception('Requested data not found.');
-        case 'already-exists':
-          return Exception('Data already exists.');
-        case 'failed-precondition':
-          return Exception(
-              'Operation failed due to current state. Please refresh and try again.');
-        default:
-          return Exception(
-              'Database error: ${error.message ?? 'Unknown error'}');
-      }
-    }
+    final stopwatch = Stopwatch()..start();
 
-    return Exception(
-        'An unexpected error occurred during $operation. Please try again.');
-  }
+    try {
+      final doc = await users.doc(userId).get();
 
-  // User Profile Operations
-  static Future<UserModel?> getUserProfile(String userId) async {
-    final result = await safeQuery(() async {
-      AppLogger.logger.d('📄 Fetching user profile: $userId');
-      final doc = await _usersCollection.doc(userId).get();
-      if (doc.exists && doc.data() != null) {
-        AppLogger.logger.d('✅ User profile found');
-        return UserModel.fromJson(doc.data()!);
-      } else {
-        AppLogger.logger.w('⚠️ User profile not found: $userId');
+      if (!doc.exists) {
+        AppLogger.logger.w('👤 User not found: $userId');
         return null;
       }
-    });
-    return result;
-  }
 
-  static Future<UserModel> createUserProfile(UserModel user) async {
-    final result = await safeQuery(() async {
-      // Validate authentication first
-      final authUser = await _validateAuth();
+      final user = UserModel.fromJson(doc.data() as Map<String, dynamic>);
+      AppLogger.logger.d('👤 User retrieved: $userId');
 
-      // Ensure user can only create their own profile
-      if (authUser.uid != user.id) {
-        throw const FirestoreAuthException(
-          'You can only create your own profile.',
-          code: 'unauthorized-profile-creation',
-        );
-      }
-
-      AppLogger.logger.firestore('📝 Creating user profile: ${user.email}');
-
-      // Create Firestore-safe data without client timestamps
-      final userData = user.toFirestoreJson();
-
-      // Add server timestamps to avoid timezone/serialization issues
-      userData['created_at'] = FieldValue.serverTimestamp();
-      userData['updated_at'] = FieldValue.serverTimestamp();
-
-      // Perform the write operation with proper error handling
-      await _usersCollection
-          .doc(user.id)
-          .set(userData, SetOptions(merge: false));
-
-      AppLogger.logger.success('✅ User profile created successfully');
-
-      // Return the original user model with current timestamp
-      return user.copyWith(
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-    });
-    if (result == null) throw Exception('Failed to create user profile');
-    return result;
-  }
-
-  static Future<UserModel> updateUserProfile(
-      String userId, Map<String, dynamic> updates) async {
-    try {
-      AppLogger.logger.d('📝 Updating user profile: $userId');
-
-      final updateData = Map<String, dynamic>.from(updates);
-      updateData['updated_at'] = FieldValue.serverTimestamp();
-
-      await _usersCollection.doc(userId).update(updateData);
-
-      // Fetch updated profile
-      final updatedProfile = await getUserProfile(userId);
-      if (updatedProfile == null) {
-        throw Exception('Failed to fetch updated profile');
-      }
-
-      AppLogger.logger.success('✅ User profile updated successfully');
-      return updatedProfile;
+      return user;
     } catch (e, stackTrace) {
-      AppLogger.logger.e(
-        '❌ Failed to update user profile',
-        error: e,
-        stackTrace: stackTrace,
+      AppLogger.logger
+          .e('❌ Failed to get user', error: e, stackTrace: stackTrace);
+
+      await CrashlyticsService.recordBusinessError(
+        'getUser',
+        'Failed to get user: $e',
+        context: {'user_id': userId},
       );
+
       rethrow;
+    } finally {
+      stopwatch.stop();
+      await AnalyticsService.trackPerformance(
+        operation: 'getUser',
+        duration: stopwatch.elapsed,
+      );
     }
   }
 
-  // Project Operations
-  static Future<List<ProjectModel>> getProjects({
-    int limit = 20,
-    DocumentSnapshot? startAfter,
-  }) async {
+  /// Update user profile
+  static Future<void> updateUser(
+      String userId, Map<String, dynamic> updates) async {
+    if (!_initialized) throw Exception('Firestore not initialized');
+
+    final stopwatch = Stopwatch()..start();
+
     try {
-      AppLogger.logger.d('📄 Fetching projects (limit: $limit)');
+      updates['updatedAt'] = FieldValue.serverTimestamp();
 
-      Query<Map<String, dynamic>> query = _projectsCollection
-          .where('is_active', isEqualTo: true)
-          .orderBy('created_at', descending: true)
-          .limit(limit);
+      await users.doc(userId).update(updates);
 
-      if (startAfter != null) {
-        query = query.startAfterDocument(startAfter);
-      }
+      AppLogger.logger.i('👤 User updated: $userId');
+
+      await AnalyticsService.trackCustomEvent(
+        eventName: 'user_updated',
+        parameters: {
+          'user_id': userId,
+          'fields_updated': updates.keys.toList(),
+        },
+      );
+    } catch (e, stackTrace) {
+      AppLogger.logger
+          .e('❌ Failed to update user', error: e, stackTrace: stackTrace);
+
+      await CrashlyticsService.recordBusinessError(
+        'updateUser',
+        'Failed to update user: $e',
+        context: {'user_id': userId, 'updates': updates},
+      );
+
+      rethrow;
+    } finally {
+      stopwatch.stop();
+      await AnalyticsService.trackPerformance(
+        operation: 'updateUser',
+        duration: stopwatch.elapsed,
+      );
+    }
+  }
+
+  /// Get users for matching (excluding current user and already swiped)
+  static Future<List<UserModel>> getUsersForMatching(
+    String currentUserId, {
+    int limit = 10,
+    List<String> excludeIds = const [],
+  }) async {
+    if (!_initialized) throw Exception('Firestore not initialized');
+
+    final stopwatch = Stopwatch()..start();
+
+    try {
+      // Get already swiped user IDs
+      final swipedUserIds = await getSwipedUserIds(currentUserId);
+      final allExcludeIds = [...excludeIds, currentUserId, ...swipedUserIds];
+
+      Query query = users.where('isActive', isEqualTo: true).limit(
+          limit + allExcludeIds.length); // Get extra to account for filtering
 
       final querySnapshot = await query.get();
-
-      final projects = querySnapshot.docs
-          .map((doc) => ProjectModel.fromJson({...doc.data(), 'id': doc.id}))
+      final allUsers = querySnapshot.docs
+          .map((doc) => UserModel.fromJson(doc.data() as Map<String, dynamic>))
+          .where((user) => !allExcludeIds.contains(user.id))
+          .take(limit)
           .toList();
 
-      AppLogger.logger.d('✅ Fetched ${projects.length} projects');
-      return projects;
+      AppLogger.logger.d('👥 Retrieved ${allUsers.length} users for matching');
+
+      return allUsers;
     } catch (e, stackTrace) {
-      AppLogger.logger.e(
-        '❌ Failed to fetch projects',
-        error: e,
-        stackTrace: stackTrace,
+      AppLogger.logger.e('❌ Failed to get users for matching',
+          error: e, stackTrace: stackTrace);
+
+      await CrashlyticsService.recordBusinessError(
+        'getUsersForMatching',
+        'Failed to get users for matching: $e',
+        context: {'current_user_id': currentUserId},
       );
-      rethrow;
+
+      return [];
+    } finally {
+      stopwatch.stop();
+      await AnalyticsService.trackPerformance(
+        operation: 'getUsersForMatching',
+        duration: stopwatch.elapsed,
+      );
     }
   }
 
-  static Future<ProjectModel> createProject(ProjectModel project) async {
+  /// Create a new project
+  static Future<void> createProject(ProjectModel project) async {
+    if (!_initialized) throw Exception('Firestore not initialized');
+
+    final stopwatch = Stopwatch()..start();
+
     try {
-      AppLogger.logger.d('📝 Creating project: ${project.title}');
+      await projects.doc(project.id).set(project.toJson());
 
-      final projectData = project.toJson();
-      projectData['created_at'] = FieldValue.serverTimestamp();
-      projectData['updated_at'] = FieldValue.serverTimestamp();
+      AppLogger.logger.i('📂 Project created: ${project.id}');
 
-      final docRef = await _projectsCollection.add(projectData);
-
-      AppLogger.logger.success('✅ Project created successfully: ${docRef.id}');
-      return project.copyWith(id: docRef.id);
-    } catch (e, stackTrace) {
-      AppLogger.logger.e(
-        '❌ Failed to create project',
-        error: e,
-        stackTrace: stackTrace,
+      await AnalyticsService.trackCustomEvent(
+        eventName: 'project_created',
+        parameters: {
+          'project_id': project.id,
+          'owner_id': project.ownerId,
+          'skills_count': project.skills?.length ?? 0,
+        },
       );
-      rethrow;
-    }
-  }
-
-  // Match Operations
-  static Future<List<MatchModel>> getUserMatches(String userId) async {
-    try {
-      AppLogger.logger.d('📄 Fetching matches for user: $userId');
-
-      final querySnapshot = await _matchesCollection
-          .where('contributor_id', isEqualTo: userId)
-          .orderBy('created_at', descending: true)
-          .get();
-
-      final matches = querySnapshot.docs
-          .map((doc) => MatchModel.fromJson({...doc.data(), 'id': doc.id}))
-          .toList();
-
-      AppLogger.logger.d('✅ Fetched ${matches.length} matches');
-      return matches;
     } catch (e, stackTrace) {
-      AppLogger.logger.e(
-        '❌ Failed to fetch user matches',
-        error: e,
-        stackTrace: stackTrace,
-      );
-      rethrow;
-    }
-  }
-
-  static Future<MatchModel> createMatch(MatchModel match) async {
-    try {
-      AppLogger.logger.d('📝 Creating match between contributor and project');
-
-      final matchData = match.toJson();
-      matchData['created_at'] = FieldValue.serverTimestamp();
-
-      final docRef = await _matchesCollection.add(matchData);
-
-      AppLogger.logger.success('✅ Match created successfully: ${docRef.id}');
-      return match.copyWith(id: docRef.id);
-    } catch (e, stackTrace) {
-      AppLogger.logger.e(
-        '❌ Failed to create match',
-        error: e,
-        stackTrace: stackTrace,
-      );
-      rethrow;
-    }
-  }
-
-  // Message Operations
-  static Stream<List<MessageModel>> getMessages(String receiverId) {
-    try {
       AppLogger.logger
-          .d('📄 Setting up message stream for receiver: $receiverId');
+          .e('❌ Failed to create project', error: e, stackTrace: stackTrace);
 
-      return _messagesCollection
-          .where('receiver_id', isEqualTo: receiverId)
-          .orderBy('timestamp', descending: false)
-          .snapshots()
-          .map((snapshot) {
-        final messages = snapshot.docs
-            .map((doc) => MessageModel.fromJson({...doc.data(), 'id': doc.id}))
-            .toList();
-
-        AppLogger.logger.d('📨 Received ${messages.length} messages');
-        return messages;
-      });
-    } catch (e, stackTrace) {
-      AppLogger.logger.e(
-        '❌ Failed to set up message stream',
-        error: e,
-        stackTrace: stackTrace,
+      await CrashlyticsService.recordBusinessError(
+        'createProject',
+        'Failed to create project: $e',
+        context: {'project_id': project.id},
       );
+
       rethrow;
-    }
-  }
-
-  static Future<MessageModel> sendMessage(MessageModel message) async {
-    try {
-      AppLogger.logger.d('📝 Sending message to: ${message.receiverId}');
-
-      final messageData = message.toJson();
-      messageData['timestamp'] = FieldValue.serverTimestamp();
-
-      final docRef = await _messagesCollection.add(messageData);
-
-      AppLogger.logger.success('✅ Message sent successfully: ${docRef.id}');
-      return message.copyWith(id: docRef.id);
-    } catch (e, stackTrace) {
-      AppLogger.logger.e(
-        '❌ Failed to send message',
-        error: e,
-        stackTrace: stackTrace,
+    } finally {
+      stopwatch.stop();
+      await AnalyticsService.trackPerformance(
+        operation: 'createProject',
+        duration: stopwatch.elapsed,
       );
-      rethrow;
     }
   }
 
-  // Swipe Operations
-  static Future<void> recordSwipe(SwipeModel swipe) async {
-    try {
-      AppLogger.logger
-          .d('📝 Recording swipe: ${swipe.swiperId} -> ${swipe.targetId}');
-
-      final swipeData = swipe.toJson();
-      swipeData['created_at'] = FieldValue.serverTimestamp();
-
-      await FirebaseConfig.collection('swipes').add(swipeData);
-
-      // Check for mutual swipe and create match if needed (for right swipes)
-      if (swipe.direction == SwipeDirection.right) {
-        await _checkForMutualSwipe(swipe);
-      }
-
-      AppLogger.logger.success('✅ Swipe recorded successfully');
-    } catch (e, stackTrace) {
-      AppLogger.logger.e(
-        '❌ Failed to record swipe',
-        error: e,
-        stackTrace: stackTrace,
-      );
-      rethrow;
-    }
-  }
-
-  static Future<void> _checkForMutualSwipe(SwipeModel swipe) async {
-    try {
-      AppLogger.logger.d('🔍 Checking for mutual swipe');
-
-      final mutualSwipeQuery = await FirebaseConfig.collection('swipes')
-          .where('swiper_id', isEqualTo: swipe.targetId)
-          .where('target_id', isEqualTo: swipe.swiperId)
-          .where('direction', isEqualTo: SwipeDirection.right.name)
-          .get();
-
-      if (mutualSwipeQuery.docs.isNotEmpty) {
-        AppLogger.logger.d('💕 Mutual swipe detected, creating match');
-
-        final match = MatchModel(
-          id: '',
-          contributorId: swipe.swiperId,
-          projectId: swipe.targetId,
-          createdAt: DateTime.now(),
-        );
-
-        await createMatch(match);
-      }
-    } catch (e, stackTrace) {
-      AppLogger.logger.e(
-        '❌ Failed to check for mutual swipe',
-        error: e,
-        stackTrace: stackTrace,
-      );
-      // Don't rethrow here as this is a secondary operation
-    }
-  }
-
-  // Search and Filtering
-  static Future<List<UserModel>> searchUsers({
-    String? query,
-    List<String>? skills,
-    UserRole? role,
-    int limit = 20,
+  /// Get projects for swiping
+  static Future<List<ProjectModel>> getProjectsForSwiping(
+    String userId, {
+    int limit = 10,
+    List<String> excludeIds = const [],
   }) async {
+    if (!_initialized) throw Exception('Firestore not initialized');
+
+    final stopwatch = Stopwatch()..start();
+
     try {
-      AppLogger.logger.d('🔍 Searching users with filters');
+      // Get already swiped project IDs
+      final swipedProjectIds = await getSwipedProjectIds(userId);
+      final allExcludeIds = [...excludeIds, ...swipedProjectIds];
 
-      Query<Map<String, dynamic>> queryRef = _usersCollection.limit(limit);
+      Query query = projects
+          .where('isActive', isEqualTo: true)
+          .where('ownerId', isNotEqualTo: userId) // Don't show own projects
+          .orderBy('ownerId')
+          .orderBy('createdAt', descending: true)
+          .limit(limit + allExcludeIds.length);
 
-      if (role != null) {
-        queryRef = queryRef.where('role', isEqualTo: role.name);
-      }
-
-      if (skills != null && skills.isNotEmpty) {
-        queryRef = queryRef.where('skills', arrayContainsAny: skills);
-      }
-
-      final querySnapshot = await queryRef.get();
-
-      List<UserModel> users = querySnapshot.docs
-          .map((doc) => UserModel.fromJson(doc.data()))
+      final querySnapshot = await query.get();
+      final availableProjects = querySnapshot.docs
+          .map((doc) =>
+              ProjectModel.fromJson(doc.data() as Map<String, dynamic>))
+          .where((project) => !allExcludeIds.contains(project.id))
+          .take(limit)
           .toList();
 
-      // Filter by name/bio if query is provided (client-side filtering)
-      if (query != null && query.isNotEmpty) {
-        users = users.where((user) {
-          final searchText = '${user.name} ${user.bio ?? ''}'.toLowerCase();
-          return searchText.contains(query.toLowerCase());
-        }).toList();
-      }
+      AppLogger.logger
+          .d('📂 Retrieved ${availableProjects.length} projects for swiping');
 
-      AppLogger.logger.d('✅ Found ${users.length} users matching criteria');
-      return users;
+      return availableProjects;
     } catch (e, stackTrace) {
-      AppLogger.logger.e(
-        '❌ Failed to search users',
-        error: e,
-        stackTrace: stackTrace,
+      AppLogger.logger.e('❌ Failed to get projects for swiping',
+          error: e, stackTrace: stackTrace);
+
+      await CrashlyticsService.recordBusinessError(
+        'getProjectsForSwiping',
+        'Failed to get projects for swiping: $e',
+        context: {'user_id': userId},
       );
-      rethrow;
+
+      return [];
+    } finally {
+      stopwatch.stop();
+      await AnalyticsService.trackPerformance(
+        operation: 'getProjectsForSwiping',
+        duration: stopwatch.elapsed,
+      );
     }
   }
 
-  // Analytics and Metrics
-  static Future<Map<String, dynamic>> getAppMetrics() async {
+  /// Record a swipe action
+  static Future<void> recordSwipe(SwipeModel swipe) async {
+    if (!_initialized) throw Exception('Firestore not initialized');
+
+    final stopwatch = Stopwatch()..start();
+
     try {
-      AppLogger.logger.d('📊 Fetching app metrics');
+      final batch = _firestore.batch();
 
-      final results = await Future.wait([
-        _usersCollection.count().get(),
-        _projectsCollection.count().get(),
-        _matchesCollection.count().get(),
-      ]);
+      // Add swipe record
+      final swipeRef = swipes.doc();
+      batch.set(swipeRef, swipe.toJson());
 
-      final metrics = {
-        'total_users': results[0].count,
-        'total_projects': results[1].count,
-        'total_matches': results[2].count,
-        'timestamp': DateTime.now().toIso8601String(),
-      };
+      // Check for mutual swipe and create match if found
+      if (swipe.isLike) {
+        final mutualSwipe = await _checkForMutualSwipe(swipe);
+        if (mutualSwipe != null) {
+          final match = MatchModel(
+            id: _generateMatchId(swipe.swiperId, swipe.targetId),
+            contributorId: swipe.swiperId,
+            projectId: swipe.targetId,
+            projectOwnerId: mutualSwipe.swiperId,
+            createdAt: DateTime.now(),
+            status: MatchStatus.active,
+          );
 
-      AppLogger.logger.d('✅ App metrics fetched');
-      return metrics;
-    } catch (e, stackTrace) {
-      AppLogger.logger.e(
-        '❌ Failed to fetch app metrics',
-        error: e,
-        stackTrace: stackTrace,
-      );
-      rethrow;
-    }
-  }
+          final matchRef = matches.doc(match.id);
+          batch.set(matchRef, match.toJson());
 
-  // Health Check
-  static Future<bool> healthCheck() async {
-    try {
-      AppLogger.logger.d('🏥 Performing Firestore health check');
-
-      final healthDoc = FirebaseConfig.document('_health_check/connectivity');
-
-      await healthDoc.set({
-        'timestamp': FieldValue.serverTimestamp(),
-        'status': 'healthy',
-        'version': '1.0.0',
-      }, SetOptions(merge: true));
-
-      final readTest = await healthDoc.get();
-
-      AppLogger.logger.success('✅ Firestore health check passed');
-      return readTest.exists;
-    } catch (e, stackTrace) {
-      AppLogger.logger.e(
-        '❌ Firestore health check failed',
-        error: e,
-        stackTrace: stackTrace,
-      );
-      return false;
-    }
-  }
-
-  // Data Cleanup and Maintenance
-  static Future<void> cleanupOldData() async {
-    try {
-      AppLogger.logger.d('🧹 Starting data cleanup');
-
-      final cutoffDate = DateTime.now().subtract(const Duration(days: 30));
-
-      // Delete old health check documents
-      final oldHealthChecks = await FirebaseConfig.collection('_health_check')
-          .where('timestamp', isLessThan: Timestamp.fromDate(cutoffDate))
-          .get();
-
-      final batch = FirebaseConfig.batch();
-      for (final doc in oldHealthChecks.docs) {
-        batch.delete(doc.reference);
+          AppLogger.logger.i('💕 Match created: ${match.id}');
+        }
       }
 
       await batch.commit();
 
-      AppLogger.logger.success('✅ Data cleanup completed');
-    } catch (e, stackTrace) {
-      AppLogger.logger.e(
-        '❌ Data cleanup failed',
-        error: e,
-        stackTrace: stackTrace,
+      AppLogger.logger
+          .d('👆 Swipe recorded: ${swipe.isLike ? 'LIKE' : 'PASS'}');
+
+      // Track analytics
+      await AnalyticsService.trackSwipe(
+        direction: swipe.isLike ? 'right' : 'left',
+        targetType: swipe.targetType,
+        targetId: swipe.targetId,
+        additionalParams: {
+          'swiper_id': swipe.swiperId,
+        },
       );
-      // Don't rethrow as this is a maintenance operation
+    } catch (e, stackTrace) {
+      AppLogger.logger
+          .e('❌ Failed to record swipe', error: e, stackTrace: stackTrace);
+
+      await CrashlyticsService.recordBusinessError(
+        'recordSwipe',
+        'Failed to record swipe: $e',
+        context: {
+          'swiper_id': swipe.swiperId,
+          'target_id': swipe.targetId,
+          'is_like': swipe.isLike,
+        },
+      );
+
+      rethrow;
+    } finally {
+      stopwatch.stop();
+      await AnalyticsService.trackPerformance(
+        operation: 'recordSwipe',
+        duration: stopwatch.elapsed,
+      );
     }
   }
+
+  /// Get swipe history for a user
+  static Future<List<SwipeModel>> getSwipeHistory(
+    String userId, {
+    int limit = 50,
+  }) async {
+    if (!_initialized) throw Exception('Firestore not initialized');
+
+    try {
+      final querySnapshot = await swipes
+          .where('swiperId', isEqualTo: userId)
+          .orderBy('createdAt', descending: true)
+          .limit(limit)
+          .get();
+
+      final swipeHistory = querySnapshot.docs
+          .map((doc) => SwipeModel.fromJson(doc.data() as Map<String, dynamic>))
+          .toList();
+
+      AppLogger.logger
+          .d('📊 Retrieved ${swipeHistory.length} swipes for user $userId');
+
+      return swipeHistory;
+    } catch (e, stackTrace) {
+      AppLogger.logger
+          .e('❌ Failed to get swipe history', error: e, stackTrace: stackTrace);
+
+      await CrashlyticsService.recordBusinessError(
+        'getSwipeHistory',
+        'Failed to get swipe history: $e',
+        context: {'user_id': userId},
+      );
+
+      return [];
+    }
+  }
+
+  /// Get matches for a user
+  static Future<List<MatchModel>> getMatches(String userId) async {
+    if (!_initialized) throw Exception('Firestore not initialized');
+
+    try {
+      final querySnapshot = await matches
+          .where('contributorId', isEqualTo: userId)
+          .where('status', isEqualTo: MatchStatus.active.name)
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      final userMatches = querySnapshot.docs
+          .map((doc) => MatchModel.fromJson(doc.data() as Map<String, dynamic>))
+          .toList();
+
+      AppLogger.logger
+          .d('💕 Retrieved ${userMatches.length} matches for user $userId');
+
+      return userMatches;
+    } catch (e, stackTrace) {
+      AppLogger.logger
+          .e('❌ Failed to get matches', error: e, stackTrace: stackTrace);
+
+      await CrashlyticsService.recordBusinessError(
+        'getMatches',
+        'Failed to get matches: $e',
+        context: {'user_id': userId},
+      );
+
+      return [];
+    }
+  }
+
+  /// Sync trending GitHub repositories
+  static Future<void> syncTrendingProjects(
+      List<ProjectModel> trendingProjects) async {
+    if (!_initialized) throw Exception('Firestore not initialized');
+
+    final stopwatch = Stopwatch()..start();
+
+    try {
+      final batch = _firestore.batch();
+
+      for (final project in trendingProjects) {
+        final projectRef = projects.doc(project.id);
+        batch.set(projectRef, project.toJson(), SetOptions(merge: true));
+      }
+
+      await batch.commit();
+
+      AppLogger.logger
+          .i('📊 Synced ${trendingProjects.length} trending projects');
+
+      await AnalyticsService.trackCustomEvent(
+        eventName: 'projects_synced',
+        parameters: {
+          'projects_count': trendingProjects.length,
+          'sync_type': 'trending',
+        },
+      );
+    } catch (e, stackTrace) {
+      AppLogger.logger.e('❌ Failed to sync trending projects',
+          error: e, stackTrace: stackTrace);
+
+      await CrashlyticsService.recordBusinessError(
+        'syncTrendingProjects',
+        'Failed to sync trending projects: $e',
+        context: {'projects_count': trendingProjects.length},
+      );
+
+      rethrow;
+    } finally {
+      stopwatch.stop();
+      await AnalyticsService.trackPerformance(
+        operation: 'syncTrendingProjects',
+        duration: stopwatch.elapsed,
+      );
+    }
+  }
+
+  /// Private helper methods
+
+  static Future<List<String>> getSwipedUserIds(String userId) async {
+    try {
+      final querySnapshot = await swipes
+          .where('swiperId', isEqualTo: userId)
+          .where('targetType', isEqualTo: 'user')
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) =>
+              (doc.data() as Map<String, dynamic>)['targetId'] as String)
+          .toList();
+    } catch (e) {
+      AppLogger.logger.e('❌ Failed to get swiped user IDs', error: e);
+      return [];
+    }
+  }
+
+  static Future<List<String>> getSwipedProjectIds(String userId) async {
+    try {
+      final querySnapshot = await swipes
+          .where('swiperId', isEqualTo: userId)
+          .where('targetType', isEqualTo: 'project')
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) =>
+              (doc.data() as Map<String, dynamic>)['targetId'] as String)
+          .toList();
+    } catch (e) {
+      AppLogger.logger.e('❌ Failed to get swiped project IDs', error: e);
+      return [];
+    }
+  }
+
+  static Future<SwipeModel?> _checkForMutualSwipe(SwipeModel swipe) async {
+    try {
+      final querySnapshot = await swipes
+          .where('swiperId', isEqualTo: swipe.targetId)
+          .where('targetId', isEqualTo: swipe.swiperId)
+          .where('targetType', isEqualTo: 'user')
+          .where('isLike', isEqualTo: true)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        return SwipeModel.fromJson(
+            querySnapshot.docs.first.data() as Map<String, dynamic>);
+      }
+
+      return null;
+    } catch (e) {
+      AppLogger.logger.e('❌ Failed to check for mutual swipe', error: e);
+      return null;
+    }
+  }
+
+  static String _generateMatchId(String userId1, String userId2) {
+    final sortedIds = [userId1, userId2]..sort();
+    return '${sortedIds[0]}_${sortedIds[1]}';
+  }
+
+  /// Analytics and monitoring helpers
+
+  static Future<Map<String, dynamic>> getAnalytics() async {
+    if (!_initialized) throw Exception('Firestore not initialized');
+
+    try {
+      final usersCount = await _getCollectionCount(users);
+      final projectsCount = await _getCollectionCount(projects);
+      final swipesCount = await _getCollectionCount(swipes);
+      final matchesCount = await _getCollectionCount(matches);
+
+      return {
+        'users_count': usersCount,
+        'projects_count': projectsCount,
+        'swipes_count': swipesCount,
+        'matches_count': matchesCount,
+        'last_updated': DateTime.now().toIso8601String(),
+      };
+    } catch (e) {
+      AppLogger.logger.e('❌ Failed to get analytics', error: e);
+      return {};
+    }
+  }
+
+  static Future<int> _getCollectionCount(CollectionReference collection) async {
+    final snapshot = await collection.count().get();
+    return snapshot.count ?? 0;
+  }
+
+  /// Check if service is initialized
+  static bool get isInitialized => _initialized;
 }

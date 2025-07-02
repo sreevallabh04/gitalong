@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'config/firebase_config.dart';
 import 'core/theme/app_theme.dart';
@@ -97,6 +98,16 @@ void main() async {
     // Initialize logging first - critical for production debugging
     AppLogger.initialize();
     AppLogger.logger.i('🚀 Starting GitAlong app initialization...');
+
+    // Load environment configuration
+    try {
+      await dotenv.load(fileName: ".env");
+      AppLogger.logger.d('✅ Environment configuration loaded');
+    } catch (e) {
+      AppLogger.logger
+          .w('⚠️ No .env file found, using default configuration', error: e);
+      // Continue without .env file - GitHub service will handle missing credentials gracefully
+    }
 
     // Configure system UI overlay style for GitHub theme
     SystemChrome.setSystemUIOverlayStyle(
@@ -317,6 +328,7 @@ class _ErrorScreen extends StatelessWidget {
     required this.title,
     required this.details,
     required this.error,
+    this.stackTrace,
   });
 
   @override
