@@ -4,6 +4,8 @@ import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../models/user_model.dart';
 import '../core/utils/logger.dart';
+import '../core/utils/firestore_utils.dart';
+import 'package:flutter/foundation.dart';
 
 // Firestore service provider
 final firestoreServiceProvider = Provider<FirestoreService>((ref) {
@@ -119,7 +121,7 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
       AppLogger.logger.auth('📧 Email: ${user.email}');
       AppLogger.logger.auth('📋 Name: $name');
       AppLogger.logger.auth('🏷️ Role: $role');
-      AppLogger.logger.auth('💼 Skills: ${skills?.join(', ') ?? 'None'}');
+      AppLogger.logger.auth('�� Skills: ${skills?.join(', ') ?? 'None'}');
       AppLogger.logger.auth('🔗 GitHub: ${githubUrl ?? 'None'}');
 
       // Validate inputs before processing
@@ -224,22 +226,17 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
   }
 
   Future<void> updateProfile(UserModel updatedProfile) async {
-    try {
-      state = const AsyncValue.loading();
-
+    await safeQuery(() async {
       await FirestoreService.updateUserProfile(
         updatedProfile.id,
         updatedProfile.toJson(),
       );
-
       state = AsyncValue.data(updatedProfile);
       AppLogger.logger.success('✅ User profile updated successfully');
-    } catch (error, stackTrace) {
-      AppLogger.logger.e('❌ Error updating user profile',
-          error: error, stackTrace: stackTrace);
-      state = AsyncValue.error(error, stackTrace);
-      rethrow;
-    }
+    }, onError: (e) {
+      state =
+          AsyncValue.error('Failed to update profile: $e', StackTrace.current);
+    });
   }
 
   Future<void> signOut() async {
@@ -334,3 +331,14 @@ final hasUserProfileProvider = FutureProvider<bool>((ref) async {
     return false;
   }
 });
+
+Future<T?> safeQuery<T>(Future<T> Function() query,
+    {Function(dynamic)? onError}) async {
+  try {
+    return await query();
+  } catch (e) {
+    debugPrint('Firestore error: $e');
+    if (onError != null) onError(e);
+    return null;
+  }
+}

@@ -5,6 +5,7 @@ import '../config/firebase_config.dart';
 import '../models/models.dart';
 import '../core/utils/logger.dart';
 import '../models/swipe_model.dart';
+import '../core/utils/firestore_utils.dart';
 
 abstract class ISwipeService {
   Future<List<ProjectModel>> getProjectsToSwipe(String userId);
@@ -63,61 +64,54 @@ class SwipeService implements ISwipeService {
 
   @override
   Future<List<ProjectModel>> getProjectsToSwipe(String userId) async {
-    try {
-      // Get projects that user hasn't swiped on
-      final swipedProjectIds = await _getSwipedTargetIds(
-        userId,
-        SwipeTargetType.project,
-      );
-
-      Query<Map<String, dynamic>> query = _firestore
-          .collection(_projectsCollection)
-          .where('status', isEqualTo: 'active')
-          .where('owner_id', isNotEqualTo: userId);
-
-      if (swipedProjectIds.isNotEmpty) {
-        query = query.where('id', whereNotIn: swipedProjectIds);
-      }
-
-      final querySnapshot = await query.limit(10).get();
-
-      return querySnapshot.docs
-          .map(
-              (doc) => ProjectModel.fromJson(_convertFirestoreData(doc.data())))
-          .toList();
-    } catch (e) {
-      AppLogger.logger.e('Failed to fetch projects', error: e);
-      throw SwipeException('Failed to fetch projects: $e');
-    }
+    return await safeQuery(() async {
+          final swipedProjectIds = await _getSwipedTargetIds(
+            userId,
+            SwipeTargetType.project,
+          );
+          Query<Map<String, dynamic>> query = _firestore
+              .collection(_projectsCollection)
+              .where('status', isEqualTo: 'active')
+              .where('owner_id', isNotEqualTo: userId)
+              .orderBy('owner_id')
+              .orderBy('id');
+          if (swipedProjectIds.isNotEmpty) {
+            query = query.where('id', whereNotIn: swipedProjectIds);
+          }
+          final querySnapshot = await query.limit(10).get();
+          return querySnapshot.docs
+              .map((doc) =>
+                  ProjectModel.fromJson(_convertFirestoreData(doc.data())))
+              .toList();
+        }, onError: (e) {
+          // Optionally show a user-friendly error
+        }) ??
+        [];
   }
 
   @override
   Future<List<UserModel>> getUsersToSwipe(String userId) async {
-    try {
-      // Get users that maintainer hasn't swiped on
-      final swipedUserIds = await _getSwipedTargetIds(
-        userId,
-        SwipeTargetType.user,
-      );
-
-      Query<Map<String, dynamic>> query = _firestore
-          .collection(_usersCollection)
-          .where('role', isEqualTo: 'contributor')
-          .where('id', isNotEqualTo: userId);
-
-      if (swipedUserIds.isNotEmpty) {
-        query = query.where('id', whereNotIn: swipedUserIds);
-      }
-
-      final querySnapshot = await query.limit(10).get();
-
-      return querySnapshot.docs
-          .map((doc) => UserModel.fromJson(_convertFirestoreData(doc.data())))
-          .toList();
-    } catch (e) {
-      AppLogger.logger.e('Failed to fetch users', error: e);
-      throw SwipeException('Failed to fetch users: $e');
-    }
+    return await safeQuery(() async {
+          final swipedUserIds = await _getSwipedTargetIds(
+            userId,
+            SwipeTargetType.user,
+          );
+          Query<Map<String, dynamic>> query = _firestore
+              .collection(_usersCollection)
+              .where('role', isEqualTo: 'contributor')
+              .where('id', isNotEqualTo: userId);
+          if (swipedUserIds.isNotEmpty) {
+            query = query.where('id', whereNotIn: swipedUserIds);
+          }
+          final querySnapshot = await query.limit(10).get();
+          return querySnapshot.docs
+              .map((doc) =>
+                  UserModel.fromJson(_convertFirestoreData(doc.data())))
+              .toList();
+        }, onError: (e) {
+          // Optionally show a user-friendly error
+        }) ??
+        [];
   }
 
   @override

@@ -43,7 +43,7 @@ class UserCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Chip(
                         label: Text(
-                          user.role.name.toUpperCase(),
+                          user.role.toString().split('.').last.toUpperCase(),
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 12,

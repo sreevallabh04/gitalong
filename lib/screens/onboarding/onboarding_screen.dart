@@ -8,6 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../core/utils/logger.dart';
 import '../../core/router/app_router.dart';
+import '../../core/utils/firestore_utils.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -18,7 +19,7 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> _basicInfoFormKey = GlobalKey<FormState>();
 
   // Form data
   final TextEditingController _nameController = TextEditingController();
@@ -83,6 +84,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   void _nextPage() {
+    if (_currentPage == 1) {
+      // Validate basic info page before proceeding
+      if (_basicInfoFormKey.currentState?.validate() == false) {
+        AppLogger.logger.w('⚠️ Basic info validation failed');
+        return;
+      }
+    }
+
     if (_currentPage < 2) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
@@ -102,43 +111,58 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
   }
 
-  Future<void> _completeOnboarding() async {
-    if (!_formKey.currentState!.validate()) {
-      AppLogger.logger.w('⚠️ Form validation failed');
-      return;
-    }
-
-    // Validate required fields before proceeding
+  bool _validateAllData() {
+    // Validate required fields
     final trimmedName = _nameController.text.trim();
     if (trimmedName.isEmpty) {
-      AppLogger.logger.w('⚠️ Name is required');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Please enter your name.',
-              style: GoogleFonts.inter(color: Colors.white),
-            ),
-            backgroundColor: const Color(0xFFDA3633),
-          ),
-        );
-      }
-      return;
+      _showError('Please enter your name.');
+      return false;
     }
 
-    // Additional validation for name length
     if (trimmedName.length > 100) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Name is too long. Please use a shorter name.',
-              style: GoogleFonts.inter(color: Colors.white),
-            ),
-            backgroundColor: const Color(0xFFDA3633),
+      _showError('Name is too long. Please use a shorter name.');
+      return false;
+    }
+
+    // Validate GitHub URL if provided
+    final githubUrl = _githubController.text.trim();
+    if (githubUrl.isNotEmpty && !githubUrl.startsWith('https://github.com/')) {
+      _showError(
+          'Please enter a valid GitHub URL starting with https://github.com/');
+      return false;
+    }
+
+    return true;
+  }
+
+  void _showError(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            message,
+            style: GoogleFonts.inter(color: Colors.white),
           ),
-        );
-      }
+          backgroundColor: const Color(0xFFDA3633),
+        ),
+      );
+    }
+  }
+
+  Future<T?> safeQuery<T>(Future<T> Function() query,
+      {Function(dynamic)? onError}) async {
+    try {
+      return await query();
+    } catch (e) {
+      AppLogger.logger.e('Firestore error: $e');
+      if (onError != null) onError(e);
+      return null;
+    }
+  }
+
+  Future<void> _completeOnboarding() async {
+    // Validate all form data
+    if (!_validateAllData()) {
       return;
     }
 
@@ -153,40 +177,36 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     });
 
     try {
+      final trimmedName = _nameController.text.trim();
+      final githubUrl = _githubController.text.trim();
+
       AppLogger.logger.auth('🚀 Starting profile creation...');
       AppLogger.logger.auth('📋 Name: $trimmedName');
       AppLogger.logger.auth('📝 Bio: ${_bioController.text.trim()}');
-      AppLogger.logger.auth('🏷️ Role: ${_selectedRole.name}');
+      AppLogger.logger
+          .auth('🏷️ Role: ${_selectedRole.toString().split('.').last}');
       AppLogger.logger.auth('💼 Skills: ${_selectedSkills.join(', ')}');
-      AppLogger.logger.auth('🔗 GitHub: ${_githubController.text.trim()}');
+      AppLogger.logger.auth('🔗 GitHub: $githubUrl');
 
-      // Validate GitHub URL if provided
-      final githubUrl = _githubController.text.trim();
-      if (githubUrl.isNotEmpty &&
-          !githubUrl.startsWith('https://github.com/')) {
+      final result = await safeQuery(() async {
+        await ref.read(userProfileProvider.notifier).createProfile(
+              name: trimmedName,
+              bio: _bioController.text.trim(),
+              role: _selectedRole.toString().split('.').last,
+              skills: List<String>.from(_selectedSkills),
+              githubUrl: githubUrl.isEmpty ? null : githubUrl,
+            );
+      }, onError: (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                'Please enter a valid GitHub URL starting with https://github.com/',
-                style: GoogleFonts.inter(color: Colors.white),
-              ),
+              content: Text('Failed to create profile: $e'),
               backgroundColor: const Color(0xFFDA3633),
             ),
           );
         }
-        return;
-      }
-
-      // Create user profile with all collected data
-      await ref.read(userProfileProvider.notifier).createProfile(
-            name: trimmedName,
-            bio: _bioController.text.trim(),
-            role: _selectedRole.name,
-            skills:
-                List<String>.from(_selectedSkills), // Create a defensive copy
-            githubUrl: githubUrl.isEmpty ? null : githubUrl,
-          );
+      });
+      if (result == null) return;
 
       // Check if widget is still mounted before navigation
       if (mounted) {
@@ -200,12 +220,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               'Welcome to GitAlong! Your profile has been created successfully.',
               style: GoogleFonts.inter(color: Colors.white),
             ),
-            backgroundColor: const Color(0xFF238636), // GitHub green
+            backgroundColor: const Color(0xFF238636),
             duration: const Duration(seconds: 3),
           ),
         );
 
-        // Use addPostFrameCallback to ensure navigation happens after current frame
+        // Navigate to home
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
             context.goToHome();
@@ -216,37 +236,29 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       AppLogger.logger
           .e('❌ Error completing onboarding', error: e, stackTrace: stackTrace);
 
-      // Only show error if widget is still mounted
       if (mounted) {
-        // Extract clean error message
         String errorMessage = e.toString();
         if (errorMessage.startsWith('Exception: ')) {
           errorMessage = errorMessage.substring(11);
         }
 
-        // Show user-friendly error message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               errorMessage,
               style: GoogleFonts.inter(color: Colors.white),
             ),
-            backgroundColor: const Color(0xFFDA3633), // GitHub red
-            duration: const Duration(
-                seconds: 5), // Longer duration for error messages
+            backgroundColor: const Color(0xFFDA3633),
+            duration: const Duration(seconds: 5),
             action: SnackBarAction(
               label: 'Retry',
               textColor: Colors.white,
-              onPressed: () {
-                // Retry the onboarding completion
-                _completeOnboarding();
-              },
+              onPressed: () => _completeOnboarding(),
             ),
           ),
         );
       }
     } finally {
-      // Only update state if widget is still mounted
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -258,72 +270,125 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF0D1117),
       appBar: AppBar(
-        title: const Text('Setup Your Profile'),
+        title: Text(
+          'Setup Your Profile',
+          style: TextStyle(
+            color: const Color(0xFFF0F6FC),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: const Color(0xFF21262D),
+        elevation: 0,
         leading: _currentPage > 0
             ? IconButton(
-                icon: const Icon(Icons.arrow_back),
+                icon: const Icon(
+                  Icons.arrow_back_rounded,
+                  color: Color(0xFFF0F6FC),
+                ),
                 onPressed: _previousPage,
               )
             : null,
       ),
-      body: Form(
-        key: _formKey,
-        child: Column(
-          children: [
-            // Progress indicator
-            LinearProgressIndicator(
+      body: Column(
+        children: [
+          // Progress indicator
+          Container(
+            height: 4,
+            margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(2),
+              color: const Color(0xFF30363D),
+            ),
+            child: LinearProgressIndicator(
               value: (_currentPage + 1) / 3,
-              backgroundColor: Colors.grey[800],
-              valueColor: AlwaysStoppedAnimation<Color>(
-                Theme.of(context).colorScheme.primary,
+              backgroundColor: Colors.transparent,
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(Color(0xFF238636)),
+            ),
+          ),
+
+          Expanded(
+            child: PageView(
+              controller: _pageController,
+              onPageChanged: (page) => setState(() => _currentPage = page),
+              children: [
+                _buildRoleSelectionPage(),
+                _buildBasicInfoPage(),
+                _buildSkillsPage(),
+              ],
+            ),
+          ),
+
+          // Navigation buttons
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: const BoxDecoration(
+              color: Color(0xFF21262D),
+              border: Border(
+                top: BorderSide(color: Color(0xFF30363D), width: 1),
               ),
             ),
-
-            Expanded(
-              child: PageView(
-                controller: _pageController,
-                onPageChanged: (page) => setState(() => _currentPage = page),
-                children: [
-                  _buildRoleSelectionPage(),
-                  _buildBasicInfoPage(),
-                  _buildSkillsPage(),
-                ],
-              ),
-            ),
-
-            // Navigation buttons
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Row(
-                children: [
-                  if (_currentPage > 0)
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _previousPage,
-                        child: const Text('Back'),
+            child: Row(
+              children: [
+                if (_currentPage > 0)
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _isLoading ? null : _previousPage,
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFF30363D)),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text(
+                        'Back',
+                        style: TextStyle(
+                          color: Color(0xFF7D8590),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
-                  if (_currentPage > 0) const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _nextPage,
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : Text(_currentPage == 2 ? 'Complete' : 'Next'),
-                    ),
                   ),
-                ],
-              ),
+                if (_currentPage > 0) const SizedBox(width: 16),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _nextPage,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF238636),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : Text(
+                            _currentPage == 2 ? 'Complete Profile' : 'Next',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -337,30 +402,31 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           const SizedBox(height: 32),
           Text(
             'What\'s your role?',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFFF0F6FC),
+                ),
           ),
           const SizedBox(height: 8),
           Text(
             'Choose how you want to participate in open source',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyLarge?.copyWith(color: Colors.grey[400]),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: const Color(0xFF7D8590),
+                ),
           ),
           const SizedBox(height: 48),
           _buildRoleCard(
             role: UserRole.contributor,
             title: 'Contributor',
             description: 'I want to contribute to open source projects',
-            icon: Icons.code,
+            icon: Icons.code_rounded,
           ),
           const SizedBox(height: 16),
           _buildRoleCard(
             role: UserRole.maintainer,
             title: 'Maintainer',
             description: 'I have projects that need contributors',
-            icon: Icons.people,
+            icon: Icons.people_rounded,
           ),
         ],
       ),
@@ -375,9 +441,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }) {
     final isSelected = _selectedRole == role;
 
-    return Card(
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF21262D),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isSelected ? const Color(0xFF238636) : const Color(0xFF30363D),
+          width: isSelected ? 2 : 1,
+        ),
+      ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         onTap: () => setState(() => _selectedRole = role),
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -388,8 +462,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 height: 56,
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? Theme.of(context).colorScheme.primary
-                      : Colors.grey[700],
+                      ? const Color(0xFF238636)
+                      : const Color(0xFF30363D),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: Colors.white, size: 24),
@@ -403,22 +477,24 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       title,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,
+                            color: const Color(0xFFF0F6FC),
                           ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       description,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodyMedium?.copyWith(color: Colors.grey[400]),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: const Color(0xFF7D8590),
+                          ),
                     ),
                   ],
                 ),
               ),
               if (isSelected)
-                Icon(
-                  Icons.check_circle,
-                  color: Theme.of(context).colorScheme.primary,
+                const Icon(
+                  Icons.check_circle_rounded,
+                  color: Color(0xFF238636),
+                  size: 24,
                 ),
             ],
           ),
@@ -430,65 +506,132 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Widget _buildBasicInfoPage() {
     return Padding(
       padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 32),
-          Text(
-            'Tell us about yourself',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Help others get to know you better',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyLarge?.copyWith(color: Colors.grey[400]),
-          ),
-          const SizedBox(height: 48),
-          TextFormField(
-            controller: _nameController,
-            decoration: const InputDecoration(
-              labelText: 'Name',
-              hintText: 'Enter your full name',
+      child: Form(
+        key: _basicInfoFormKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 32),
+            Text(
+              'Tell us about yourself',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFFF0F6FC),
+                  ),
             ),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Please enter your name';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 24),
-          TextFormField(
-            controller: _bioController,
-            decoration: const InputDecoration(
-              labelText: 'Bio (Optional)',
-              hintText: 'Tell us about yourself...',
+            const SizedBox(height: 8),
+            Text(
+              'Help others get to know you better',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: const Color(0xFF7D8590),
+                  ),
             ),
-            maxLines: 3,
-            maxLength: 200,
-          ),
-          const SizedBox(height: 24),
-          TextFormField(
-            controller: _githubController,
-            decoration: const InputDecoration(
-              labelText: 'GitHub URL (Optional)',
-              hintText: 'https://github.com/username',
-              prefixIcon: Icon(Icons.link),
-            ),
-            validator: (value) {
-              if (value != null && value.isNotEmpty) {
-                if (!value.startsWith('https://github.com/')) {
-                  return 'Please enter a valid GitHub URL';
+            const SizedBox(height: 48),
+            TextFormField(
+              controller: _nameController,
+              style: const TextStyle(color: Color(0xFFF0F6FC)),
+              decoration: InputDecoration(
+                labelText: 'Name *',
+                hintText: 'Enter your full name',
+                labelStyle: const TextStyle(color: Color(0xFF7D8590)),
+                hintStyle: const TextStyle(color: Color(0xFF484F58)),
+                filled: true,
+                fillColor: const Color(0xFF0D1117),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFF30363D)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFF30363D)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFF238636)),
+                ),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFDA3633)),
+                ),
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please enter your name';
                 }
-              }
-              return null;
-            },
-          ),
-        ],
+                if (value.trim().length > 100) {
+                  return 'Name is too long';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 24),
+            TextFormField(
+              controller: _bioController,
+              style: const TextStyle(color: Color(0xFFF0F6FC)),
+              decoration: InputDecoration(
+                labelText: 'Bio (Optional)',
+                hintText: 'Tell us about yourself...',
+                labelStyle: const TextStyle(color: Color(0xFF7D8590)),
+                hintStyle: const TextStyle(color: Color(0xFF484F58)),
+                filled: true,
+                fillColor: const Color(0xFF0D1117),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFF30363D)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFF30363D)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFF238636)),
+                ),
+              ),
+              maxLines: 3,
+              maxLength: 200,
+            ),
+            const SizedBox(height: 24),
+            TextFormField(
+              controller: _githubController,
+              style: const TextStyle(color: Color(0xFFF0F6FC)),
+              decoration: InputDecoration(
+                labelText: 'GitHub URL (Optional)',
+                hintText: 'https://github.com/username',
+                labelStyle: const TextStyle(color: Color(0xFF7D8590)),
+                hintStyle: const TextStyle(color: Color(0xFF484F58)),
+                prefixIcon:
+                    const Icon(Icons.link_rounded, color: Color(0xFF7D8590)),
+                filled: true,
+                fillColor: const Color(0xFF0D1117),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFF30363D)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFF30363D)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFF238636)),
+                ),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFDA3633)),
+                ),
+              ),
+              validator: (value) {
+                if (value != null && value.isNotEmpty) {
+                  if (!value.startsWith('https://github.com/')) {
+                    return 'Please enter a valid GitHub URL';
+                  }
+                }
+                return null;
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -502,23 +645,33 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           const SizedBox(height: 32),
           Text(
             'What are your skills?',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFFF0F6FC),
+                ),
           ),
           const SizedBox(height: 8),
           Text(
             'Select up to 5 programming languages or technologies',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyLarge?.copyWith(color: Colors.grey[400]),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: const Color(0xFF7D8590),
+                ),
           ),
           const SizedBox(height: 24),
-          Text(
-            'Selected: ${_selectedSkills.length}/5',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF21262D),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: const Color(0xFF30363D)),
+            ),
+            child: Text(
+              'Selected: ${_selectedSkills.length}/5',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFF238636),
+                    fontWeight: FontWeight.w500,
+                  ),
+            ),
           ),
           const SizedBox(height: 16),
           Expanded(
@@ -529,7 +682,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 children: _availableSkills.map((skill) {
                   final isSelected = _selectedSkills.contains(skill);
                   return FilterChip(
-                    label: Text(skill),
+                    label: Text(
+                      skill,
+                      style: TextStyle(
+                        color:
+                            isSelected ? Colors.white : const Color(0xFF7D8590),
+                        fontWeight:
+                            isSelected ? FontWeight.w500 : FontWeight.normal,
+                      ),
+                    ),
                     selected: isSelected,
                     onSelected: (selected) {
                       setState(() {
@@ -540,6 +701,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         }
                       });
                     },
+                    backgroundColor: const Color(0xFF21262D),
+                    selectedColor: const Color(0xFF238636),
+                    checkmarkColor: Colors.white,
+                    side: BorderSide(
+                      color: isSelected
+                          ? const Color(0xFF238636)
+                          : const Color(0xFF30363D),
+                    ),
                   );
                 }).toList(),
               ),

@@ -3,6 +3,8 @@ import 'package:uuid/uuid.dart';
 import '../config/firebase_config.dart';
 import '../models/models.dart';
 import '../core/utils/logger.dart';
+import 'package:flutter/foundation.dart';
+import '../core/utils/firestore_utils.dart';
 
 abstract class IMessagingService {
   Future<MessageModel> sendMessage({

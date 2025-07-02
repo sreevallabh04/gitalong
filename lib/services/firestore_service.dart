@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../config/firebase_config.dart';
 import '../models/models.dart';
 import '../core/utils/logger.dart';
+import '../core/utils/firestore_utils.dart';
 
 /// Custom exception for Firestore authentication errors
 class FirestoreAuthException implements Exception {
@@ -106,11 +107,9 @@ class FirestoreService {
 
   // User Profile Operations
   static Future<UserModel?> getUserProfile(String userId) async {
-    try {
+    final result = await safeQuery(() async {
       AppLogger.logger.d('📄 Fetching user profile: $userId');
-
       final doc = await _usersCollection.doc(userId).get();
-
       if (doc.exists && doc.data() != null) {
         AppLogger.logger.d('✅ User profile found');
         return UserModel.fromJson(doc.data()!);
@@ -118,18 +117,12 @@ class FirestoreService {
         AppLogger.logger.w('⚠️ User profile not found: $userId');
         return null;
       }
-    } catch (e, stackTrace) {
-      AppLogger.logger.e(
-        '❌ Failed to fetch user profile',
-        error: e,
-        stackTrace: stackTrace,
-      );
-      rethrow;
-    }
+    });
+    return result;
   }
 
   static Future<UserModel> createUserProfile(UserModel user) async {
-    try {
+    final result = await safeQuery(() async {
       // Validate authentication first
       final authUser = await _validateAuth();
 
@@ -162,11 +155,9 @@ class FirestoreService {
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
-    } on FirestoreAuthException {
-      rethrow; // Pass through auth exceptions
-    } catch (e, stackTrace) {
-      throw _handleFirestoreError(e, 'profile creation');
-    }
+    });
+    if (result == null) throw Exception('Failed to create user profile');
+    return result;
   }
 
   static Future<UserModel> updateUserProfile(

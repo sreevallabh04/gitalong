@@ -11,6 +11,8 @@ import '../../core/utils/logger.dart';
 import '../../services/swipe_service.dart';
 import '../../widgets/user_card.dart';
 import '../../core/constants/app_constants.dart';
+import '../../providers/swipe_provider.dart';
+import '../../widgets/project_card.dart';
 
 class SwipeScreen extends ConsumerStatefulWidget {
   const SwipeScreen({super.key});
@@ -30,12 +32,12 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
   bool _isDragging = false;
   Offset _dragOffset = Offset.zero;
   bool _showingMatch = false;
+  bool _isContributor = true;
 
   @override
   void initState() {
     super.initState();
     _setupAnimations();
-    _loadInitialRecommendations();
   }
 
   void _setupAnimations() {
@@ -74,18 +76,6 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
     ));
   }
 
-  void _loadInitialRecommendations() {
-    final user = ref.read(authStateProvider).value;
-    if (user != null) {
-      final userProfile = ref.read(userProfileProvider).value;
-      if (userProfile != null) {
-        ref
-            .read(mlRecommendationsProvider.notifier)
-            .fetchRecommendations(userProfile);
-      }
-    }
-  }
-
   @override
   void dispose() {
     _cardAnimationController.dispose();
@@ -93,113 +83,17 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
     super.dispose();
   }
 
-  Future<void> _handleSwipe(SwipeDirection direction) async {
-    final user = ref.read(authStateProvider).value;
-    final userProfile = ref.read(userProfileProvider).value;
-    final recommendation =
-        ref.read(mlRecommendationsProvider.notifier).getNextRecommendation();
-
-    if (user == null || userProfile == null || recommendation == null) {
-      AppLogger.logger
-          .w('⚠️ Cannot swipe: missing user data or recommendations');
-      return;
-    }
-
-    try {
-      AppLogger.logger.d(
-          '👆 Processing ${direction.name} swipe on ${recommendation.targetUserId}');
-
-      // Create swipe model
-      final swipe = SwipeModel(
-        id: '', // Will be set by Firestore
-        swiperId: user.uid,
-        targetId: recommendation.targetUserId,
-        direction: direction,
-        targetType: SwipeTargetType.user,
-        createdAt: DateTime.now(),
-      );
-
-      // Record swipe in Firestore
-      await SwipeService.recordSwipeStatic(
-        swiperId: user.uid,
-        targetId: recommendation.targetUserId,
-        direction: direction,
-        targetType: SwipeTargetType.user,
-      );
-
-      // Record swipe in ML backend
-      await ref
-          .read(mlRecommendationsProvider.notifier)
-          .recordSwipeAndUpdate(swipe, userProfile);
-
-      // Check for mutual match if it's a right swipe
-      if (direction == SwipeDirection.right) {
-        final isMatch = await SwipeService.checkForMatchStatic(
-            user.uid, recommendation.targetUserId, SwipeTargetType.user);
-        if (isMatch && mounted) {
-          _showMatchAnimation();
-        }
-      }
-
-      // Animate card out
-      _cardAnimationController.forward().then((_) {
-        _cardAnimationController.reset();
-      });
-    } catch (e, stackTrace) {
-      AppLogger.logger
-          .e('❌ Error processing swipe', error: e, stackTrace: stackTrace);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to process swipe. Please try again.'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
-    }
-  }
-
-  void _showMatchAnimation() {
-    setState(() {
-      _showingMatch = true;
-    });
-
-    _matchAnimationController.forward().then((_) {
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) {
-          _matchAnimationController.reverse().then((_) {
-            setState(() {
-              _showingMatch = false;
-            });
-          });
-        }
-      });
-    });
-  }
-
-  UserModel _convertGitHubUserToUserModel(GitHubUser githubUser) {
-    return UserModel(
-      id: githubUser.id.toString(),
-      email: '', // GitHub user doesn't have email in public API
-      name: githubUser.name ?? githubUser.login,
-      role: UserRole.contributor, // Default to contributor
-      avatarUrl: githubUser.avatarUrl,
-      bio: githubUser.bio,
-      githubUrl: githubUser.htmlUrl,
-      skills: [], // GitHub API doesn't provide skills directly
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final mlRecommendations = ref.watch(mlRecommendationsProvider);
-    final mlHealth = ref.watch(mlHealthProvider);
+    final userProfile = ref.watch(userProfileProvider).value;
+    if (userProfile == null) {
+      return _buildLoadingState();
+    }
+    _isContributor = userProfile.role == UserRole.contributor;
+    final userId = userProfile.id;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1117), // GitHub dark
+      backgroundColor: const Color(0xFF0D1117),
       appBar: AppBar(
         title: Text(
           'Discover',
@@ -210,259 +104,60 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        actions: [
-          // ML Health indicator
-          mlHealth.when(
-            data: (isHealthy) => Icon(
-              isHealthy ? Icons.psychology : Icons.psychology_outlined,
-              color:
-                  isHealthy ? const Color(0xFF2EA043) : const Color(0xFFDA3633),
-            ),
-            loading: () => const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-            error: (_, __) => const Icon(
-              Icons.psychology_outlined,
-              color: Color(0xFFDA3633),
-            ),
-          ),
-          const SizedBox(width: 16),
-        ],
       ),
-      body: Stack(
-        children: [
-          // Main content
-          mlRecommendations.when(
-            data: (recommendations) {
-              if (recommendations.isEmpty) {
-                return _buildEmptyState();
-              }
-              return _buildSwipeCards(recommendations);
-            },
-            loading: () => _buildLoadingState(),
-            error: (error, stack) => _buildErrorState(error),
-          ),
-
-          // Match animation overlay
-          if (_showingMatch)
-            AnimatedBuilder(
-              animation: _matchScaleAnimation,
-              builder: (context, child) {
-                return Transform.scale(
-                  scale: _matchScaleAnimation.value,
-                  child: Container(
-                    color: Colors.black.withOpacity(0.8),
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.favorite,
-                            size: 100,
-                            color: const Color(0xFFDA3633),
-                          ),
-                          const SizedBox(height: 24),
-                          Text(
-                            'It\'s a Match!',
-                            style: GoogleFonts.jetBrainsMono(
-                              color: const Color(0xFFF0F6FC),
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'You both swiped right!',
-                            style: GoogleFonts.inter(
-                              color: const Color(0xFF7D8590),
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-        ],
-      ),
+      body: _isContributor
+          ? _buildContributorSwipe(context, userId)
+          : _buildMaintainerSwipe(context, userId),
     );
   }
 
-  Widget _buildSwipeCards(List<MLRecommendation> recommendations) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Match reasons display
-            if (recommendations.isNotEmpty)
-              Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF21262D),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF30363D)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.psychology,
-                          color: const Color(0xFF2EA043),
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'AI Match Insights',
-                          style: GoogleFonts.jetBrainsMono(
-                            color: const Color(0xFFF0F6FC),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    ...recommendations.first.matchReasons.map(
-                      (reason) => Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.check_circle_outline,
-                              color: const Color(0xFF2EA043),
-                              size: 16,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                reason,
-                                style: GoogleFonts.inter(
-                                  color: const Color(0xFF7D8590),
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-            // Card stack
-            Expanded(
-              child: Stack(
-                children: [
-                  // Background cards (for depth effect)
-                  for (int i = recommendations.length - 1;
-                      i >= 0 && i >= recommendations.length - 3;
-                      i--)
-                    Positioned.fill(
-                      child: Transform.translate(
-                        offset:
-                            Offset(0, (recommendations.length - 1 - i) * 8.0),
-                        child: Transform.scale(
-                          scale: 1.0 - (recommendations.length - 1 - i) * 0.05,
-                          child: UserCard(
-                            user: _convertGitHubUserToUserModel(
-                                recommendations[i].user),
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-
-            // Action buttons
-            _buildActionButtons(),
-          ],
-        ),
-      ),
+  Widget _buildContributorSwipe(BuildContext context, String userId) {
+    final projectsAsync = ref.watch(projectsToSwipeProvider(userId));
+    return projectsAsync.when(
+      data: (projects) {
+        if (projects.isEmpty) return _buildEmptyState();
+        return _buildProjectCards(projects);
+      },
+      loading: _buildLoadingState,
+      error: (error, stack) => _buildErrorState(error),
     );
   }
 
-  Widget _buildActionButtons() {
-    return Container(
-      margin: const EdgeInsets.only(top: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildActionButton(
-            icon: Icons.close,
-            color: const Color(0xFFDA3633),
-            onPressed: () => _handleSwipe(SwipeDirection.left),
-          ),
-          _buildActionButton(
-            icon: Icons.refresh,
-            color: const Color(0xFF7D8590),
-            onPressed: _loadInitialRecommendations,
-          ),
-          _buildActionButton(
-            icon: Icons.favorite,
-            color: const Color(0xFF2EA043),
-            onPressed: () => _handleSwipe(SwipeDirection.right),
-          ),
-        ],
-      ),
+  Widget _buildMaintainerSwipe(BuildContext context, String userId) {
+    final usersAsync = ref.watch(usersToSwipeProvider(userId));
+    return usersAsync.when(
+      data: (users) {
+        if (users.isEmpty) return _buildEmptyState();
+        return _buildUserCards(users);
+      },
+      loading: _buildLoadingState,
+      error: (error, stack) => _buildErrorState(error),
     );
   }
 
-  Widget _buildActionButton({
-    required IconData icon,
-    required Color color,
-    required VoidCallback onPressed,
-  }) {
-    return Container(
-      width: 60,
-      height: 60,
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: IconButton(
-        icon: Icon(icon, color: color),
-        onPressed: onPressed,
-      ),
+  Widget _buildProjectCards(List<ProjectModel> projects) {
+    // You can add swipe logic here if needed
+    return ListView.builder(
+      itemCount: projects.length,
+      itemBuilder: (context, index) {
+        return ProjectCard(project: projects[index]);
+      },
+    );
+  }
+
+  Widget _buildUserCards(List<UserModel> users) {
+    // You can add swipe logic here if needed
+    return ListView.builder(
+      itemCount: users.length,
+      itemBuilder: (context, index) {
+        return UserCard(user: users[index]);
+      },
     );
   }
 
   Widget _buildLoadingState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2EA043)),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'Finding your perfect matches...',
-            style: GoogleFonts.inter(
-              color: const Color(0xFF7D8590),
-              fontSize: 16,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Our AI is analyzing compatibility',
-            style: GoogleFonts.inter(
-              color: const Color(0xFF7D8590),
-              fontSize: 14,
-            ),
-          ),
-        ],
-      ),
+    return const Center(
+      child: CircularProgressIndicator(),
     );
   }
 
@@ -478,7 +173,7 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
           ),
           const SizedBox(height: 24),
           Text(
-            'No More Matches',
+            'No Matches Found',
             style: GoogleFonts.jetBrainsMono(
               color: const Color(0xFFF0F6FC),
               fontSize: 24,
@@ -487,21 +182,13 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
           ),
           const SizedBox(height: 16),
           Text(
-            'You\'ve seen all available developers.\nCheck back later for new matches!',
+            _isContributor
+                ? 'No projects match your interests right now.'
+                : 'No contributors match your project needs right now.',
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
               color: const Color(0xFF7D8590),
               fontSize: 16,
-            ),
-          ),
-          const SizedBox(height: 32),
-          ElevatedButton.icon(
-            onPressed: _loadInitialRecommendations,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Refresh'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF238636),
-              foregroundColor: Colors.white,
             ),
           ),
         ],
@@ -534,21 +221,22 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
               color: const Color(0xFF7D8590),
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 32),
-          ElevatedButton.icon(
-            onPressed: _loadInitialRecommendations,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Try Again'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF238636),
-              foregroundColor: Colors.white,
+              fontSize: 16,
             ),
           ),
         ],
       ),
     );
+  }
+
+  Future<T?> safeQuery<T>(Future<T> Function() query,
+      {Function(dynamic)? onError}) async {
+    try {
+      return await query();
+    } catch (e) {
+      debugPrint('Firestore error: $e');
+      if (onError != null) onError(e);
+      return null;
+    }
   }
 }

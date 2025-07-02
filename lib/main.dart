@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'config/firebase_config.dart';
 import 'core/theme/app_theme.dart';
@@ -11,6 +12,84 @@ import 'core/utils/error_handler.dart';
 import 'core/utils/logger.dart';
 import 'providers/app_lifecycle_provider.dart';
 import 'core/router/app_router.dart';
+
+final githubDarkTheme = ThemeData(
+  brightness: Brightness.dark,
+  scaffoldBackgroundColor: const Color(0xFF0D1117),
+  primaryColor: const Color(0xFF2EA043),
+  colorScheme: ColorScheme.dark(
+    primary: const Color(0xFF2EA043),
+    secondary: const Color(0xFF238636),
+    background: const Color(0xFF0D1117),
+    surface: const Color(0xFF161B22),
+    onPrimary: const Color(0xFFC9D1D9),
+    onBackground: const Color(0xFFC9D1D9),
+    onSurface: const Color(0xFFC9D1D9),
+    error: const Color(0xFFDA3633),
+  ),
+  textTheme: GoogleFonts.jetBrainsMonoTextTheme(
+    ThemeData.dark().textTheme.apply(
+          bodyColor: const Color(0xFFC9D1D9),
+          displayColor: const Color(0xFFC9D1D9),
+        ),
+  ),
+  cardTheme: CardTheme(
+    color: const Color(0xFF161B22),
+    elevation: 2,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+    shadowColor: Colors.black.withOpacity(0.2),
+    margin: const EdgeInsets.all(12),
+  ),
+  inputDecorationTheme: InputDecorationTheme(
+    filled: true,
+    fillColor: const Color(0xFF161B22),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide.none,
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: const BorderSide(color: Color(0xFF2EA043), width: 2),
+    ),
+    labelStyle: const TextStyle(color: Color(0xFFC9D1D9)),
+    hintStyle: const TextStyle(color: Color(0xFF7D8590)),
+  ),
+  elevatedButtonTheme: ElevatedButtonThemeData(
+    style: ElevatedButton.styleFrom(
+      backgroundColor: const Color(0xFF2EA043),
+      foregroundColor: Colors.white,
+      textStyle: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.bold),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      elevation: 0,
+    ),
+  ),
+  outlinedButtonTheme: OutlinedButtonThemeData(
+    style: OutlinedButton.styleFrom(
+      foregroundColor: const Color(0xFF2EA043),
+      textStyle: GoogleFonts.jetBrainsMono(),
+      side: const BorderSide(color: Color(0xFF2EA043)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    ),
+  ),
+  snackBarTheme: const SnackBarThemeData(
+    backgroundColor: Color(0xFF161B22),
+    contentTextStyle: TextStyle(color: Color(0xFFC9D1D9)),
+    actionTextColor: Color(0xFF2EA043),
+  ),
+  appBarTheme: const AppBarTheme(
+    backgroundColor: Color(0xFF161B22),
+    elevation: 0,
+    iconTheme: IconThemeData(color: Color(0xFFC9D1D9)),
+    titleTextStyle: TextStyle(
+      color: Color(0xFFC9D1D9),
+      fontWeight: FontWeight.bold,
+      fontSize: 20,
+      fontFamily: 'JetBrains Mono',
+    ),
+  ),
+);
 
 void main() async {
   try {
@@ -65,7 +144,7 @@ void main() async {
     runApp(
       MaterialApp(
         debugShowCheckedModeBanner: false,
-        theme: GitAlongTheme.theme,
+        theme: githubDarkTheme,
         home: Scaffold(
           backgroundColor: const Color(0xFF0D1117),
           body: Center(
@@ -158,7 +237,7 @@ class GitAlongApp extends ConsumerWidget {
           debugShowCheckedModeBanner: false,
 
           // Use the bleeding GitHub theme
-          theme: GitAlongTheme.theme,
+          theme: githubDarkTheme,
 
           // GoRouter configuration - this is the key!
           routerConfig: router,

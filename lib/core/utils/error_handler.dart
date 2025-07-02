@@ -351,7 +351,8 @@ class AppError {
 
     final errorString = error.toString().toLowerCase();
     if (errorString.contains('permission')) {
-      userMessage = 'Permission denied. Please check your internet connection.';
+      userMessage =
+          'Permission denied. Please check your login or contact support.';
       severity = ErrorSeverity.high;
     } else if (errorString.contains('unavailable')) {
       userMessage = 'Service temporarily unavailable. Please try again later.';
@@ -364,6 +365,10 @@ class AppError {
     } else if (errorString.contains('network')) {
       userMessage = 'Network error. Please check your internet connection.';
       severity = ErrorSeverity.medium;
+    } else if (errorString.contains('index')) {
+      userMessage =
+          'A required database index is missing. Please contact support.';
+      severity = ErrorSeverity.high;
     }
 
     return AppError(

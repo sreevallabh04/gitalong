@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../core/theme/app_theme.dart';
 import 'commit_dot.dart';
+import 'dart:math';
 
 /// GitHub-style contribution graph that displays commit activity over time
 /// This is the crown jewel of our developer-focused UI
@@ -13,6 +14,8 @@ class ContributionGraph extends StatefulWidget {
     this.title = 'Contribution Activity',
     this.showLabels = true,
     this.animateOnLoad = true,
+    this.weeks = 12,
+    this.days = 7,
   });
 
   /// Commit data to display. If null, generates sample data
@@ -26,6 +29,9 @@ class ContributionGraph extends StatefulWidget {
 
   /// Whether to animate when first loaded
   final bool animateOnLoad;
+
+  final int weeks;
+  final int days;
 
   @override
   State<ContributionGraph> createState() => _ContributionGraphState();
@@ -133,8 +139,25 @@ class _ContributionGraphState extends State<ContributionGraph>
     return streak;
   }
 
+  Color _colorForLevel(int level) {
+    switch (level) {
+      case 0:
+        return const Color(0xFF161B22);
+      case 1:
+        return const Color(0xFF2EA043).withOpacity(0.3);
+      case 2:
+        return const Color(0xFF2EA043).withOpacity(0.5);
+      case 3:
+        return const Color(0xFF2EA043).withOpacity(0.7);
+      case 4:
+      default:
+        return const Color(0xFF2EA043);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final grid = List.generate(widget.weeks * widget.days, (i) => _data.length > i ? _data[i].commitCount : 0);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -250,38 +273,27 @@ class _ContributionGraphState extends State<ContributionGraph>
               Expanded(
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: _weeks.asMap().entries.map((entry) {
-                      final weekIndex = entry.key;
-                      final week = entry.value;
-
-                      return Container(
-                        margin: const EdgeInsets.only(right: 2),
-                        child: Column(
-                          children: week.asMap().entries.map((dayEntry) {
-                            final dayIndex = dayEntry.key;
-                            final commit = dayEntry.value;
-
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 2),
-                              child: CommitTooltip(
-                                commitCount: commit.commitCount,
-                                date: commit.date,
-                                child: CommitDot(
-                                  commitCount: commit.commitCount,
-                                  date: commit.date,
-                                  animationDelay: Duration(
-                                    milliseconds:
-                                        (weekIndex * 7 + dayIndex) * 15,
-                                  ),
-                                  onTap: () => _onCommitDotTapped(commit),
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      );
-                    }).toList(),
+                  child: SizedBox(
+                    width: widget.weeks * 14,
+                    height: widget.days * 14,
+                    child: GridView.builder(
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: widget.days,
+                        mainAxisSpacing: 2,
+                        crossAxisSpacing: 2,
+                      ),
+                      itemCount: widget.weeks * widget.days,
+                      itemBuilder: (context, i) {
+                        return AnimatedContainer(
+                          duration: Duration(milliseconds: 400 + Random().nextInt(400)),
+                          decoration: BoxDecoration(
+                            color: _colorForLevel(grid[i]),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),

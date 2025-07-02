@@ -13,49 +13,21 @@ service cloud.firestore {
     // 👤 USER PROFILES COLLECTION
     // ============================================================================
     match /users/{userId} {
-      // Allow users to read/write their own profile only
-      allow read, write: if request.auth != null 
-        && request.auth.uid == userId 
-        && isValidUser();
-      
-      // Allow other authenticated users to read basic profile info (for matching)
-      allow read: if request.auth != null 
-        && isValidUser()
-        && request.auth.uid != userId;
+      allow read, write: if request.auth.uid == userId;
     }
     
     // ============================================================================
     // 👆 SWIPES COLLECTION 
     // ============================================================================
-    match /swipes/{swipeId} {
-      // Users can create swipes where they are the swiper
-      allow create: if request.auth != null 
-        && isValidUser()
-        && request.auth.uid == request.resource.data.swiper_id
-        && isValidSwipeData();
-      
-      // Users can read their own swipes (both given and received)
-      allow read: if request.auth != null 
-        && isValidUser()
-        && (request.auth.uid == resource.data.swiper_id 
-           || request.auth.uid == resource.data.target_id);
+    match /swipes/{document=**} {
+      allow read, write: if request.auth != null;
     }
     
     // ============================================================================
     // 💕 MATCHES COLLECTION
     // ============================================================================
-    match /matches/{matchId} {
-      // Users can read/write matches where they are involved
-      allow read, write: if request.auth != null 
-        && isValidUser()
-        && (request.auth.uid == resource.data.contributor_id 
-           || isProjectOwner(resource.data.project_id))
-        && isValidMatchData();
-      
-      // Allow creation of matches by system/authenticated users
-      allow create: if request.auth != null 
-        && isValidUser()
-        && isValidMatchData();
+    match /matches/{document=**} {
+      allow read, write: if request.auth != null;
     }
     
     // ============================================================================
