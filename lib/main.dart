@@ -4,15 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 
 import 'config/firebase_config.dart';
-import 'config/app_config.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/error_handler.dart';
 import 'core/utils/logger.dart';
 import 'providers/app_lifecycle_provider.dart';
-import 'screens/splash_screen.dart';
 import 'core/router/app_router.dart';
 
 void main() async {
@@ -46,6 +43,9 @@ void main() async {
     AppLogger.logger.i('🔥 Initializing Firebase...');
     await FirebaseConfig.initialize();
     AppLogger.logger.success('✅ Firebase initialized successfully');
+
+    // Set up error handling
+    _setupErrorHandling();
 
     // Run the app with GoRouter
     AppLogger.logger.i('🎯 Launching GitAlong app with GoRouter...');
@@ -170,7 +170,7 @@ class GitAlongApp extends ConsumerWidget {
             return MediaQuery(
               data: mediaQuery.copyWith(
                 textScaler: TextScaler.linear(
-                  mediaQuery.textScaleFactor.clamp(0.8, 1.2),
+                  mediaQuery.textScaler.scale(1.0).clamp(0.8, 1.2),
                 ),
               ),
               child: child ?? const SizedBox.shrink(),

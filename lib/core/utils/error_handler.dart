@@ -82,6 +82,24 @@ class ErrorHandler {
     return appError;
   }
 
+  /// Handle Firestore/Database errors
+  static AppError handleFirestoreError(dynamic error) {
+    final appError = AppError.firestoreError(error);
+    _recordError(appError);
+
+    AppLogger.logger.e('Firestore Error: ${appError.message}');
+    return appError;
+  }
+
+  /// Handle profile setup errors specifically
+  static AppError handleProfileSetupError(dynamic error) {
+    final appError = AppError.profileSetupError(error);
+    _recordError(appError);
+
+    AppLogger.logger.e('Profile Setup Error: ${appError.message}');
+    return appError;
+  }
+
   /// Show error dialog to user
   static void showErrorDialog(BuildContext context, AppError error) {
     if (error.shouldShowToUser) {
@@ -324,6 +342,73 @@ class AppError {
       timestamp: DateTime.now(),
       exception: error,
       stackTrace: stackTrace,
+    );
+  }
+
+  factory AppError.firestoreError(dynamic error) {
+    String userMessage = 'Database operation failed. Please try again.';
+    ErrorSeverity severity = ErrorSeverity.medium;
+
+    final errorString = error.toString().toLowerCase();
+    if (errorString.contains('permission')) {
+      userMessage = 'Permission denied. Please check your internet connection.';
+      severity = ErrorSeverity.high;
+    } else if (errorString.contains('unavailable')) {
+      userMessage = 'Service temporarily unavailable. Please try again later.';
+      severity = ErrorSeverity.medium;
+    } else if (errorString.contains('timeout') ||
+        errorString.contains('deadline')) {
+      userMessage =
+          'Request timed out. Please check your connection and try again.';
+      severity = ErrorSeverity.medium;
+    } else if (errorString.contains('network')) {
+      userMessage = 'Network error. Please check your internet connection.';
+      severity = ErrorSeverity.medium;
+    }
+
+    return AppError(
+      message: error.toString(),
+      userMessage: userMessage,
+      type: ErrorType.storage,
+      severity: severity,
+      timestamp: DateTime.now(),
+      exception: error,
+    );
+  }
+
+  factory AppError.profileSetupError(dynamic error) {
+    String userMessage = 'Failed to complete profile setup. Please try again.';
+
+    final errorString = error.toString().toLowerCase();
+    if (errorString.contains('name')) {
+      userMessage = 'Invalid name. Please enter a valid name.';
+    } else if (errorString.contains('email')) {
+      userMessage = 'Invalid email. Please check your email address.';
+    } else if (errorString.contains('role')) {
+      userMessage = 'Invalid role selected. Please choose a valid role.';
+    } else if (errorString.contains('github')) {
+      userMessage =
+          'Invalid GitHub URL. Please enter a valid GitHub profile URL.';
+    } else if (errorString.contains('skills')) {
+      userMessage = 'Too many skills selected. Please select up to 10 skills.';
+    } else if (errorString.contains('network') ||
+        errorString.contains('connection')) {
+      userMessage =
+          'Network error. Please check your internet connection and try again.';
+    } else if (errorString.contains('permission')) {
+      userMessage =
+          'Permission denied. Please check your internet connection and try again.';
+    } else if (errorString.contains('auth')) {
+      userMessage = 'Authentication error. Please sign in again.';
+    }
+
+    return AppError(
+      message: error.toString(),
+      userMessage: userMessage,
+      type: ErrorType.validation,
+      severity: ErrorSeverity.medium,
+      timestamp: DateTime.now(),
+      exception: error,
     );
   }
 

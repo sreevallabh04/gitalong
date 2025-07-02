@@ -163,6 +163,80 @@ class GitHubUser {
     );
   }
 
+  /// Factory constructor for creating sample user from ML recommendation
+  factory GitHubUser.sampleFromRecommendation(dynamic recommendation) {
+    final sampleUsers = [
+      GitHubUser(
+        login: 'alex_dev',
+        id: 12345,
+        avatarUrl: 'https://github.com/alex_dev.png',
+        name: 'Alex Chen',
+        bio:
+            'Full-stack developer passionate about React and Node.js. Love contributing to open source projects.',
+        publicRepos: 25,
+        followers: 150,
+        following: 89,
+        location: 'San Francisco, CA',
+        languages: ['JavaScript', 'TypeScript', 'React', 'Node.js'],
+        topRepos: [
+          GitHubRepo(
+            name: 'awesome-react-components',
+            description: 'A collection of reusable React components',
+            language: 'JavaScript',
+            stars: 420,
+            url: 'https://github.com/alex_dev/awesome-react-components',
+          ),
+          GitHubRepo(
+            name: 'node-api-boilerplate',
+            description: 'Production-ready Node.js API boilerplate',
+            language: 'TypeScript',
+            stars: 156,
+            url: 'https://github.com/alex_dev/node-api-boilerplate',
+          ),
+        ],
+        contributions: [
+          ContributionData(
+              date: DateTime.now().subtract(const Duration(days: 1)), count: 5),
+          ContributionData(
+              date: DateTime.now().subtract(const Duration(days: 2)), count: 3),
+          ContributionData(
+              date: DateTime.now().subtract(const Duration(days: 3)), count: 7),
+        ],
+      ),
+      GitHubUser(
+        login: 'sarah_flutter',
+        id: 67890,
+        avatarUrl: 'https://github.com/sarah_flutter.png',
+        name: 'Sarah Kim',
+        bio:
+            'Mobile app developer specializing in Flutter. Looking for exciting projects to collaborate on.',
+        publicRepos: 18,
+        followers: 89,
+        following: 67,
+        location: 'Seattle, WA',
+        languages: ['Dart', 'Flutter', 'Firebase', 'Python'],
+        topRepos: [
+          GitHubRepo(
+            name: 'flutter-ui-kit',
+            description: 'Beautiful Flutter UI components',
+            language: 'Dart',
+            stars: 320,
+            url: 'https://github.com/sarah_flutter/flutter-ui-kit',
+          ),
+        ],
+        contributions: [
+          ContributionData(
+              date: DateTime.now().subtract(const Duration(days: 1)), count: 4),
+          ContributionData(
+              date: DateTime.now().subtract(const Duration(days: 2)), count: 6),
+        ],
+      ),
+    ];
+
+    // Return a random sample user for demo purposes
+    return sampleUsers[DateTime.now().millisecond % sampleUsers.length];
+  }
+
   /// Generates multiple sample users for demos
   static List<GitHubUser> generateSampleUsers() {
     return [

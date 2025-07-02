@@ -103,39 +103,150 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _completeOnboarding() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      AppLogger.logger.w('⚠️ Form validation failed');
+      return;
+    }
+
+    // Validate required fields before proceeding
+    final trimmedName = _nameController.text.trim();
+    if (trimmedName.isEmpty) {
+      AppLogger.logger.w('⚠️ Name is required');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Please enter your name.',
+              style: GoogleFonts.inter(color: Colors.white),
+            ),
+            backgroundColor: const Color(0xFFDA3633),
+          ),
+        );
+      }
+      return;
+    }
+
+    // Additional validation for name length
+    if (trimmedName.length > 100) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Name is too long. Please use a shorter name.',
+              style: GoogleFonts.inter(color: Colors.white),
+            ),
+            backgroundColor: const Color(0xFFDA3633),
+          ),
+        );
+      }
+      return;
+    }
+
+    // Check if widget is still mounted before proceeding
+    if (!mounted) {
+      AppLogger.logger.w('⚠️ Widget unmounted, canceling profile creation');
+      return;
+    }
 
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // Create user profile
+      AppLogger.logger.auth('🚀 Starting profile creation...');
+      AppLogger.logger.auth('📋 Name: $trimmedName');
+      AppLogger.logger.auth('📝 Bio: ${_bioController.text.trim()}');
+      AppLogger.logger.auth('🏷️ Role: ${_selectedRole.name}');
+      AppLogger.logger.auth('💼 Skills: ${_selectedSkills.join(', ')}');
+      AppLogger.logger.auth('🔗 GitHub: ${_githubController.text.trim()}');
+
+      // Validate GitHub URL if provided
+      final githubUrl = _githubController.text.trim();
+      if (githubUrl.isNotEmpty &&
+          !githubUrl.startsWith('https://github.com/')) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Please enter a valid GitHub URL starting with https://github.com/',
+                style: GoogleFonts.inter(color: Colors.white),
+              ),
+              backgroundColor: const Color(0xFFDA3633),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Create user profile with all collected data
       await ref.read(userProfileProvider.notifier).createProfile(
-            name: _nameController.text.trim(),
+            name: trimmedName,
             bio: _bioController.text.trim(),
             role: _selectedRole.name,
+            skills:
+                List<String>.from(_selectedSkills), // Create a defensive copy
+            githubUrl: githubUrl.isEmpty ? null : githubUrl,
           );
 
+      // Check if widget is still mounted before navigation
       if (mounted) {
         AppLogger.logger
             .navigation('✅ Onboarding completed, navigating to home');
-        context.goToHome();
-      }
-    } catch (e) {
-      AppLogger.logger.e('❌ Error completing onboarding', error: e);
-      if (mounted) {
+
+        // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Failed to complete profile setup. Please try again.',
+              'Welcome to GitAlong! Your profile has been created successfully.',
+              style: GoogleFonts.inter(color: Colors.white),
+            ),
+            backgroundColor: const Color(0xFF238636), // GitHub green
+            duration: const Duration(seconds: 3),
+          ),
+        );
+
+        // Use addPostFrameCallback to ensure navigation happens after current frame
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            context.goToHome();
+          }
+        });
+      }
+    } catch (e, stackTrace) {
+      AppLogger.logger
+          .e('❌ Error completing onboarding', error: e, stackTrace: stackTrace);
+
+      // Only show error if widget is still mounted
+      if (mounted) {
+        // Extract clean error message
+        String errorMessage = e.toString();
+        if (errorMessage.startsWith('Exception: ')) {
+          errorMessage = errorMessage.substring(11);
+        }
+
+        // Show user-friendly error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              errorMessage,
               style: GoogleFonts.inter(color: Colors.white),
             ),
             backgroundColor: const Color(0xFFDA3633), // GitHub red
+            duration: const Duration(
+                seconds: 5), // Longer duration for error messages
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: () {
+                // Retry the onboarding completion
+                _completeOnboarding();
+              },
+            ),
           ),
         );
       }
     } finally {
+      // Only update state if widget is still mounted
       if (mounted) {
         setState(() {
           _isLoading = false;

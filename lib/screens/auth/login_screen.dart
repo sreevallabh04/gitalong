@@ -4,8 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:glassmorphism/glassmorphism.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import '../../services/auth_service.dart';
+
+import '../../services/auth_service.dart' as auth;
+import '../../providers/auth_provider.dart';
+import '../../core/theme/app_theme.dart';
 import '../../core/utils/logger.dart';
 import '../../core/router/app_router.dart';
 import '../onboarding/onboarding_screen.dart';
@@ -73,46 +80,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   }
 
   // Authentication methods
-  void _signIn() async {
-    if (_signInFormKey.currentState?.validate() != true) return;
+  Future<void> _signIn() async {
+    if (!_signInFormKey.currentState!.validate()) return;
 
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
     });
 
     try {
-      // Use the improved AuthService with proper credential validation
-      await ref.read(authServiceProvider).signInWithEmailAndPassword(
-            email: _emailController.text, // Already trimmed in AuthService
-            password:
-                _passwordController.text, // Already trimmed in AuthService
-          );
-
-      if (mounted) {
-        // Navigate using GoRouter - this will trigger the auth redirect
-        AppLogger.logger.navigation('✅ Sign-in successful, navigating to home');
-        context.goToHome();
-      }
-    } on AuthException catch (e) {
-      AppLogger.logger.e('❌ Auth error during sign-in', error: e);
-
-      if (mounted) {
-        setState(() {
-          _errorMessage = e.message; // This will now be a user-friendly message
-        });
-      }
-    } catch (e, stackTrace) {
-      AppLogger.logger.e(
-        '❌ Unexpected error during sign-in',
-        error: e,
-        stackTrace: stackTrace,
+      final authService = ref.read(authServiceProvider);
+      await authService.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
       );
 
       if (mounted) {
-        setState(() {
-          _errorMessage = 'An unexpected error occurred. Please try again.';
-        });
+        AppLogger.logger.navigation('✅ Sign in successful, navigating to home');
+        context.goToHome();
+      }
+    } on auth.AuthException catch (e) {
+      if (mounted) {
+        _showErrorSnackbar(e.message);
+      }
+    } catch (e) {
+      AppLogger.logger.e('❌ Unexpected sign in error', error: e);
+      if (mounted) {
+        _showErrorSnackbar('An unexpected error occurred. Please try again.');
       }
     } finally {
       if (mounted) {
@@ -146,13 +139,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             '✅ Sign-up successful, navigating to onboarding for profile setup');
         context.goToOnboarding();
       }
-    } on AuthException catch (e) {
-      AppLogger.logger.e('❌ Auth error during sign-up', error: e);
-
+    } on auth.AuthException catch (e) {
       if (mounted) {
-        setState(() {
-          _errorMessage = e.message; // This will now be a user-friendly message
-        });
+        _showErrorSnackbar(e.message);
       }
     } catch (e, stackTrace) {
       AppLogger.logger.e(
@@ -953,6 +942,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     ),
                   ),
           ),
+        ),
+      ),
+    );
+  }
+
+  void _showErrorSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: GoogleFonts.inter(color: Colors.white),
+        ),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
         ),
       ),
     );

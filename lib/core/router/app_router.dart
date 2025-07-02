@@ -112,12 +112,13 @@ final _router = GoRouter(
   redirect: (context, state) {
     final user = FirebaseAuth.instance.currentUser;
     final isLoggedIn = user != null;
-    final isLoginRoute = state.uri.toString() == AppRoutes.login;
-    final isOnboardingRoute = state.uri.toString() == AppRoutes.onboarding;
-    final isSplashRoute = state.uri.toString() == AppRoutes.splash;
+    final currentLocation = state.uri.toString();
+    final isLoginRoute = currentLocation == AppRoutes.login;
+    final isOnboardingRoute = currentLocation == AppRoutes.onboarding;
+    final isSplashRoute = currentLocation == AppRoutes.splash;
 
     AppLogger.logger.navigation(
-      '🔄 Router redirect - User: ${user?.email ?? "null"}, Location: ${state.uri}',
+      '🔄 Router redirect - User: ${user?.email ?? "null"}, Location: $currentLocation',
     );
 
     // If on splash, let AuthGate handle the routing
@@ -137,6 +138,12 @@ final _router = GoRouter(
       AppLogger.logger
           .navigation('✅ Authenticated user on login, redirecting to splash');
       return AppRoutes.splash;
+    }
+
+    // Prevent navigation loops - if already on target route, don't redirect
+    if (isLoggedIn &&
+        (isOnboardingRoute || currentLocation.startsWith('/home'))) {
+      return null;
     }
 
     return null; // No redirect needed

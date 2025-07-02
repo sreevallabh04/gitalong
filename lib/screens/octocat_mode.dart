@@ -180,9 +180,12 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
                                 ),
                                 child: Center(
                                   child: Icon(
-                                    PhosphorIcons.octagonFill(),
-                                    size: 80,
-                                    color: _backgroundAnimation.value,
+                                    PhosphorIcons.octagon(
+                                        PhosphorIconsStyle.fill),
+                                    color: Colors.white.withOpacity(
+                                      0.1 + (_pulseAnimation.value - 0.8) * 0.5,
+                                    ),
+                                    size: 40,
                                   ),
                                 ),
                               ),

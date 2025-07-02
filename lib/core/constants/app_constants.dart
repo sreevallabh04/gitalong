@@ -84,12 +84,20 @@ class AppConstants {
       'Authentication failed. Please sign in again.';
   static const String permissionErrorMessage =
       'Permission required to continue.';
+  static const String profileSetupErrorMessage =
+      'Failed to complete profile setup. Please try again.';
+  static const String validationErrorMessage =
+      'Please check your input and try again.';
+  static const String firestoreErrorMessage =
+      'Database operation failed. Please try again.';
 
   // Success Messages
   static const String profileUpdatedMessage = 'Profile updated successfully!';
   static const String accountCreatedMessage = 'Account created successfully!';
   static const String passwordResetMessage = 'Password reset email sent!';
   static const String settingsSavedMessage = 'Settings saved successfully!';
+  static const String profileCreatedMessage = 'Profile created successfully!';
+  static const String onboardingCompletedMessage = 'Welcome to GitAlong!';
 }
 
 class AppColors {

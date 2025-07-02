@@ -395,4 +395,75 @@ class FirebaseConfig {
     _validationComplete = false;
     AppLogger.logger.d('🔄 Firebase configuration state reset');
   }
+
+  // Health check for Firebase services
+  static Future<bool> performHealthCheck() async {
+    try {
+      AppLogger.logger
+          .i('🏥 Performing comprehensive Firebase health check...');
+
+      final healthChecks = await Future.wait([
+        _checkFirestoreHealth(),
+        _checkAuthHealth(),
+        _checkStorageHealth(),
+      ]);
+
+      final allHealthy = healthChecks.every((check) => check);
+
+      if (allHealthy) {
+        AppLogger.logger.success('✅ All Firebase services are healthy');
+      } else {
+        AppLogger.logger.w('⚠️ Some Firebase services may have issues');
+      }
+
+      return allHealthy;
+    } catch (e, stackTrace) {
+      AppLogger.logger.e(
+        '❌ Health check failed',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      return false;
+    }
+  }
+
+  static Future<bool> _checkFirestoreHealth() async {
+    try {
+      final testDoc = firestore.collection('_health_check').doc('test');
+      await testDoc.set({
+        'timestamp': FieldValue.serverTimestamp(),
+        'status': 'healthy',
+      });
+
+      final readTest = await testDoc.get();
+      await testDoc.delete(); // Clean up
+
+      return readTest.exists;
+    } catch (e) {
+      AppLogger.logger.w('⚠️ Firestore health check failed: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> _checkAuthHealth() async {
+    try {
+      // Just check if we can access auth instance
+      auth.currentUser;
+      return true;
+    } catch (e) {
+      AppLogger.logger.w('⚠️ Auth health check failed: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> _checkStorageHealth() async {
+    try {
+      // Just check if we can access storage reference
+      storage.ref();
+      return true;
+    } catch (e) {
+      AppLogger.logger.w('⚠️ Storage health check failed: $e');
+      return false;
+    }
+  }
 }

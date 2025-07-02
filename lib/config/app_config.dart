@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import '../core/utils/logger.dart';
 
+/// Application configuration for different environments
 class AppConfig {
   static late String _environment;
   static late String _version;
@@ -126,9 +127,7 @@ class AppConfig {
 
   // Configuration constants
   static const int requestTimeoutSeconds = 30;
-  static const int maxRetryAttempts = 3;
   static const bool enableAnalytics = true;
-  static const bool enableCrashReporting = true;
 
   // Feature flags
   static bool get enableGoogleSignIn => true;
@@ -136,4 +135,68 @@ class AppConfig {
       defaultTargetPlatform == TargetPlatform.iOS ||
       defaultTargetPlatform == TargetPlatform.macOS;
   static bool get enableBiometricAuth => !kIsWeb;
+
+  // Environment detection
+  static bool get isDebug => kDebugMode;
+  static bool get isRelease => kReleaseMode;
+  static bool get isProfile => kProfileMode;
+
+  // App Information
+  static const String appName = 'GitAlong';
+  static const String appVersion = '1.0.0';
+
+  // API Configuration
+  static String get mlBackendUrl {
+    if (isDebug) {
+      return 'http://localhost:8000'; // Local development
+    } else if (isProfile) {
+      return 'https://api-staging.gitalong.dev'; // Staging environment
+    } else {
+      return 'https://api.gitalong.dev'; // Production environment
+    }
+  }
+
+  static String get githubApiUrl => 'https://api.github.com';
+
+  // Firebase Configuration
+  static String get firestoreUrl => 'https://firestore.googleapis.com';
+
+  // Feature Flags
+  static bool get enableMLMatching => true;
+  static bool get enableAdvancedAnalytics => true;
+  static bool get enableCrashReporting => !isDebug;
+  static bool get enableDetailedLogging => isDebug;
+
+  // ML Configuration
+  static int get maxRecommendations => 20;
+  static int get minRecommendationsThreshold => 3;
+  static Duration get mlCacheTimeout => const Duration(minutes: 15);
+
+  // Network Configuration
+  static Duration get networkTimeout => const Duration(seconds: 30);
+  static Duration get connectionTimeout => const Duration(seconds: 10);
+  static int get maxRetryAttempts => 3;
+
+  // Cache Configuration
+  static int get maxCacheSize => 100; // MB
+  static Duration get cacheTimeout => const Duration(hours: 24);
+
+  // UI Configuration
+  static double get cardSwipeThreshold => 0.3;
+  static Duration get animationDuration => const Duration(milliseconds: 300);
+  static int get maxSkillsSelection => 10;
+
+  // Security Configuration
+  static Duration get sessionTimeout => const Duration(hours: 24);
+  static int get maxLoginAttempts => 5;
+
+  // Analytics Configuration
+  static bool get enableUserAnalytics => !isDebug;
+  static bool get enablePerformanceMonitoring => true;
+  static Duration get analyticsFlushInterval => const Duration(minutes: 5);
+
+  // Development Configuration
+  static bool get enableDevicePreview => isDebug;
+  static bool get enableInspector => isDebug;
+  static bool get enableDebugBanner => isDebug;
 }

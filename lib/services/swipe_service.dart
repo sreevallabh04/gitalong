@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 import '../config/firebase_config.dart';
 import '../models/models.dart';
 import '../core/utils/logger.dart';
+import '../models/swipe_model.dart';
 
 abstract class ISwipeService {
   Future<List<ProjectModel>> getProjectsToSwipe(String userId);
@@ -17,6 +18,7 @@ abstract class ISwipeService {
   Future<List<ProjectModel>> getSmartRecommendations(String userId);
 }
 
+/// Service for handling swipe operations and match detection
 class SwipeService implements ISwipeService {
   final FirebaseFirestore _firestore = FirebaseConfig.firestore;
   final Uuid _uuid = const Uuid();
@@ -25,6 +27,12 @@ class SwipeService implements ISwipeService {
   static const String _usersCollection = 'users';
   static const String _swipesCollection = 'swipes';
   static const String _matchesCollection = 'matches';
+
+  static CollectionReference<Map<String, dynamic>> get swipesRef =>
+      FirebaseConfig.collection('swipes');
+
+  static CollectionReference<Map<String, dynamic>> get matchesRef =>
+      FirebaseConfig.collection('matches');
 
   @override
   Future<List<ProjectModel>> getProjectsToSwipe(String userId) async {
@@ -103,10 +111,7 @@ class SwipeService implements ISwipeService {
         'created_at': Timestamp.fromDate(DateTime.now()),
       };
 
-      await _firestore
-          .collection(_swipesCollection)
-          .doc(swipeId)
-          .set(swipeData);
+      await swipesRef.doc(swipeId).set(swipeData);
 
       // Check for match if it's a right swipe
       if (direction == SwipeDirection.right) {

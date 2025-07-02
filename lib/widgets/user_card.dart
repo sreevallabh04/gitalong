@@ -21,14 +21,12 @@ class UserCard extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 30,
-                  backgroundImage:
-                      user.avatarUrl != null
-                          ? NetworkImage(user.avatarUrl!)
-                          : null,
-                  child:
-                      user.avatarUrl == null
-                          ? const Icon(Icons.person, size: 30)
-                          : null,
+                  backgroundImage: user.avatarUrl != null
+                      ? NetworkImage(user.avatarUrl!)
+                      : null,
+                  child: user.avatarUrl == null
+                      ? const Icon(Icons.person, size: 30)
+                      : null,
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -37,7 +35,9 @@ class UserCard extends StatelessWidget {
                     children: [
                       Text(
                         user.name,
-                        style: Theme.of(context).textTheme.headlineSmall
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineSmall
                             ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 4),
@@ -83,14 +83,13 @@ class UserCard extends StatelessWidget {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children:
-                    user.skills.take(5).map((skill) {
-                      return Chip(
-                        label: Text(skill),
-                        backgroundColor:
-                            Theme.of(context).colorScheme.secondaryContainer,
-                      );
-                    }).toList(),
+                children: user.skills.take(5).map((skill) {
+                  return Chip(
+                    label: Text(skill),
+                    backgroundColor:
+                        Theme.of(context).colorScheme.secondaryContainer,
+                  );
+                }).toList(),
               ),
               const SizedBox(height: 16),
             ],
@@ -110,8 +109,8 @@ class UserCard extends StatelessWidget {
                     child: Text(
                       user.githubUrl!,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),

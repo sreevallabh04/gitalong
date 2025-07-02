@@ -6,3 +6,4 @@ export 'match_model.dart';
 export 'message_model.dart';
 export 'badge_model.dart';
 export 'contribution_model.dart';
+export 'ml_recommendation.dart';

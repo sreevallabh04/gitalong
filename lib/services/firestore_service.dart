@@ -43,23 +43,78 @@ class FirestoreService {
 
   static Future<UserModel> createUserProfile(UserModel user) async {
     try {
-      AppLogger.logger.d('📝 Creating user profile: ${user.email}');
+      AppLogger.logger.firestore('📝 Creating user profile: ${user.email}');
 
-      final userData = user.toJson();
+      // Create Firestore-safe data without client timestamps
+      final userData = user.toFirestoreJson();
+
+      // Add server timestamps to avoid timezone/serialization issues
       userData['created_at'] = FieldValue.serverTimestamp();
       userData['updated_at'] = FieldValue.serverTimestamp();
 
-      await _usersCollection.doc(user.id).set(userData);
+      // Perform the write operation with proper error handling
+      await _usersCollection
+          .doc(user.id)
+          .set(userData, SetOptions(merge: false));
 
       AppLogger.logger.success('✅ User profile created successfully');
-      return user;
+
+      // Return the original user model with current timestamp
+      return user.copyWith(
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+    } on FirebaseException catch (e, stackTrace) {
+      AppLogger.logger.e(
+        '❌ Firebase error creating user profile',
+        error: e,
+        stackTrace: stackTrace,
+      );
+
+      // Provide specific error messages based on Firebase error codes
+      switch (e.code) {
+        case 'permission-denied':
+          throw Exception(
+              'Permission denied. Please check your internet connection and try again.');
+        case 'unavailable':
+          throw Exception(
+              'Service temporarily unavailable. Please try again in a moment.');
+        case 'deadline-exceeded':
+          throw Exception(
+              'Request timed out. Please check your connection and try again.');
+        case 'network-request-failed':
+          throw Exception(
+              'Network error. Please check your internet connection.');
+        case 'invalid-argument':
+          throw Exception(
+              'Invalid data provided. Please check your input and try again.');
+        case 'already-exists':
+          throw Exception(
+              'Profile already exists. Please try signing in instead.');
+        case 'resource-exhausted':
+          throw Exception(
+              'Service is currently busy. Please try again in a moment.');
+        default:
+          throw Exception(
+              'Failed to create profile: ${e.message ?? 'Unknown error'}');
+      }
     } catch (e, stackTrace) {
       AppLogger.logger.e(
         '❌ Failed to create user profile',
         error: e,
         stackTrace: stackTrace,
       );
-      rethrow;
+
+      // Provide user-friendly error message
+      if (e.toString().contains('format')) {
+        throw Exception(
+            'Invalid data format. Please check your input and try again.');
+      } else if (e.toString().contains('network')) {
+        throw Exception(
+            'Network error. Please check your internet connection.');
+      } else {
+        throw Exception('Failed to create profile. Please try again.');
+      }
     }
   }
 

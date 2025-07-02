@@ -179,6 +179,22 @@ extension LoggerExtension on Logger {
   void ui(String message) {
     d('🎨 $message');
   }
+
+  void firestore(String message) {
+    d('🗄️ $message');
+  }
+
+  void profile(String message) {
+    d('👤 $message');
+  }
+
+  void validation(String message) {
+    w('⚠️ $message');
+  }
+
+  void security(String message) {
+    w('�� $message');
+  }
 }
 
 // Static logger instance for easy access

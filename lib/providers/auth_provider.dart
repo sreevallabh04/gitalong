@@ -96,38 +96,130 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
     required String name,
     required String bio,
     required String role,
+    List<String>? skills,
+    String? githubUrl,
   }) async {
     final user = _ref.read(authStateProvider).value;
 
     if (user == null) {
-      throw Exception('User not authenticated');
+      AppLogger.logger.e('❌ Cannot create profile: User not authenticated');
+      throw Exception('Authentication required. Please sign in and try again.');
+    }
+
+    // Validate user email exists
+    if (user.email == null || user.email!.trim().isEmpty) {
+      AppLogger.logger.e('❌ Cannot create profile: User email is null');
+      throw Exception('Invalid user account. Please sign in again.');
     }
 
     try {
       state = const AsyncValue.loading();
+      AppLogger.logger.auth('📝 Creating user profile...');
+      AppLogger.logger.auth('👤 User ID: ${user.uid}');
+      AppLogger.logger.auth('📧 Email: ${user.email}');
+      AppLogger.logger.auth('📋 Name: $name');
+      AppLogger.logger.auth('🏷️ Role: $role');
+      AppLogger.logger.auth('💼 Skills: ${skills?.join(', ') ?? 'None'}');
+      AppLogger.logger.auth('🔗 GitHub: ${githubUrl ?? 'None'}');
 
-      // Create user profile
+      // Validate inputs before processing
+      final trimmedName = name.trim();
+      final trimmedBio = bio.trim();
+      final trimmedGithubUrl = githubUrl?.trim();
+
+      if (trimmedName.isEmpty) {
+        throw Exception('Name cannot be empty. Please enter your name.');
+      }
+
+      if (trimmedName.length > 100) {
+        throw Exception('Name is too long. Please use a shorter name.');
+      }
+
+      // Validate role exists
+      UserRole? parsedRole;
+      try {
+        parsedRole = UserRole.values.byName(role.toLowerCase());
+      } catch (e) {
+        AppLogger.logger.e('❌ Invalid role provided: $role');
+        throw Exception(
+            'Invalid role selected. Please select either contributor or maintainer.');
+      }
+
+      // Validate GitHub URL if provided
+      if (trimmedGithubUrl != null && trimmedGithubUrl.isNotEmpty) {
+        if (!trimmedGithubUrl.startsWith('https://github.com/')) {
+          throw Exception(
+              'Invalid GitHub URL. Please enter a valid GitHub profile URL.');
+        }
+      }
+
+      // Validate skills count
+      final skillsList = skills ?? [];
+      if (skillsList.length > 10) {
+        throw Exception(
+            'Too many skills selected. Please select up to 10 skills.');
+      }
+
+      // Create user profile with validated data
       final userModel = UserModel(
         id: user.uid,
-        email: user.email ?? '',
-        name: name,
-        bio: bio,
-        role: UserRole.values.byName(role),
+        email: user.email!,
+        name: trimmedName,
+        bio: trimmedBio.isEmpty ? null : trimmedBio,
+        role: parsedRole,
         avatarUrl: user.photoURL,
+        githubUrl: trimmedGithubUrl?.isEmpty == true ? null : trimmedGithubUrl,
+        skills: List<String>.from(skillsList), // Create defensive copy
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
-        skills: const [],
       );
 
-      await FirestoreService.createUserProfile(userModel);
+      AppLogger.logger.auth('🔄 Calling FirestoreService.createUserProfile...');
+      final createdProfile =
+          await FirestoreService.createUserProfile(userModel);
 
-      state = AsyncValue.data(userModel);
+      state = AsyncValue.data(createdProfile);
       AppLogger.logger.success('✅ User profile created successfully');
-    } catch (error, stackTrace) {
-      AppLogger.logger.e('❌ Error creating user profile',
-          error: error, stackTrace: stackTrace);
-      state = AsyncValue.error(error, stackTrace);
+    } on Exception catch (e) {
+      AppLogger.logger.e('❌ Profile creation exception', error: e);
+
+      // Extract clean error message
+      String errorMessage = e.toString();
+      if (errorMessage.startsWith('Exception: ')) {
+        errorMessage = errorMessage.substring(11);
+      }
+
+      state = AsyncValue.error(errorMessage, StackTrace.current);
       rethrow;
+    } catch (error, stackTrace) {
+      AppLogger.logger.e('❌ Unexpected error creating user profile',
+          error: error, stackTrace: stackTrace);
+
+      // Provide user-friendly error messages based on error type
+      String userFriendlyMessage = 'Failed to create profile. ';
+
+      final errorString = error.toString().toLowerCase();
+      if (errorString.contains('permission') ||
+          errorString.contains('denied')) {
+        userFriendlyMessage +=
+            'Permission denied. Please check your internet connection.';
+      } else if (errorString.contains('network') ||
+          errorString.contains('connection')) {
+        userFriendlyMessage +=
+            'Network error. Please check your internet connection.';
+      } else if (errorString.contains('timeout') ||
+          errorString.contains('deadline')) {
+        userFriendlyMessage += 'Request timed out. Please try again.';
+      } else if (errorString.contains('quota') ||
+          errorString.contains('billing')) {
+        userFriendlyMessage +=
+            'Service temporarily unavailable. Please try again later.';
+      } else {
+        userFriendlyMessage += 'Please try again.';
+      }
+
+      state = AsyncValue.error(userFriendlyMessage, stackTrace);
+      throw Exception(userFriendlyMessage);
     }
   }
 

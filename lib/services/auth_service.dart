@@ -642,7 +642,7 @@ class AuthService {
   }
 }
 
-/// Custom Auth Exception class for better error handling
+// Custom Auth Exception class for better error handling
 class AuthException implements Exception {
   final String message;
   final String code;
@@ -650,5 +650,5 @@ class AuthException implements Exception {
   const AuthException(this.message, {required this.code});
 
   @override
-  String toString() => 'AuthException: $message (Code: $code)';
+  String toString() => message;
 }
