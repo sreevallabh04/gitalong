@@ -192,7 +192,7 @@ class CommitTooltip extends StatelessWidget {
           color: GitAlongTheme.borderGray,
           width: 1,
         ),
-        boxShadow: [GitAlongTheme.cardShadow],
+        boxShadow: const [GitAlongTheme.cardShadow],
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       waitDuration: const Duration(milliseconds: 500),

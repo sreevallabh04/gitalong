@@ -40,7 +40,7 @@ class FirestoreService {
 
     if (user == null) {
       AppLogger.logger.e('❌ User not authenticated');
-      throw FirestoreAuthException(
+      throw const FirestoreAuthException(
         'User not authenticated. Please sign in again.',
         code: 'unauthenticated',
       );
@@ -53,7 +53,7 @@ class FirestoreService {
       return user;
     } catch (e) {
       AppLogger.logger.e('❌ Failed to refresh auth token', error: e);
-      throw FirestoreAuthException(
+      throw const FirestoreAuthException(
         'Authentication expired. Please sign in again.',
         code: 'token-expired',
       );
@@ -128,7 +128,7 @@ class FirestoreService {
 
       // Ensure user can only create their own profile
       if (authUser.uid != user.id) {
-        throw FirestoreAuthException(
+        throw const FirestoreAuthException(
           'You can only create your own profile.',
           code: 'unauthorized-profile-creation',
         );

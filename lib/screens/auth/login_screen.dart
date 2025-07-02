@@ -4,19 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:glassmorphism/glassmorphism.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../services/auth_service.dart' as auth;
 import '../../providers/auth_provider.dart';
-import '../../core/theme/app_theme.dart';
 import '../../core/utils/logger.dart';
 import '../../core/router/app_router.dart';
-import '../onboarding/onboarding_screen.dart';
-import '../home/main_navigation_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -597,17 +590,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             side: BorderSide(color: borderColor, width: 1),
           ),
         ).copyWith(
-          backgroundColor: MaterialStateProperty.resolveWith<Color>((states) {
-            if (states.contains(MaterialState.hovered)) {
+          backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+            if (states.contains(WidgetState.hovered)) {
               return const Color(0xFF30363D); // GitHub light gray
             }
-            if (states.contains(MaterialState.pressed)) {
+            if (states.contains(WidgetState.pressed)) {
               return const Color(0xFF238636); // GitHub green
             }
             return backgroundColor;
           }),
-          side: MaterialStateProperty.resolveWith<BorderSide>((states) {
-            if (states.contains(MaterialState.hovered)) {
+          side: WidgetStateProperty.resolveWith<BorderSide>((states) {
+            if (states.contains(WidgetState.hovered)) {
               return const BorderSide(
                 color: Color(0xFF238636),
                 width: 1,

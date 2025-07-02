@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:go_router/go_router.dart';
-import '../../core/constants/app_constants.dart';
 import '../../core/router/app_router.dart';
 import '../../core/utils/logger.dart';
 import 'swipe_screen.dart';
@@ -98,11 +95,11 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
         children: _screens,
       ),
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF161B22), // GitHub dark gray
+        decoration: const BoxDecoration(
+          color: Color(0xFF161B22), // GitHub dark gray
           border: Border(
             top: BorderSide(
-              color: const Color(0xFF30363D), // GitHub border
+              color: Color(0xFF30363D), // GitHub border
               width: 1,
             ),
           ),
@@ -115,13 +112,13 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
           elevation: 0,
           labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
           surfaceTintColor: Colors.transparent,
-          indicatorColor: const Color(0xFF238636).withOpacity(0.1),
-          overlayColor: MaterialStateProperty.resolveWith<Color?>((states) {
-            if (states.contains(MaterialState.pressed)) {
-              return const Color(0xFF238636).withOpacity(0.1);
+          indicatorColor: const Color(0xFF238636).withValues(alpha: 0.1),
+          overlayColor: WidgetStateProperty.resolveWith<Color?>((states) {
+            if (states.contains(WidgetState.pressed)) {
+              return const Color(0xFF238636).withValues(alpha: 0.1);
             }
-            if (states.contains(MaterialState.hovered)) {
-              return const Color(0xFF238636).withOpacity(0.05);
+            if (states.contains(WidgetState.hovered)) {
+              return const Color(0xFF238636).withValues(alpha: 0.05);
             }
             return null;
           }),

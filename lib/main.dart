@@ -17,15 +17,13 @@ final githubDarkTheme = ThemeData(
   brightness: Brightness.dark,
   scaffoldBackgroundColor: const Color(0xFF0D1117),
   primaryColor: const Color(0xFF2EA043),
-  colorScheme: ColorScheme.dark(
-    primary: const Color(0xFF2EA043),
-    secondary: const Color(0xFF238636),
-    background: const Color(0xFF0D1117),
-    surface: const Color(0xFF161B22),
-    onPrimary: const Color(0xFFC9D1D9),
-    onBackground: const Color(0xFFC9D1D9),
-    onSurface: const Color(0xFFC9D1D9),
-    error: const Color(0xFFDA3633),
+  colorScheme: const ColorScheme.dark(
+    primary: Color(0xFF2EA043),
+    secondary: Color(0xFF238636),
+    surface: Color(0xFF161B22),
+    onPrimary: Color(0xFFC9D1D9),
+    onSurface: Color(0xFFC9D1D9),
+    error: Color(0xFFDA3633),
   ),
   textTheme: GoogleFonts.jetBrainsMonoTextTheme(
     ThemeData.dark().textTheme.apply(
@@ -319,7 +317,6 @@ class _ErrorScreen extends StatelessWidget {
     required this.title,
     required this.details,
     required this.error,
-    this.stackTrace,
   });
 
   @override

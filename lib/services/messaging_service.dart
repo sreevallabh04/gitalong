@@ -3,7 +3,6 @@ import 'package:uuid/uuid.dart';
 import '../config/firebase_config.dart';
 import '../models/models.dart';
 import '../core/utils/logger.dart';
-import 'package:flutter/foundation.dart';
 import '../core/utils/firestore_utils.dart';
 
 abstract class IMessagingService {
@@ -113,12 +112,15 @@ class MessagingService implements IMessagingService {
             .get();
       });
 
-      return querySnapshot.docs
-          .map(
-              (doc) => MessageModel.fromJson(_convertFirestoreData(doc.data())))
-          .toList()
-          .reversed
-          .toList();
+      if (querySnapshot?.docs != null) {
+        return querySnapshot!.docs
+            .map((doc) =>
+                MessageModel.fromJson(_convertFirestoreData(doc.data())))
+            .toList()
+            .reversed
+            .toList();
+      }
+      return [];
     } catch (e) {
       AppLogger.logger.e('Failed to fetch messages', error: e);
       throw MessagingException('Failed to fetch messages: $e');
@@ -136,9 +138,12 @@ class MessagingService implements IMessagingService {
             .get();
       });
 
-      return querySnapshot.docs
-          .map((doc) => _convertFirestoreData(doc.data()))
-          .toList();
+      if (querySnapshot?.docs != null) {
+        return querySnapshot!.docs
+            .map((doc) => _convertFirestoreData(doc.data()))
+            .toList();
+      }
+      return [];
     } catch (e) {
       AppLogger.logger.e('Failed to fetch conversations', error: e);
       throw MessagingException('Failed to fetch conversations: $e');
@@ -162,11 +167,12 @@ class MessagingService implements IMessagingService {
             .get();
       });
 
-      for (final doc in querySnapshot.docs) {
-        batch.update(doc.reference, {'is_read': true});
+      if (querySnapshot?.docs != null) {
+        for (final doc in querySnapshot!.docs) {
+          batch.update(doc.reference, {'is_read': true});
+        }
+        await batch.commit();
       }
-
-      await batch.commit();
     } catch (e) {
       AppLogger.logger.e('Failed to mark messages as read', error: e);
       throw MessagingException('Failed to mark messages as read: $e');
@@ -185,7 +191,7 @@ class MessagingService implements IMessagingService {
             .get();
       });
 
-      return querySnapshot.count ?? 0;
+      return querySnapshot?.count ?? 0;
     } catch (e) {
       AppLogger.logger.e('Failed to get unread message count', error: e);
       return 0;
@@ -196,9 +202,9 @@ class MessagingService implements IMessagingService {
   Stream<List<MessageModel>> listenToMessages({
     required String userId1,
     required String userId2,
-  }) {
-    return safeQuery(() async {
-      return _firestore
+  }) async* {
+    try {
+      yield* _firestore
           .collection(_messagesCollection)
           .where(Filter.or(
             Filter.and(
@@ -216,13 +222,16 @@ class MessagingService implements IMessagingService {
               .map((doc) =>
                   MessageModel.fromJson(_convertFirestoreData(doc.data())))
               .toList());
-    });
+    } catch (e) {
+      AppLogger.logger.e('Failed to listen to messages', error: e);
+      yield [];
+    }
   }
 
   @override
-  Stream<List<MessageModel>> listenToNewMessages(String userId) {
-    return safeQuery(() async {
-      return _firestore
+  Stream<List<MessageModel>> listenToNewMessages(String userId) async* {
+    try {
+      yield* _firestore
           .collection(_messagesCollection)
           .where('receiver_id', isEqualTo: userId)
           .where('is_read', isEqualTo: false)
@@ -232,7 +241,10 @@ class MessagingService implements IMessagingService {
               .map((doc) =>
                   MessageModel.fromJson(_convertFirestoreData(doc.data())))
               .toList());
-    });
+    } catch (e) {
+      AppLogger.logger.e('Failed to listen to new messages', error: e);
+      yield [];
+    }
   }
 
   @override
@@ -272,15 +284,18 @@ class MessagingService implements IMessagingService {
             .get();
       });
 
-      final messages = querySnapshot.docs
-          .map(
-              (doc) => MessageModel.fromJson(_convertFirestoreData(doc.data())))
-          .where((message) =>
-              message.content.toLowerCase().contains(query.toLowerCase()))
-          .take(limit)
-          .toList();
+      if (querySnapshot?.docs != null) {
+        final messages = querySnapshot!.docs
+            .map((doc) =>
+                MessageModel.fromJson(_convertFirestoreData(doc.data())))
+            .where((message) =>
+                message.content.toLowerCase().contains(query.toLowerCase()))
+            .take(limit)
+            .toList();
 
-      return messages;
+        return messages;
+      }
+      return [];
     } catch (e) {
       AppLogger.logger.e('Failed to search messages', error: e);
       throw MessagingException('Failed to search messages: $e');

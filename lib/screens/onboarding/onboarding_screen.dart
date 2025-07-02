@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/models.dart';
-import '../home/main_navigation_screen.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../core/utils/logger.dart';
 import '../../core/router/app_router.dart';
 import '../../core/utils/firestore_utils.dart';
@@ -278,10 +276,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF0D1117),
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           'Setup Your Profile',
           style: TextStyle(
-            color: const Color(0xFFF0F6FC),
+            color: Color(0xFFF0F6FC),
             fontWeight: FontWeight.bold,
           ),
         ),

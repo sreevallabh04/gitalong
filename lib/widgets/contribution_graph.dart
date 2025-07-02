@@ -1,13 +1,45 @@
 import 'package:flutter/material.dart';
 import '../models/contribution_model.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'commit_dot.dart';
 import 'dart:math';
+
+/// Data model for commit activity visualization
+class CommitData {
+  final DateTime date;
+  final int commitCount;
+  final int level;
+
+  const CommitData({
+    required this.date,
+    required this.commitCount,
+    required this.level,
+  });
+
+  static List<CommitData> generateSampleData() {
+    final data = <CommitData>[];
+    final now = DateTime.now();
+    final random = Random();
+
+    for (int i = 365; i >= 0; i--) {
+      final date = now.subtract(Duration(days: i));
+      final commitCount = random.nextBool() ? random.nextInt(10) : 0;
+      final level = commitCount == 0 ? 0 : (commitCount / 3).ceil().clamp(1, 4);
+
+      data.add(CommitData(
+        date: date,
+        commitCount: commitCount,
+        level: level,
+      ));
+    }
+
+    return data;
+  }
+}
 
 /// GitHub-style contribution graph that displays commit activity over time
 /// This is the crown jewel of our developer-focused UI
 class ContributionGraph extends StatefulWidget {
-  final List<ContributionDay> contributions;
+  final List<ContributionModel> contributions;
   final int weeks;
 
   const ContributionGraph({
@@ -121,15 +153,16 @@ class _ContributionGraphState extends State<ContributionGraph>
   }
 
   Color _colorForLevel(int level) {
+    final theme = Theme.of(context);
     switch (level) {
       case 0:
         return const Color(0xFF161B22);
       case 1:
-        return const Color(0xFF2EA043).withOpacity(0.3);
+        return const Color(0xFF2EA043).withValues(alpha: 0.3);
       case 2:
-        return const Color(0xFF2EA043).withOpacity(0.5);
+        return const Color(0xFF2EA043).withValues(alpha: 0.5);
       case 3:
-        return const Color(0xFF2EA043).withOpacity(0.7);
+        return const Color(0xFF2EA043).withValues(alpha: 0.7);
       case 4:
       default:
         return const Color(0xFF2EA043);
@@ -138,15 +171,22 @@ class _ContributionGraphState extends State<ContributionGraph>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final grid = List.generate(
         widget.weeks, (i) => _data.length > i ? _data[i].commitCount : 0);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: GitAlongTheme.surfaceGray,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: GitAlongTheme.borderGray, width: 1),
-        boxShadow: [GitAlongTheme.cardShadow],
+        border: Border.all(color: theme.dividerColor, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,12 +207,14 @@ class _ContributionGraphState extends State<ContributionGraph>
                         children: [
                           Text(
                             'Contribution Activity',
-                            style: GitAlongTheme.titleStyle,
+                            style: theme.textTheme.titleLarge,
                           ),
                           const SizedBox(height: 4),
                           Text(
                             '$_totalCommits commits in the last year',
-                            style: GitAlongTheme.mutedStyle,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
                           ),
                         ],
                       ),
@@ -182,18 +224,21 @@ class _ContributionGraphState extends State<ContributionGraph>
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: GitAlongTheme.neonGreen.withOpacity(0.1),
+                          color:
+                              theme.colorScheme.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: GitAlongTheme.neonGreen.withOpacity(0.3),
+                            color: theme.colorScheme.primary
+                                .withValues(alpha: 0.3),
                             width: 1,
                           ),
                         ),
                         child: Text(
                           '$_currentStreak day streak',
-                          style: GitAlongTheme.codeStyle.copyWith(
+                          style: theme.textTheme.bodySmall?.copyWith(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
+                            color: theme.colorScheme.primary,
                           ),
                         ),
                       ),
@@ -216,7 +261,9 @@ class _ContributionGraphState extends State<ContributionGraph>
                   children: _monthLabels.map((month) {
                     return Text(
                       month,
-                      style: GitAlongTheme.terminalStyle,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     );
                   }).toList(),
                 ),
@@ -239,7 +286,9 @@ class _ContributionGraphState extends State<ContributionGraph>
                       margin: const EdgeInsets.only(bottom: 2),
                       child: Text(
                         day,
-                        style: GitAlongTheme.terminalStyle,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     );
                   }),
@@ -257,7 +306,8 @@ class _ContributionGraphState extends State<ContributionGraph>
                     height: 14 * 7,
                     child: GridView.builder(
                       physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 7,
                         mainAxisSpacing: 2,
                         crossAxisSpacing: 2,
@@ -288,20 +338,21 @@ class _ContributionGraphState extends State<ContributionGraph>
             children: [
               Text(
                 'Less',
-                style: GitAlongTheme.terminalStyle,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
               Row(
                 children: List.generate(5, (index) {
-                  final theme = context.gitAlongTheme;
                   return Container(
                     width: 12,
                     height: 12,
                     margin: const EdgeInsets.only(left: 2),
                     decoration: BoxDecoration(
-                      color: theme.commitDotColors[index],
+                      color: _colorForLevel(index),
                       borderRadius: BorderRadius.circular(2),
                       border: Border.all(
-                        color: GitAlongTheme.borderGray.withOpacity(0.3),
+                        color: theme.dividerColor.withValues(alpha: 0.3),
                         width: 0.5,
                       ),
                     ),
@@ -310,7 +361,9 @@ class _ContributionGraphState extends State<ContributionGraph>
               ),
               Text(
                 'More',
-                style: GitAlongTheme.terminalStyle,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -340,11 +393,12 @@ class _CommitDetailsDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Dialog(
-      backgroundColor: GitAlongTheme.surfaceGray,
+      backgroundColor: theme.colorScheme.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: GitAlongTheme.borderGray, width: 1),
+        side: BorderSide(color: theme.dividerColor, width: 1),
       ),
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -356,22 +410,24 @@ class _CommitDetailsDialog extends StatelessWidget {
               children: [
                 Icon(
                   Icons.commit,
-                  color: GitAlongTheme.neonGreen,
+                  color: theme.colorScheme.primary,
                   size: 20,
                 ),
                 const SizedBox(width: 8),
                 Text(
                   'Commit Activity',
-                  style: GitAlongTheme.titleStyle.copyWith(fontSize: 18),
+                  style: theme.textTheme.titleMedium,
                 ),
               ],
             ),
             const SizedBox(height: 16),
             _buildInfoRow(
+              context,
               'Date',
               '${commit.date.day}/${commit.date.month}/${commit.date.year}',
             ),
             _buildInfoRow(
+              context,
               'Commits',
               commit.commitCount == 0
                   ? 'No commits'
@@ -382,16 +438,16 @@ class _CommitDetailsDialog extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: GitAlongTheme.carbonBlack,
+                  color: theme.colorScheme.surfaceContainer,
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: GitAlongTheme.borderGray, width: 1),
+                  border: Border.all(color: theme.dividerColor, width: 1),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Sample commits:',
-                      style: GitAlongTheme.terminalStyle,
+                      style: theme.textTheme.bodySmall,
                     ),
                     const SizedBox(height: 8),
                     ...List.generate(
@@ -400,7 +456,9 @@ class _CommitDetailsDialog extends StatelessWidget {
                         padding: const EdgeInsets.only(bottom: 4),
                         child: Text(
                           '• ${_getSampleCommitMessage(index)}',
-                          style: GitAlongTheme.codeStyle.copyWith(fontSize: 12),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontFamily: 'monospace',
+                          ),
                         ),
                       ),
                     ),
@@ -413,7 +471,6 @@ class _CommitDetailsDialog extends StatelessWidget {
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                style: GitAlongTheme.ghostButtonStyle,
                 child: const Text('Close'),
               ),
             ),
@@ -430,7 +487,8 @@ class _CommitDetailsDialog extends StatelessWidget {
         .fadeIn(duration: 200.ms);
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildInfoRow(BuildContext context, String label, String value) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -440,13 +498,15 @@ class _CommitDetailsDialog extends StatelessWidget {
             width: 80,
             child: Text(
               label,
-              style: GitAlongTheme.mutedStyle,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: GitAlongTheme.bodyStyle,
+              style: theme.textTheme.bodyMedium,
             ),
           ),
         ],

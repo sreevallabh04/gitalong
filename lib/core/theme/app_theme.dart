@@ -111,7 +111,8 @@ class GitAlongTheme {
           letterSpacing: 0.1,
         ),
       ).copyWith(
-        overlayColor: MaterialStateProperty.all(Colors.white.withOpacity(0.1)),
+        overlayColor:
+            WidgetStateProperty.all(Colors.white.withValues(alpha: 0.1)),
       );
 
   static ButtonStyle get secondaryButtonStyle => OutlinedButton.styleFrom(
@@ -129,7 +130,7 @@ class GitAlongTheme {
           letterSpacing: 0.1,
         ),
       ).copyWith(
-        overlayColor: MaterialStateProperty.all(neonGreen.withOpacity(0.1)),
+        overlayColor: WidgetStateProperty.all(neonGreen.withValues(alpha: 0.1)),
       );
 
   static ButtonStyle get ghostButtonStyle => TextButton.styleFrom(
@@ -145,7 +146,7 @@ class GitAlongTheme {
           fontWeight: FontWeight.w500,
         ),
       ).copyWith(
-        overlayColor: MaterialStateProperty.all(devGray.withOpacity(0.1)),
+        overlayColor: WidgetStateProperty.all(devGray.withValues(alpha: 0.1)),
       );
 
   // 🎯 Input Styles - Developer-focused forms
@@ -202,9 +203,9 @@ class GitAlongTheme {
         cardColor: surfaceGray,
         dividerColor: borderGray,
         focusColor: neonGreen,
-        hoverColor: neonGreen.withOpacity(0.1),
-        highlightColor: neonGreen.withOpacity(0.2),
-        splashColor: neonGreen.withOpacity(0.3),
+        hoverColor: neonGreen.withValues(alpha: 0.1),
+        highlightColor: neonGreen.withValues(alpha: 0.2),
+        splashColor: neonGreen.withValues(alpha: 0.3),
 
         // Color Scheme
         colorScheme: const ColorScheme.dark(
@@ -217,13 +218,11 @@ class GitAlongTheme {
           onTertiary: ghostWhite,
           surface: surfaceGray,
           onSurface: ghostWhite,
-          background: carbonBlack,
-          onBackground: ghostWhite,
           error: errorRed,
           onError: ghostWhite,
           outline: borderGray,
           outlineVariant: terminalGray,
-          surfaceVariant: borderGray,
+          surfaceContainerHighest: borderGray,
           onSurfaceVariant: devGray,
         ),
 
@@ -271,7 +270,7 @@ class GitAlongTheme {
 
         cardTheme: CardTheme(
           color: surfaceGray,
-          shadowColor: Colors.black.withOpacity(0.2),
+          shadowColor: Colors.black.withValues(alpha: 0.2),
           elevation: 8,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -285,9 +284,9 @@ class GitAlongTheme {
           elevation: 0,
           shadowColor: Colors.transparent,
           surfaceTintColor: Colors.transparent,
-          indicatorColor: neonGreen.withOpacity(0.2),
-          labelTextStyle: MaterialStateProperty.resolveWith((states) {
-            if (states.contains(MaterialState.selected)) {
+          indicatorColor: neonGreen.withValues(alpha: 0.2),
+          labelTextStyle: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
               return GoogleFonts.jetBrainsMono(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
@@ -301,8 +300,8 @@ class GitAlongTheme {
               color: devGray,
             );
           }),
-          iconTheme: MaterialStateProperty.resolveWith((states) {
-            if (states.contains(MaterialState.selected)) {
+          iconTheme: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
               return const IconThemeData(color: neonGreen, size: 24);
             }
             return const IconThemeData(color: devGray, size: 24);

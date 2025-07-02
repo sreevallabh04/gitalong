@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/theme/app_theme.dart';
@@ -300,10 +299,10 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
               duration: Duration(milliseconds: duration),
             )
             .then(
-              delay: Duration(milliseconds: 500),
+              delay: const Duration(milliseconds: 500),
             )
             .fadeOut(
-              duration: Duration(milliseconds: 1000),
+              duration: const Duration(milliseconds: 1000),
             ),
       );
     });

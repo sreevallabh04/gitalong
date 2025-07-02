@@ -2,13 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/ml_matching_provider.dart';
-import '../../core/utils/logger.dart';
-import '../../services/swipe_service.dart';
 import '../../widgets/user_card.dart';
 import '../../core/constants/app_constants.dart';
 import '../../providers/swipe_provider.dart';
@@ -29,9 +25,9 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
   late AnimationController _matchAnimationController;
   late Animation<double> _matchScaleAnimation;
 
-  bool _isDragging = false;
-  Offset _dragOffset = Offset.zero;
-  bool _showingMatch = false;
+  final bool _isDragging = false;
+  final Offset _dragOffset = Offset.zero;
+  final bool _showingMatch = false;
   bool _isContributor = true;
 
   @override
@@ -166,10 +162,10 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
+          const Icon(
             Icons.search_off,
             size: 80,
-            color: const Color(0xFF7D8590),
+            color: Color(0xFF7D8590),
           ),
           const SizedBox(height: 24),
           Text(
@@ -201,10 +197,10 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
+          const Icon(
             Icons.error_outline,
             size: 80,
-            color: const Color(0xFFDA3633),
+            color: Color(0xFFDA3633),
           ),
           const SizedBox(height: 24),
           Text(

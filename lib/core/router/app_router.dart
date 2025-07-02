@@ -63,7 +63,7 @@ class _AuthGateState extends ConsumerState<AuthGate> {
       return const _SplashLoadingScreen();
     }
 
-    if (user != null && !user.emailVerified) {
+    if (!user.emailVerified) {
       return _EmailVerificationBlock(user: user);
     }
 

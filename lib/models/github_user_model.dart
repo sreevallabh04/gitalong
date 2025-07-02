@@ -167,7 +167,7 @@ class GitHubUser {
   /// Factory constructor for creating sample user from ML recommendation
   factory GitHubUser.sampleFromRecommendation(dynamic recommendation) {
     final sampleUsers = [
-      GitHubUser(
+      const GitHubUser(
         login: 'alex_dev',
         id: 12345,
         avatarUrl: 'https://github.com/alex_dev.png',
@@ -184,7 +184,7 @@ class GitHubUser {
         contributionsThisYear: 420,
         contributionStreak: 15,
       ),
-      GitHubUser(
+      const GitHubUser(
         login: 'sarah_flutter',
         id: 67890,
         avatarUrl: 'https://github.com/sarah_flutter.png',

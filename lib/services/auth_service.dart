@@ -126,7 +126,7 @@ class AuthService {
         error: e,
         stackTrace: stackTrace,
       );
-      throw AuthException(
+      throw const AuthException(
         'An unexpected error occurred. Please try again.',
         code: 'unknown-error',
       );
@@ -227,7 +227,7 @@ class AuthService {
         error: e,
         stackTrace: stackTrace,
       );
-      throw AuthException(
+      throw const AuthException(
         'An unexpected error occurred. Please try again.',
         code: 'unknown-error',
       );
@@ -243,7 +243,7 @@ class AuthService {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
       if (googleUser == null) {
-        throw AuthException(
+        throw const AuthException(
           'Google sign-in was cancelled by user',
           code: 'sign-in-cancelled',
         );
@@ -254,7 +254,7 @@ class AuthService {
           await googleUser.authentication;
 
       if (googleAuth.accessToken == null || googleAuth.idToken == null) {
-        throw AuthException(
+        throw const AuthException(
           'Failed to obtain Google authentication tokens',
           code: 'token-error',
         );
@@ -316,7 +316,7 @@ class AuthService {
         error: e,
         stackTrace: stackTrace,
       );
-      throw AuthException(
+      throw const AuthException(
         'Google sign-in failed. Please try again.',
         code: 'unknown-error',
       );
@@ -387,7 +387,7 @@ class AuthService {
         error: e,
         stackTrace: stackTrace,
       );
-      throw AuthException(
+      throw const AuthException(
         'Apple sign-in failed. Please try again.',
         code: 'unknown-error',
       );
@@ -452,7 +452,7 @@ class AuthService {
         error: e,
         stackTrace: stackTrace,
       );
-      throw AuthException(
+      throw const AuthException(
         'Failed to sign out. Please try again.',
         code: 'sign-out-error',
       );
