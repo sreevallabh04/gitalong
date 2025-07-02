@@ -4,13 +4,10 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
-import '../../models/github_user_model.dart';
-import '../../widgets/github_profile_card.dart';
+import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/ml_matching_provider.dart';
-import '../../core/theme/app_theme.dart';
 import '../../core/utils/logger.dart';
-import '../../models/swipe_model.dart';
 import '../../services/swipe_service.dart';
 import '../../widgets/user_card.dart';
 import '../../core/constants/app_constants.dart';
@@ -118,21 +115,27 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
         swiperId: user.uid,
         targetId: recommendation.targetUserId,
         direction: direction,
+        targetType: SwipeTargetType.user,
         createdAt: DateTime.now(),
       );
 
-      // Record swipe in both ML backend and Firestore
-      await Future.wait([
-        SwipeService.recordSwipe(swipe),
-        ref
-            .read(mlRecommendationsProvider.notifier)
-            .recordSwipeAndUpdate(swipe, userProfile),
-      ]);
+      // Record swipe in Firestore
+      await SwipeService.recordSwipeStatic(
+        swiperId: user.uid,
+        targetId: recommendation.targetUserId,
+        direction: direction,
+        targetType: SwipeTargetType.user,
+      );
+
+      // Record swipe in ML backend
+      await ref
+          .read(mlRecommendationsProvider.notifier)
+          .recordSwipeAndUpdate(swipe, userProfile);
 
       // Check for mutual match if it's a right swipe
       if (direction == SwipeDirection.right) {
-        final isMatch = await SwipeService.checkForMatch(
-            user.uid, recommendation.targetUserId);
+        final isMatch = await SwipeService.checkForMatchStatic(
+            user.uid, recommendation.targetUserId, SwipeTargetType.user);
         if (isMatch && mounted) {
           _showMatchAnimation();
         }
@@ -173,6 +176,21 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
         }
       });
     });
+  }
+
+  UserModel _convertGitHubUserToUserModel(GitHubUser githubUser) {
+    return UserModel(
+      id: githubUser.id.toString(),
+      email: '', // GitHub user doesn't have email in public API
+      name: githubUser.name ?? githubUser.login,
+      role: UserRole.contributor, // Default to contributor
+      avatarUrl: githubUser.avatarUrl,
+      bio: githubUser.bio,
+      githubUrl: githubUser.htmlUrl,
+      skills: [], // GitHub API doesn't provide skills directly
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
   }
 
   @override
@@ -355,9 +373,8 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
                         child: Transform.scale(
                           scale: 1.0 - (recommendations.length - 1 - i) * 0.05,
                           child: UserCard(
-                            recommendation: recommendations[i],
-                            isInteractive: i == 0,
-                            onSwipe: i == 0 ? _handleSwipe : null,
+                            user: _convertGitHubUserToUserModel(
+                                recommendations[i].user),
                           ),
                         ),
                       ),

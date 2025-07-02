@@ -180,7 +180,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             .navigation('✅ Google sign-in successful, navigating to home');
         context.goToHome();
       }
-    } on AuthException catch (e) {
+    } on auth.AuthException catch (e) {
       AppLogger.logger.e('❌ Auth error during Google sign-in', error: e);
 
       if (mounted) {
@@ -225,7 +225,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             .navigation('✅ Apple sign-in successful, navigating to home');
         context.goToHome();
       }
-    } on AuthException catch (e) {
+    } on auth.AuthException catch (e) {
       AppLogger.logger.e('❌ Auth error during Apple sign-in', error: e);
 
       if (mounted) {
@@ -288,7 +288,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           ),
         );
       }
-    } on AuthException catch (e) {
+    } on auth.AuthException catch (e) {
       AppLogger.logger.e('❌ Auth error during password reset', error: e);
 
       if (mounted) {

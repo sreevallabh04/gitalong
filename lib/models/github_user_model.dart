@@ -52,6 +52,9 @@ class GitHubUser {
   /// Profile URL on GitHub
   String get profileUrl => 'https://github.com/$login';
 
+  /// HTML URL for GitHub profile (alias for profileUrl)
+  String get htmlUrl => profileUrl;
+
   /// Display name (prefers name over login)
   String get displayName => name ?? login;
 
@@ -177,31 +180,11 @@ class GitHubUser {
         followers: 150,
         following: 89,
         location: 'San Francisco, CA',
-        languages: ['JavaScript', 'TypeScript', 'React', 'Node.js'],
-        topRepos: [
-          GitHubRepo(
-            name: 'awesome-react-components',
-            description: 'A collection of reusable React components',
-            language: 'JavaScript',
-            stars: 420,
-            url: 'https://github.com/alex_dev/awesome-react-components',
-          ),
-          GitHubRepo(
-            name: 'node-api-boilerplate',
-            description: 'Production-ready Node.js API boilerplate',
-            language: 'TypeScript',
-            stars: 156,
-            url: 'https://github.com/alex_dev/node-api-boilerplate',
-          ),
-        ],
-        contributions: [
-          ContributionData(
-              date: DateTime.now().subtract(const Duration(days: 1)), count: 5),
-          ContributionData(
-              date: DateTime.now().subtract(const Duration(days: 2)), count: 3),
-          ContributionData(
-              date: DateTime.now().subtract(const Duration(days: 3)), count: 7),
-        ],
+        topLanguages: ['JavaScript', 'TypeScript', 'React', 'Node.js'],
+        totalStars: 420,
+        totalCommits: 1250,
+        contributionsThisYear: 420,
+        contributionStreak: 15,
       ),
       GitHubUser(
         login: 'sarah_flutter',
@@ -214,22 +197,11 @@ class GitHubUser {
         followers: 89,
         following: 67,
         location: 'Seattle, WA',
-        languages: ['Dart', 'Flutter', 'Firebase', 'Python'],
-        topRepos: [
-          GitHubRepo(
-            name: 'flutter-ui-kit',
-            description: 'Beautiful Flutter UI components',
-            language: 'Dart',
-            stars: 320,
-            url: 'https://github.com/sarah_flutter/flutter-ui-kit',
-          ),
-        ],
-        contributions: [
-          ContributionData(
-              date: DateTime.now().subtract(const Duration(days: 1)), count: 4),
-          ContributionData(
-              date: DateTime.now().subtract(const Duration(days: 2)), count: 6),
-        ],
+        topLanguages: ['Dart', 'Flutter', 'Firebase', 'Python'],
+        totalStars: 320,
+        totalCommits: 890,
+        contributionsThisYear: 320,
+        contributionStreak: 12,
       ),
     ];
 

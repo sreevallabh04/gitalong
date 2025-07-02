@@ -1,7 +1,19 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../config/firebase_config.dart';
 import '../models/models.dart';
 import '../core/utils/logger.dart';
+
+/// Custom exception for Firestore authentication errors
+class FirestoreAuthException implements Exception {
+  final String message;
+  final String code;
+
+  const FirestoreAuthException(this.message, {required this.code});
+
+  @override
+  String toString() => 'FirestoreAuthException: $message (Code: $code)';
+}
 
 class FirestoreService {
   // Collection references with type safety
@@ -16,6 +28,81 @@ class FirestoreService {
 
   static CollectionReference<Map<String, dynamic>> get _messagesCollection =>
       FirebaseConfig.collection('messages');
+
+  // ============================================================================
+  // 🔐 AUTHENTICATION VALIDATION
+  // ============================================================================
+
+  /// Validate user authentication and refresh token if needed
+  static Future<User> _validateAuth() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      AppLogger.logger.e('❌ User not authenticated');
+      throw FirestoreAuthException(
+        'User not authenticated. Please sign in again.',
+        code: 'unauthenticated',
+      );
+    }
+
+    try {
+      // Refresh ID token to ensure it's valid
+      await user.getIdToken(true);
+      AppLogger.logger.d('✅ Auth token refreshed successfully');
+      return user;
+    } catch (e) {
+      AppLogger.logger.e('❌ Failed to refresh auth token', error: e);
+      throw FirestoreAuthException(
+        'Authentication expired. Please sign in again.',
+        code: 'token-expired',
+      );
+    }
+  }
+
+  /// Handle Firestore permission and auth errors with user-friendly messages
+  static Exception _handleFirestoreError(dynamic error, String operation) {
+    AppLogger.logger.e('❌ Firestore error during $operation', error: error);
+
+    if (error is FirebaseException) {
+      switch (error.code) {
+        case 'permission-denied':
+          return FirestoreAuthException(
+            'Permission denied. Please check your authentication or try signing in again.',
+            code: error.code,
+          );
+        case 'unauthenticated':
+          return FirestoreAuthException(
+            'Authentication required. Please sign in to continue.',
+            code: error.code,
+          );
+        case 'unavailable':
+          return Exception(
+              'Service temporarily unavailable. Please try again in a moment.');
+        case 'deadline-exceeded':
+          return Exception(
+              'Request timed out. Please check your connection and try again.');
+        case 'resource-exhausted':
+          return Exception(
+              'Service is currently busy. Please try again in a moment.');
+        case 'invalid-argument':
+          return Exception(
+              'Invalid data provided. Please check your input and try again.');
+        case 'not-found':
+          return Exception('Requested data not found.');
+        case 'already-exists':
+          return Exception('Data already exists.');
+        case 'failed-precondition':
+          return Exception(
+              'Operation failed due to current state. Please refresh and try again.');
+        default:
+          return Exception(
+              'Database error: ${error.message ?? 'Unknown error'}');
+      }
+    }
+
+    return Exception(
+        'An unexpected error occurred during $operation. Please try again.');
+  }
 
   // User Profile Operations
   static Future<UserModel?> getUserProfile(String userId) async {
@@ -43,6 +130,17 @@ class FirestoreService {
 
   static Future<UserModel> createUserProfile(UserModel user) async {
     try {
+      // Validate authentication first
+      final authUser = await _validateAuth();
+
+      // Ensure user can only create their own profile
+      if (authUser.uid != user.id) {
+        throw FirestoreAuthException(
+          'You can only create your own profile.',
+          code: 'unauthorized-profile-creation',
+        );
+      }
+
       AppLogger.logger.firestore('📝 Creating user profile: ${user.email}');
 
       // Create Firestore-safe data without client timestamps
@@ -64,57 +162,10 @@ class FirestoreService {
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
-    } on FirebaseException catch (e, stackTrace) {
-      AppLogger.logger.e(
-        '❌ Firebase error creating user profile',
-        error: e,
-        stackTrace: stackTrace,
-      );
-
-      // Provide specific error messages based on Firebase error codes
-      switch (e.code) {
-        case 'permission-denied':
-          throw Exception(
-              'Permission denied. Please check your internet connection and try again.');
-        case 'unavailable':
-          throw Exception(
-              'Service temporarily unavailable. Please try again in a moment.');
-        case 'deadline-exceeded':
-          throw Exception(
-              'Request timed out. Please check your connection and try again.');
-        case 'network-request-failed':
-          throw Exception(
-              'Network error. Please check your internet connection.');
-        case 'invalid-argument':
-          throw Exception(
-              'Invalid data provided. Please check your input and try again.');
-        case 'already-exists':
-          throw Exception(
-              'Profile already exists. Please try signing in instead.');
-        case 'resource-exhausted':
-          throw Exception(
-              'Service is currently busy. Please try again in a moment.');
-        default:
-          throw Exception(
-              'Failed to create profile: ${e.message ?? 'Unknown error'}');
-      }
+    } on FirestoreAuthException {
+      rethrow; // Pass through auth exceptions
     } catch (e, stackTrace) {
-      AppLogger.logger.e(
-        '❌ Failed to create user profile',
-        error: e,
-        stackTrace: stackTrace,
-      );
-
-      // Provide user-friendly error message
-      if (e.toString().contains('format')) {
-        throw Exception(
-            'Invalid data format. Please check your input and try again.');
-      } else if (e.toString().contains('network')) {
-        throw Exception(
-            'Network error. Please check your internet connection.');
-      } else {
-        throw Exception('Failed to create profile. Please try again.');
-      }
+      throw _handleFirestoreError(e, 'profile creation');
     }
   }
 

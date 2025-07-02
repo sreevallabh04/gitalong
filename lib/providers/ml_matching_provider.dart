@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/ml_matching_service.dart';
-import '../models/user_model.dart';
-import '../models/swipe_model.dart';
+import '../models/models.dart';
 import '../core/utils/logger.dart';
 
 /// Provider for ML matching service
@@ -81,7 +80,7 @@ class MLRecommendationsNotifier
       } else {
         // Remove the swiped user from current recommendations
         final updatedRecommendations = currentRecommendations
-            .where((rec) => rec.targetUserId != swipe.targetId)
+            .where((rec) => rec.uid != swipe.targetId)
             .toList();
         state = AsyncValue.data(updatedRecommendations);
       }
@@ -121,7 +120,7 @@ class MLRecommendationsNotifier
     if (recommendations == null) return null;
 
     try {
-      return recommendations.firstWhere((rec) => rec.targetUserId == userId);
+      return recommendations.firstWhere((rec) => rec.uid == userId);
     } catch (e) {
       return null;
     }

@@ -2,76 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/user_model.dart';
-import '../models/swipe_model.dart';
+import '../models/models.dart';
 import '../core/utils/logger.dart';
 import '../config/app_config.dart';
-
-/// ML Recommendation model
-class MLRecommendation {
-  final String targetUserId;
-  final double similarityScore;
-  final double techOverlapScore;
-  final double bioSimilarityScore;
-  final double githubActivityScore;
-  final double collaborativeScore;
-  final double overallScore;
-  final List<String> matchReasons;
-  final UserModel? targetUser; // Populated after fetching user details
-
-  const MLRecommendation({
-    required this.targetUserId,
-    required this.similarityScore,
-    required this.techOverlapScore,
-    required this.bioSimilarityScore,
-    required this.githubActivityScore,
-    required this.collaborativeScore,
-    required this.overallScore,
-    required this.matchReasons,
-    this.targetUser,
-  });
-
-  factory MLRecommendation.fromJson(Map<String, dynamic> json) {
-    return MLRecommendation(
-      targetUserId: json['target_user_id'] as String,
-      similarityScore: (json['similarity_score'] as num).toDouble(),
-      techOverlapScore: (json['tech_overlap_score'] as num).toDouble(),
-      bioSimilarityScore: (json['bio_similarity_score'] as num).toDouble(),
-      githubActivityScore: (json['github_activity_score'] as num).toDouble(),
-      collaborativeScore: (json['collaborative_score'] as num).toDouble(),
-      overallScore: (json['overall_score'] as num).toDouble(),
-      matchReasons: List<String>.from(json['match_reasons'] ?? []),
-    );
-  }
-
-  MLRecommendation copyWith({
-    String? targetUserId,
-    double? similarityScore,
-    double? techOverlapScore,
-    double? bioSimilarityScore,
-    double? githubActivityScore,
-    double? collaborativeScore,
-    double? overallScore,
-    List<String>? matchReasons,
-    UserModel? targetUser,
-  }) {
-    return MLRecommendation(
-      targetUserId: targetUserId ?? this.targetUserId,
-      similarityScore: similarityScore ?? this.similarityScore,
-      techOverlapScore: techOverlapScore ?? this.techOverlapScore,
-      bioSimilarityScore: bioSimilarityScore ?? this.bioSimilarityScore,
-      githubActivityScore: githubActivityScore ?? this.githubActivityScore,
-      collaborativeScore: collaborativeScore ?? this.collaborativeScore,
-      overallScore: overallScore ?? this.overallScore,
-      matchReasons: matchReasons ?? this.matchReasons,
-      targetUser: targetUser ?? this.targetUser,
-    );
-  }
-
-  @override
-  String toString() =>
-      'MLRecommendation(targetUserId: $targetUserId, overallScore: $overallScore)';
-}
 
 /// ML Analytics model
 class MLAnalytics {
@@ -225,7 +158,14 @@ class MLMatchingService {
         final recommendationsList = data['recommendations'] as List;
 
         final recommendations = recommendationsList
-            .map((json) => MLRecommendation.fromJson(json))
+            .map((json) => MLRecommendation.fromJson({
+                  'uid': json['target_user_id'] as String,
+                  'match_score': (json['overall_score'] as num).toDouble(),
+                  'user':
+                      GitHubUser.sample(login: json['target_user_id']).toJson(),
+                  'match_reasons':
+                      List<String>.from(json['match_reasons'] ?? []),
+                }))
             .toList();
 
         AppLogger.logger

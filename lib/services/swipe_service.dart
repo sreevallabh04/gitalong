@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:uuid/uuid.dart';
 import '../config/firebase_config.dart';
 import '../models/models.dart';
@@ -23,6 +24,9 @@ class SwipeService implements ISwipeService {
   final FirebaseFirestore _firestore = FirebaseConfig.firestore;
   final Uuid _uuid = const Uuid();
 
+  // Static instance for convenience methods
+  static final SwipeService _instance = SwipeService();
+
   static const String _projectsCollection = 'projects';
   static const String _usersCollection = 'users';
   static const String _swipesCollection = 'swipes';
@@ -33,6 +37,29 @@ class SwipeService implements ISwipeService {
 
   static CollectionReference<Map<String, dynamic>> get matchesRef =>
       FirebaseConfig.collection('matches');
+
+  // Static convenience methods for UI
+  static Future<bool> recordSwipeStatic({
+    required String swiperId,
+    required String targetId,
+    required SwipeDirection direction,
+    required SwipeTargetType targetType,
+  }) {
+    return _instance.recordSwipe(
+      swiperId: swiperId,
+      targetId: targetId,
+      direction: direction,
+      targetType: targetType,
+    );
+  }
+
+  static Future<bool> checkForMatchStatic(
+    String swiperId,
+    String targetId,
+    SwipeTargetType targetType,
+  ) {
+    return _instance._checkForMatch(swiperId, targetId, targetType);
+  }
 
   @override
   Future<List<ProjectModel>> getProjectsToSwipe(String userId) async {
@@ -101,6 +128,23 @@ class SwipeService implements ISwipeService {
     required SwipeTargetType targetType,
   }) async {
     try {
+      // Validate authentication first
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        throw SwipeException('Authentication required to record swipe');
+      }
+
+      // Ensure user can only swipe as themselves
+      if (currentUser.uid != swiperId) {
+        throw SwipeException('You can only record swipes for your own account');
+      }
+
+      // Refresh auth token to ensure permissions are current
+      await currentUser.getIdToken(true);
+
+      AppLogger.logger
+          .d('📝 Recording swipe: $swiperId -> $targetId ($direction)');
+
       final swipeId = _uuid.v4();
       final swipeData = {
         'id': swipeId,
@@ -108,10 +152,12 @@ class SwipeService implements ISwipeService {
         'target_id': targetId,
         'direction': direction.name,
         'target_type': targetType.name,
-        'created_at': Timestamp.fromDate(DateTime.now()),
+        'created_at': FieldValue.serverTimestamp(),
       };
 
       await swipesRef.doc(swipeId).set(swipeData);
+
+      AppLogger.logger.success('✅ Swipe recorded successfully');
 
       // Check for match if it's a right swipe
       if (direction == SwipeDirection.right) {
@@ -119,8 +165,19 @@ class SwipeService implements ISwipeService {
       }
 
       return false;
+    } on FirebaseException catch (e) {
+      AppLogger.logger.e('❌ Firebase error recording swipe', error: e);
+
+      if (e.code == 'permission-denied') {
+        throw SwipeException(
+            'Permission denied. Please sign in again and try.');
+      } else if (e.code == 'unauthenticated') {
+        throw SwipeException('Authentication expired. Please sign in again.');
+      } else {
+        throw SwipeException('Failed to record swipe: ${e.message}');
+      }
     } catch (e) {
-      AppLogger.logger.e('Failed to record swipe', error: e);
+      AppLogger.logger.e('❌ Failed to record swipe', error: e);
       throw SwipeException('Failed to record swipe: $e');
     }
   }
