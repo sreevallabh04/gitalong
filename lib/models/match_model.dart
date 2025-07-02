@@ -1,53 +1,81 @@
+enum MatchStatus {
+  active,
+  archived,
+  blocked,
+}
+
 class MatchModel {
   final String id;
   final String contributorId;
   final String projectId;
+  final String projectOwnerId;
   final DateTime createdAt;
   final MatchStatus status;
+  final DateTime? lastMessageAt;
+  final int? messageCount;
+  final Map<String, dynamic>? metadata;
 
   const MatchModel({
     required this.id,
     required this.contributorId,
     required this.projectId,
+    required this.projectOwnerId,
     required this.createdAt,
-    this.status = MatchStatus.active,
+    required this.status,
+    this.lastMessageAt,
+    this.messageCount,
+    this.metadata,
   });
 
   factory MatchModel.fromJson(Map<String, dynamic> json) {
     return MatchModel(
       id: json['id'] as String,
-      contributorId: json['contributor_id'] as String,
-      projectId: json['project_id'] as String,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      status: MatchStatus.values.byName(json['status'] ?? 'active'),
+      contributorId: json['contributorId'] as String,
+      projectId: json['projectId'] as String,
+      projectOwnerId: json['projectOwnerId'] as String,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      status: MatchStatus.values.byName(json['status'] as String),
+      lastMessageAt: json['lastMessageAt'] != null
+          ? DateTime.parse(json['lastMessageAt'] as String)
+          : null,
+      messageCount: json['messageCount'] as int?,
+      metadata: json['metadata'] as Map<String, dynamic>?,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'contributor_id': contributorId,
-      'project_id': projectId,
-      'created_at': createdAt.toIso8601String(),
+      'contributorId': contributorId,
+      'projectId': projectId,
+      'projectOwnerId': projectOwnerId,
+      'createdAt': createdAt.toIso8601String(),
       'status': status.name,
+      'lastMessageAt': lastMessageAt?.toIso8601String(),
+      'messageCount': messageCount,
+      'metadata': metadata,
     };
   }
 
-  MatchModel copyWith({
-    String? id,
-    String? contributorId,
-    String? projectId,
-    DateTime? createdAt,
-    MatchStatus? status,
+  // Static factory method for easy creation
+  static MatchModel create({
+    required String contributorId,
+    required String projectId,
+    required String projectOwnerId,
   }) {
     return MatchModel(
-      id: id ?? this.id,
-      contributorId: contributorId ?? this.contributorId,
-      projectId: projectId ?? this.projectId,
-      createdAt: createdAt ?? this.createdAt,
-      status: status ?? this.status,
+      id: '${contributorId}_${projectId}_${DateTime.now().millisecondsSinceEpoch}',
+      contributorId: contributorId,
+      projectId: projectId,
+      projectOwnerId: projectOwnerId,
+      createdAt: DateTime.now(),
+      status: MatchStatus.active,
+      messageCount: 0,
     );
   }
+
+  bool get isActive => status == MatchStatus.active;
+  bool get hasMessages => (messageCount ?? 0) > 0;
 
   @override
   bool operator ==(Object other) =>
@@ -56,11 +84,4 @@ class MatchModel {
 
   @override
   int get hashCode => id.hashCode;
-
-  @override
-  String toString() {
-    return 'MatchModel{id: $id, contributorId: $contributorId, projectId: $projectId}';
-  }
 }
-
-enum MatchStatus { active, inactive, completed }

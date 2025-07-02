@@ -175,7 +175,7 @@ class _SplashLoadingScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF238636).withOpacity(0.3),
+                          color: const Color(0xFF238636).withValues(alpha: 0.3),
                           blurRadius: 20,
                           spreadRadius: 5,
                         ),
@@ -259,10 +259,6 @@ final _router = GoRouter(
     // Define route types
     final isPublicRoute = currentLocation == AppRoutes.login ||
         currentLocation == AppRoutes.splash;
-    final isAuthenticatedRoute = currentLocation.startsWith('/home') ||
-        currentLocation == AppRoutes.onboarding ||
-        currentLocation == AppRoutes.settings ||
-        currentLocation == AppRoutes.editProfile;
 
     // Handle unauthenticated users
     if (!isLoggedIn && !isPublicRoute) {
@@ -417,7 +413,7 @@ class _ErrorScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(50),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFDA3633).withOpacity(0.3),
+                      color: const Color(0xFFDA3633).withValues(alpha: 0.3),
                       blurRadius: 20,
                       spreadRadius: 5,
                     ),

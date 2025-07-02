@@ -94,7 +94,7 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: _isHovered
-                        ? GitAlongTheme.neonGreen.withOpacity(0.5)
+                        ? GitAlongTheme.neonGreen.withValues(alpha: 0.5)
                         : GitAlongTheme.borderGray,
                     width: 1,
                   ),
@@ -103,7 +103,7 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
                     if (_isHovered)
                       BoxShadow(
                         color: GitAlongTheme.neonGreen
-                            .withOpacity(0.2 * _glowAnimation.value),
+                            .withValues(alpha: 0.2 * _glowAnimation.value),
                         blurRadius: 20 * _glowAnimation.value,
                         spreadRadius: 5 * _glowAnimation.value,
                       ),
@@ -165,7 +165,7 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
                 ? [
                     BoxShadow(
                       color: GitAlongTheme.neonGreen
-                          .withOpacity(0.3 * _glowAnimation.value),
+                          .withValues(alpha: 0.3 * _glowAnimation.value),
                       blurRadius: 15 * _glowAnimation.value,
                       spreadRadius: 3 * _glowAnimation.value,
                     ),
@@ -245,10 +245,10 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
                     padding:
                         const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: GitAlongTheme.neonGreen.withOpacity(0.1),
+                      color: GitAlongTheme.neonGreen.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(4),
                       border: Border.all(
-                        color: GitAlongTheme.neonGreen.withOpacity(0.3),
+                        color: GitAlongTheme.neonGreen.withValues(alpha: 0.3),
                         width: 0.5,
                       ),
                     ),
@@ -277,10 +277,10 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: GitAlongTheme.carbonBlack.withOpacity(0.5),
+        color: GitAlongTheme.carbonBlack.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: GitAlongTheme.borderGray.withOpacity(0.5),
+          color: GitAlongTheme.borderGray.withValues(alpha: 0.5),
           width: 1,
         ),
       ),
@@ -361,7 +361,7 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: GitAlongTheme.borderGray.withOpacity(0.3),
+                color: GitAlongTheme.borderGray.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: GitAlongTheme.borderGray,
@@ -383,10 +383,10 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: GitAlongTheme.carbonBlack.withOpacity(0.3),
+        color: GitAlongTheme.carbonBlack.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: GitAlongTheme.borderGray.withOpacity(0.5),
+          color: GitAlongTheme.borderGray.withValues(alpha: 0.5),
           width: 1,
         ),
       ),
@@ -456,7 +456,8 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
                 color: GitAlongTheme.devGray,
               ),
               style: IconButton.styleFrom(
-                backgroundColor: GitAlongTheme.borderGray.withOpacity(0.2),
+                backgroundColor:
+                    GitAlongTheme.borderGray.withValues(alpha: 0.2),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6),
                 ),
@@ -474,7 +475,7 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
                 color: GitAlongTheme.neonGreen,
               ),
               style: IconButton.styleFrom(
-                backgroundColor: GitAlongTheme.neonGreen.withOpacity(0.1),
+                backgroundColor: GitAlongTheme.neonGreen.withValues(alpha: 0.1),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6),
                 ),

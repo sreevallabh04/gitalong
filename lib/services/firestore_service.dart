@@ -1,13 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../config/firebase_config.dart';
 import '../models/models.dart';
 import '../core/utils/logger.dart';
-import '../core/utils/firestore_utils.dart';
-import '../models/user_model.dart';
-import '../models/project_model.dart';
-import '../models/swipe_model.dart';
-import '../models/match_model.dart';
 import '../core/monitoring/analytics_service.dart';
 import '../core/monitoring/crashlytics_service.dart';
 
@@ -24,7 +18,6 @@ class FirestoreAuthException implements Exception {
 
 class FirestoreService {
   static late FirebaseFirestore _firestore;
-  static late FirebaseAuth _auth;
   static bool _initialized = false;
 
   // Collection references
@@ -39,7 +32,6 @@ class FirestoreService {
   static Future<void> initialize() async {
     try {
       _firestore = FirebaseFirestore.instance;
-      _auth = FirebaseAuth.instance;
 
       // Configure Firestore settings for production
       await _firestore.enablePersistence();
@@ -102,6 +94,11 @@ class FirestoreService {
         success: true,
       );
     }
+  }
+
+  /// Get user profile by ID (alias for compatibility)
+  static Future<UserModel?> getUserProfile(String userId) async {
+    return await getUser(userId);
   }
 
   /// Get user profile by ID
@@ -365,7 +362,7 @@ class FirestoreService {
       // Track analytics
       await AnalyticsService.trackSwipe(
         direction: swipe.isLike ? 'right' : 'left',
-        targetType: swipe.targetType,
+        targetType: swipe.targetType.name,
         targetId: swipe.targetId,
         additionalParams: {
           'swiper_id': swipe.swiperId,

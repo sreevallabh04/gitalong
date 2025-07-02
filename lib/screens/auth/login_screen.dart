@@ -40,7 +40,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   bool _obscurePassword = true;
   bool _obscureSignUpPassword = true;
   bool _obscureConfirmPassword = true;
-  String? _errorMessage;
 
   @override
   void initState() {
@@ -113,7 +112,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
     });
 
     try {
@@ -144,7 +142,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
       if (mounted) {
         setState(() {
-          _errorMessage = 'Failed to create account. Please try again.';
+          _isLoading = false;
         });
       }
     } finally {
@@ -159,7 +157,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   void _signInWithGoogle() async {
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
     });
 
     try {
@@ -213,7 +210,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         }
 
         setState(() {
-          _errorMessage = userFriendlyMessage;
+          _isLoading = false;
         });
 
         // Show snackbar for better visibility
@@ -241,16 +238,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         }
 
         setState(() {
-          _errorMessage = errorMessage;
+          _isLoading = false;
         });
 
         _showErrorSnackbar(errorMessage);
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
       }
     }
   }
@@ -258,7 +249,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   void _signInWithApple() async {
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
     });
 
     try {
@@ -276,7 +266,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
       if (mounted) {
         setState(() {
-          _errorMessage = e.message; // This will now be a user-friendly message
+          _isLoading = false;
         });
       }
     } catch (e, stackTrace) {
@@ -288,12 +278,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
       if (mounted) {
         setState(() {
-          _errorMessage = 'Apple sign-in failed. Please try again.';
-        });
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
           _isLoading = false;
         });
       }
@@ -303,14 +287,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   void _forgotPassword() async {
     if (_emailController.text.trim().isEmpty) {
       setState(() {
-        _errorMessage = 'Please enter your email address first.';
+        _isLoading = false;
       });
       return;
     }
 
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
     });
 
     try {
@@ -339,7 +322,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
       if (mounted) {
         setState(() {
-          _errorMessage = e.message; // This will now be a user-friendly message
+          _isLoading = false;
         });
       }
     } catch (e, stackTrace) {
@@ -349,13 +332,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         stackTrace: stackTrace,
       );
 
-      if (mounted) {
-        setState(() {
-          _errorMessage =
-              'Failed to send password reset email. Please try again.';
-        });
-      }
-    } finally {
       if (mounted) {
         setState(() {
           _isLoading = false;

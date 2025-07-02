@@ -100,7 +100,7 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
                 center: Alignment.center,
                 radius: 1.5,
                 colors: [
-                  _backgroundAnimation.value!.withOpacity(0.2),
+                  _backgroundAnimation.value!.withValues(alpha: 0.2),
                   GitAlongTheme.carbonBlack,
                   GitAlongTheme.carbonBlack,
                 ],
@@ -128,8 +128,8 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
                                 color: GitAlongTheme.ghostWhite,
                               ),
                               style: IconButton.styleFrom(
-                                backgroundColor:
-                                    GitAlongTheme.surfaceGray.withOpacity(0.8),
+                                backgroundColor: GitAlongTheme.surfaceGray
+                                    .withValues(alpha: 0.8),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
@@ -161,17 +161,17 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
                                 height: 200,
                                 decoration: BoxDecoration(
                                   color: _backgroundAnimation.value!
-                                      .withOpacity(0.1),
+                                      .withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(100),
                                   border: Border.all(
                                     color: _backgroundAnimation.value!
-                                        .withOpacity(0.3),
+                                        .withValues(alpha: 0.3),
                                     width: 2,
                                   ),
                                   boxShadow: [
                                     BoxShadow(
                                       color: _backgroundAnimation.value!
-                                          .withOpacity(0.4),
+                                          .withValues(alpha: 0.4),
                                       blurRadius: 40,
                                       spreadRadius: 10,
                                     ),
@@ -181,8 +181,9 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
                                   child: Icon(
                                     PhosphorIcons.octagon(
                                         PhosphorIconsStyle.fill),
-                                    color: Colors.white.withOpacity(
-                                      0.1 + (_pulseAnimation.value - 0.8) * 0.5,
+                                    color: Colors.white.withValues(
+                                      alpha: 0.1 +
+                                          (_pulseAnimation.value - 0.8) * 0.5,
                                     ),
                                     size: 40,
                                   ),
@@ -217,12 +218,12 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color:
-                                    GitAlongTheme.carbonBlack.withOpacity(0.8),
+                                color: GitAlongTheme.carbonBlack
+                                    .withValues(alpha: 0.8),
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
                                   color: _backgroundAnimation.value!
-                                      .withOpacity(0.3),
+                                      .withValues(alpha: 0.3),
                                   width: 1,
                                 ),
                               ),
@@ -278,11 +279,11 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
               width: 4 + random.nextDouble() * 8,
               height: 4 + random.nextDouble() * 8,
               decoration: BoxDecoration(
-                color: _backgroundAnimation.value!.withOpacity(0.6),
+                color: _backgroundAnimation.value!.withValues(alpha: 0.6),
                 borderRadius: BorderRadius.circular(6),
                 boxShadow: [
                   BoxShadow(
-                    color: _backgroundAnimation.value!.withOpacity(0.3),
+                    color: _backgroundAnimation.value!.withValues(alpha: 0.3),
                     blurRadius: 10,
                     spreadRadius: 2,
                   ),

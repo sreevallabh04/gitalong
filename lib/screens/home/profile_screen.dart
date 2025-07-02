@@ -183,7 +183,7 @@ class _NoProfileWidget extends StatelessWidget {
                       borderRadius: BorderRadius.circular(60),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF238636).withOpacity(0.3),
+                          color: const Color(0xFF238636).withValues(alpha: 0.3),
                           blurRadius: 20,
                           spreadRadius: 5,
                         ),
@@ -343,7 +343,7 @@ class _ProfileContentWidget extends StatelessWidget {
                     borderRadius: BorderRadius.circular(50),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF238636).withOpacity(0.3),
+                        color: const Color(0xFF238636).withValues(alpha: 0.3),
                         blurRadius: 20,
                         spreadRadius: 2,
                       ),
@@ -437,7 +437,7 @@ class _ProfileContentWidget extends StatelessWidget {
                       color: const Color(0xFF30363D),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: const Color(0xFF238636).withOpacity(0.3),
+                        color: const Color(0xFF238636).withValues(alpha: 0.3),
                       ),
                     ),
                     child: Text(

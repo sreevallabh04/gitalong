@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:json_annotation/json_annotation.dart';
 import '../core/utils/production_logger.dart';
 
@@ -163,6 +162,7 @@ class UserModel {
   // Convenience getters for compatibility
   String? get name => displayName;
   String? get avatarUrl => photoURL;
+  String? get authMethod => 'email'; // Default auth method
 
   @override
   String toString() {

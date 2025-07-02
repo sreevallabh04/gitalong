@@ -101,6 +101,10 @@ class ProjectModel {
   @override
   int get hashCode => id.hashCode;
 
+  // Convenience getters for compatibility
+  List<String>? get skills => skillsRequired;
+  bool get isActive => status == ProjectStatus.active;
+
   @override
   String toString() {
     return 'ProjectModel{id: $id, title: $title, ownerId: $ownerId}';

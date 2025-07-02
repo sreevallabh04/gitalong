@@ -16,16 +16,16 @@ class CommitDot extends StatefulWidget {
 
   /// Number of commits for this day (0-20+)
   final int commitCount;
-  
+
   /// The date this dot represents
   final DateTime date;
-  
+
   /// Size of the dot
   final double size;
-  
+
   /// Delay before animation starts
   final Duration animationDelay;
-  
+
   /// Callback when dot is tapped
   final VoidCallback? onTap;
 
@@ -71,10 +71,11 @@ class _CommitDotState extends State<CommitDot>
   /// Gets the glow effect based on heat level
   List<BoxShadow> get _glowEffect {
     if (_heatLevel == 0) return [];
-    
+
     final intensity = _heatLevel / 4.0;
-    final glowColor = GitAlongTheme.neonGreen.withOpacity(0.3 * intensity);
-    
+    final glowColor =
+        GitAlongTheme.neonGreen.withValues(alpha: 0.3 * intensity);
+
     return [
       BoxShadow(
         color: glowColor,
@@ -88,7 +89,7 @@ class _CommitDotState extends State<CommitDot>
     setState(() {
       _isHovered = isHovered;
     });
-    
+
     if (isHovered) {
       _hoverController.forward();
     } else {
@@ -108,18 +109,18 @@ class _CommitDotState extends State<CommitDot>
           builder: (context, child) {
             final scale = 1.0 + (_hoverController.value * 0.2);
             final opacity = 0.7 + (_hoverController.value * 0.3);
-            
+
             return Transform.scale(
               scale: scale,
               child: Container(
                 width: widget.size,
                 height: widget.size,
                 decoration: BoxDecoration(
-                  color: _dotColor.withOpacity(opacity),
+                  color: _dotColor.withValues(alpha: opacity),
                   borderRadius: BorderRadius.circular(2),
                   border: _isHovered
                       ? Border.all(
-                          color: GitAlongTheme.neonGreen.withOpacity(0.5),
+                          color: GitAlongTheme.neonGreen.withValues(alpha: 0.5),
                           width: 1,
                         )
                       : null,
@@ -131,7 +132,7 @@ class _CommitDotState extends State<CommitDot>
                           width: widget.size * 0.3,
                           height: widget.size * 0.3,
                           decoration: BoxDecoration(
-                            color: GitAlongTheme.neonGreen.withOpacity(0.8),
+                            color: GitAlongTheme.neonGreen.withValues(alpha: 0.8),
                             borderRadius: BorderRadius.circular(1),
                           ),
                         ),
@@ -216,38 +217,39 @@ class CommitData {
     final data = <CommitData>[];
     final now = DateTime.now();
     final startDate = now.subtract(const Duration(days: 371)); // ~53 weeks
-    
+
     for (int i = 0; i < 371; i++) {
       final date = startDate.add(Duration(days: i));
-      
+
       // Generate realistic-looking commit patterns
       int commits = 0;
-      
+
       // Weekend penalty (less likely to commit)
-      if (date.weekday == DateTime.saturday || date.weekday == DateTime.sunday) {
+      if (date.weekday == DateTime.saturday ||
+          date.weekday == DateTime.sunday) {
         commits = _randomCommits(0.3);
       } else {
         commits = _randomCommits(0.7);
       }
-      
+
       // Add some streaks and breaks
       if (i % 30 < 5) commits = 0; // Vacation/break periods
       if (i % 60 > 50) commits *= 2; // Crunch periods
-      
+
       data.add(CommitData(date: date, commitCount: commits));
     }
-    
+
     return data;
   }
 
   static int _randomCommits(double probability) {
     final random = DateTime.now().millisecondsSinceEpoch % 100;
     if (random > probability * 100) return 0;
-    
+
     final intensity = (random % 20) / 20.0;
     if (intensity < 0.5) return 1;
     if (intensity < 0.8) return 2;
     if (intensity < 0.95) return (3 + (random % 5));
     return 10 + (random % 10); // Rare high-activity days
   }
-} 
+}

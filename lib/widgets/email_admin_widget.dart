@@ -390,8 +390,8 @@ class _EmailAdminWidgetState extends ConsumerState<EmailAdminWidget> {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: _statusMessage!.contains('❌')
-                    ? const Color(0xFFDA3633).withOpacity(0.1)
-                    : const Color(0xFF2EA043).withOpacity(0.1),
+                    ? const Color(0xFFDA3633).withValues(alpha: 0.1)
+                    : const Color(0xFF2EA043).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: _statusMessage!.contains('❌')

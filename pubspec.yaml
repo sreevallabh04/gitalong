@@ -102,6 +102,7 @@ dependencies:
   
   # JSON serialization
   json_annotation: ^4.8.1
+  freezed_annotation: ^2.4.4
 
 dev_dependencies:
   flutter_test:

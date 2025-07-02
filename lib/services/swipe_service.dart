@@ -5,6 +5,7 @@ import '../config/firebase_config.dart';
 import '../models/models.dart';
 import '../core/utils/logger.dart';
 import '../core/utils/firestore_utils.dart';
+import '../widgets/swipe/swipe_card.dart';
 
 abstract class ISwipeService {
   Future<List<ProjectModel>> getProjectsToSwipe(String userId);
@@ -129,7 +130,8 @@ class SwipeService implements ISwipeService {
 
       // Ensure user can only swipe as themselves
       if (currentUser.uid != swiperId) {
-        throw const SwipeException('You can only record swipes for your own account');
+        throw const SwipeException(
+            'You can only record swipes for your own account');
       }
 
       // Refresh auth token to ensure permissions are current
@@ -165,7 +167,8 @@ class SwipeService implements ISwipeService {
         throw const SwipeException(
             'Permission denied. Please sign in again and try.');
       } else if (e.code == 'unauthenticated') {
-        throw const SwipeException('Authentication expired. Please sign in again.');
+        throw const SwipeException(
+            'Authentication expired. Please sign in again.');
       } else {
         throw SwipeException('Failed to record swipe: ${e.message}');
       }
