@@ -6,6 +6,7 @@ import '../../screens/auth/login_screen.dart';
 import '../../screens/onboarding/onboarding_screen.dart';
 import '../../screens/home/main_navigation_screen.dart';
 import '../../screens/splash_screen.dart';
+import '../../screens/project/project_upload_screen.dart';
 
 // ============================================================================
 // 🎯 SIMPLIFIED ROUTE PATHS
@@ -19,6 +20,7 @@ class AppRoutes {
   static const String messages = '/home/messages';
   static const String saved = '/home/saved';
   static const String profile = '/home/profile';
+  static const String projectUpload = '/project/upload';
 }
 
 // ============================================================================
@@ -82,6 +84,13 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
+
+      // Project Upload Screen
+      GoRoute(
+        path: AppRoutes.projectUpload,
+        name: 'project_upload',
+        builder: (context, state) => const ProjectUploadScreen(),
+      ),
     ],
 
     // Simple error handling
@@ -141,6 +150,7 @@ extension AppNavigation on BuildContext {
   void goToMessages() => go(AppRoutes.messages);
   void goToSaved() => go(AppRoutes.saved);
   void goToProfile() => go(AppRoutes.profile);
+  void goToProjectUpload() => go(AppRoutes.projectUpload);
 }
 
 // ============================================================================

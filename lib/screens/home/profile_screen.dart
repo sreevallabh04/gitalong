@@ -1,714 +1,918 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/project_provider.dart';
 import '../../core/router/app_router.dart';
 import '../../core/utils/logger.dart';
-import '../../widgets/email_admin_widget.dart';
+import '../../models/models.dart';
+import '../../widgets/profile/role_switch_card.dart';
+import '../../widgets/profile/stats_card.dart';
+import '../../widgets/profile/project_preview_card.dart';
 
-class ProfileScreen extends ConsumerWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final userProfile = ref.watch(userProfileProvider);
-    final authState = ref.watch(authStateProvider);
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends ConsumerState<ProfileScreen>
+    with TickerProviderStateMixin {
+  late AnimationController _headerController;
+  late AnimationController _contentController;
+  late AnimationController _roleSwitchController;
+
+  bool _isLoading = false;
+  bool _isEditingProfile = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _headerController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _contentController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _roleSwitchController = AnimationController(
+      duration: const Duration(milliseconds: 400),
+      vsync: this,
+    );
+
+    // Start animations
+    _headerController.forward();
+    _contentController.forward();
+  }
+
+  @override
+  void dispose() {
+    _headerController.dispose();
+    _contentController.dispose();
+    _roleSwitchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final userProfileAsync = ref.watch(userProfileProvider);
+    final currentUser = ref.watch(currentUserProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0D1117), // GitHub dark
-      appBar: AppBar(
-        title: const Text(
-          'Profile',
-          style: TextStyle(
-            color: Color(0xFFF0F6FC), // GitHub white
-            fontWeight: FontWeight.bold,
+      backgroundColor: const Color(0xFF0D1117),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment.topLeft,
+            radius: 2.0,
+            colors: [
+              const Color(0xFF8B5CF6).withValues(alpha: 0.08),
+              const Color(0xFF0D1117),
+              const Color(0xFF0D1117),
+            ],
           ),
         ),
-        backgroundColor: const Color(0xFF21262D), // GitHub dark secondary
-        elevation: 0,
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.logout_rounded,
-              color: Color(0xFFDA3633), // GitHub red
+        child: userProfileAsync.when(
+          loading: () => _buildLoadingState(),
+          error: (error, stackTrace) => _buildErrorState(error.toString()),
+          data: (userProfile) {
+            if (userProfile == null) {
+              return _buildNoProfileState();
+            }
+            return _buildProfileContent(userProfile, currentUser);
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
+              ),
+              borderRadius: BorderRadius.circular(32),
             ),
-            tooltip: 'Sign Out',
-            onPressed: () => _handleSignOut(context, ref),
+            child: const Icon(
+              Icons.person,
+              color: Colors.white,
+              size: 32,
+            ),
+          )
+              .animate(onPlay: (controller) => controller.repeat())
+              .shimmer(duration: 1000.ms)
+              .scale(
+                  begin: const Offset(0.8, 0.8), end: const Offset(1.2, 1.2)),
+          const SizedBox(height: 24),
+          Text(
+            'Loading Profile...',
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 16,
+              color: const Color(0xFF7D8590),
+            ),
           ),
         ],
       ),
-      body: authState.when(
-        data: (user) {
-          if (user == null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (context.mounted) {
-                context.goToLogin();
-              }
-            });
-            return const _LoadingWidget();
-          }
+    );
+  }
 
-          return userProfile.when(
-            data: (profile) {
-              if (profile == null) {
-                return _NoProfileWidget(
-                  user: user,
-                  onCreateProfile: () => _handleCreateProfile(context),
-                  onRefresh: () => ref.refresh(userProfileProvider),
-                );
-              }
-
-              return _ProfileContentWidget(profile: profile);
-            },
-            loading: () => const _LoadingWidget(),
-            error: (error, stack) => _ErrorWidget(
-              error: error,
-              onRetry: () => ref.refresh(userProfileProvider),
-              onCreateProfile: () => _handleCreateProfile(context),
+  Widget _buildErrorState(String error) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.warning,
+            color: Color(0xFFDA3633),
+            size: 64,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Error Loading Profile',
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 20,
+              color: const Color(0xFFF0F6FC),
+              fontWeight: FontWeight.bold,
             ),
-          );
-        },
-        loading: () => const _LoadingWidget(),
-        error: (error, stack) => _ErrorWidget(
-          error: error,
-          onRetry: () => ref.refresh(authStateProvider),
-          onCreateProfile: () => _handleCreateProfile(context),
-        ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            error,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Color(0xFF7D8590)),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: () => ref.refresh(userProfileProvider),
+            child: const Text('Retry'),
+          ),
+        ],
       ),
     );
   }
 
-  void _handleSignOut(BuildContext context, WidgetRef ref) async {
-    try {
-      AppLogger.logger.auth('🚪 User initiated sign out');
-
-      // Show confirmation dialog
-      final shouldSignOut = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: const Color(0xFF21262D),
-          title: const Text(
-            'Sign Out',
-            style: TextStyle(color: Color(0xFFF0F6FC)),
+  Widget _buildNoProfileState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.person_off,
+            color: Color(0xFF7D8590),
+            size: 64,
           ),
-          content: const Text(
-            'Are you sure you want to sign out?',
+          const SizedBox(height: 16),
+          Text(
+            'Profile Not Found',
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 20,
+              color: const Color(0xFFF0F6FC),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Please complete your profile setup',
             style: TextStyle(color: Color(0xFF7D8590)),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text(
-                'Cancel',
-                style: TextStyle(color: Color(0xFF7D8590)),
-              ),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFFDA3633),
-              ),
-              child: const Text('Sign Out'),
-            ),
-          ],
-        ),
-      );
-
-      if (shouldSignOut == true && context.mounted) {
-        await ref.read(userProfileProvider.notifier).signOut();
-        AppLogger.logger.auth('✅ User signed out successfully');
-
-        if (context.mounted) {
-          context.goToLogin();
-        }
-      }
-    } catch (error) {
-      AppLogger.logger.e('❌ Error during sign out', error: error);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error signing out. Please try again.'),
-            backgroundColor: Color(0xFFDA3633),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: () => context.go('/onboarding'),
+            child: const Text('Setup Profile'),
           ),
-        );
-      }
-    }
+        ],
+      ),
+    );
   }
 
-  void _handleCreateProfile(BuildContext context) {
-    AppLogger.logger.navigation('🔄 Redirecting to profile creation');
-    context.goToOnboarding();
+  Widget _buildProfileContent(UserModel userProfile, User? currentUser) {
+    return CustomScrollView(
+      slivers: [
+        // Profile Header
+        SliverToBoxAdapter(
+          child: _buildProfileHeader(userProfile, currentUser)
+              .animate(controller: _headerController)
+              .fadeIn(duration: 800.ms)
+              .slideY(begin: -0.3, curve: Curves.easeOutCubic),
+        ),
+
+        // Role Switch Card
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: RoleSwitchCard(
+              currentRole: userProfile.role,
+              onRoleChanged: _handleRoleSwitch,
+              isLoading: _isLoading,
+            )
+                .animate(controller: _contentController)
+                .fadeIn(duration: 600.ms, delay: 200.ms)
+                .slideX(begin: -0.3, curve: Curves.easeOutCubic),
+          ),
+        ),
+
+        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
+        // Stats Section
+        SliverToBoxAdapter(
+          child: _buildStatsSection(userProfile)
+              .animate(controller: _contentController)
+              .fadeIn(duration: 600.ms, delay: 300.ms)
+              .slideY(begin: 0.3, curve: Curves.easeOutCubic),
+        ),
+
+        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
+        // Role-specific Content
+        if (userProfile.role == UserRole.maintainer) ...[
+          // Maintainer Section
+          SliverToBoxAdapter(
+            child: _buildMaintainerSection(userProfile)
+                .animate(controller: _contentController)
+                .fadeIn(duration: 600.ms, delay: 400.ms)
+                .slideY(begin: 0.3, curve: Curves.easeOutCubic),
+          ),
+        ] else ...[
+          // Contributor Section
+          SliverToBoxAdapter(
+            child: _buildContributorSection(userProfile)
+                .animate(controller: _contentController)
+                .fadeIn(duration: 600.ms, delay: 400.ms)
+                .slideY(begin: 0.3, curve: Curves.easeOutCubic),
+          ),
+        ],
+
+        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
+        // Settings Section
+        SliverToBoxAdapter(
+          child: _buildSettingsSection()
+              .animate(controller: _contentController)
+              .fadeIn(duration: 600.ms, delay: 500.ms)
+              .slideY(begin: 0.3, curve: Curves.easeOutCubic),
+        ),
+
+        const SliverToBoxAdapter(child: SizedBox(height: 100)),
+      ],
+    );
   }
-}
 
-// ============================================================================
-// 🎨 BEAUTIFUL WIDGET COMPONENTS - GODS OF FLUTTER APPROVED
-// ============================================================================
+  Widget _buildProfileHeader(UserModel userProfile, User? currentUser) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 60, 20, 30),
+      child: Column(
+        children: [
+          // Profile Image with Glow Effect
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: userProfile.role == UserRole.maintainer
+                    ? [const Color(0xFF8B5CF6), const Color(0xFFEC4899)]
+                    : [const Color(0xFF1F6FEB), const Color(0xFF238636)],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: (userProfile.role == UserRole.maintainer
+                          ? const Color(0xFF8B5CF6)
+                          : const Color(0xFF1F6FEB))
+                      .withValues(alpha: 0.4),
+                  blurRadius: 30,
+                  spreadRadius: 5,
+                ),
+              ],
+            ),
+            child: Container(
+              margin: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                image: userProfile.photoURL != null
+                    ? DecorationImage(
+                        image: NetworkImage(userProfile.photoURL!),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+                color: userProfile.photoURL == null
+                    ? const Color(0xFF21262D)
+                    : null,
+              ),
+              child: userProfile.photoURL == null
+                  ? Icon(
+                      Icons.person,
+                      size: 48,
+                      color: Colors.white.withValues(alpha: 0.7),
+                    )
+                  : null,
+            ),
+          ),
 
-class _NoProfileWidget extends StatelessWidget {
-  final dynamic user;
-  final VoidCallback onCreateProfile;
-  final VoidCallback onRefresh;
+          const SizedBox(height: 20),
 
-  const _NoProfileWidget({
-    required this.user,
-    required this.onCreateProfile,
-    required this.onRefresh,
-  });
+          // Name and Role Badge
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                child: Text(
+                  userProfile.displayName ?? 'Unknown User',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFFF0F6FC),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: userProfile.role == UserRole.maintainer
+                        ? [const Color(0xFF8B5CF6), const Color(0xFFEC4899)]
+                        : [const Color(0xFF1F6FEB), const Color(0xFF238636)],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  userProfile.role == UserRole.maintainer
+                      ? 'MAINTAINER'
+                      : 'CONTRIBUTOR',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ),
+            ],
+          ),
 
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Animated GitHub Octocat-style icon
-            TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0.0, end: 1.0),
-              duration: const Duration(milliseconds: 800),
-              builder: (context, value, child) {
-                return Transform.scale(
-                  scale: value,
-                  child: Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF238636), Color(0xFF2EA043)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(60),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF238636).withValues(alpha: 0.3),
-                          blurRadius: 20,
-                          spreadRadius: 5,
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.person_add_rounded,
-                      size: 60,
+          const SizedBox(height: 12),
+
+          // Email and verification status
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.email,
+                size: 16,
+                color: Color(0xFF7D8590),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  userProfile.email,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: const Color(0xFF7D8590),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (userProfile.isEmailVerified)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF238636),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'VERIFIED',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 8,
+                      fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
                   ),
-                );
-              },
-            ),
-
-            const SizedBox(height: 32),
-
-            // Welcome message
-            Text(
-              'Welcome to GitAlong!',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: const Color(0xFFF0F6FC),
-                    fontWeight: FontWeight.bold,
-                  ),
-              textAlign: TextAlign.center,
-            ),
-
-            const SizedBox(height: 12),
-
-            Text(
-              'Hello ${user.email ?? user.displayName ?? 'Developer'}! 👋',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: const Color(0xFF2EA043),
-                    fontWeight: FontWeight.w500,
-                  ),
-              textAlign: TextAlign.center,
-            ),
-
-            const SizedBox(height: 24),
-
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFF21262D),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: const Color(0xFF30363D),
-                  width: 1,
                 ),
-              ),
-              child: Column(
-                children: [
-                  const Icon(
-                    Icons.info_outline_rounded,
-                    color: Color(0xFF58A6FF),
-                    size: 32,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Let\'s set up your developer profile to start connecting with amazing open source projects and contributors!',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: const Color(0xFF7D8590),
-                          height: 1.5,
-                        ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
+            ],
+          ),
 
-            const SizedBox(height: 32),
-
-            // Create Profile Button - GitHub style
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton.icon(
-                onPressed: onCreateProfile,
-                icon: const Icon(
-                  Icons.rocket_launch_rounded,
-                  color: Colors.white,
-                ),
-                label: const Text(
-                  'Create Your Profile',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF238636),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ),
-
+          if (userProfile.bio != null) ...[
             const SizedBox(height: 16),
-
-            // Refresh button
-            TextButton.icon(
-              onPressed: onRefresh,
-              icon: const Icon(
-                Icons.refresh_rounded,
-                color: Color(0xFF7D8590),
-                size: 20,
-              ),
-              label: const Text(
-                'Refresh',
-                style: TextStyle(
-                  color: Color(0xFF7D8590),
-                  fontSize: 14,
-                ),
+            Text(
+              userProfile.bio!,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: const Color(0xFFC9D1D9),
+                height: 1.4,
               ),
             ),
           ],
-        ),
+
+          // Edit Profile Button
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _showEditProfileDialog(userProfile),
+              icon: const Icon(Icons.edit, size: 16),
+              label: const Text('Edit Profile'),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Color(0xFF30363D)),
+                foregroundColor: const Color(0xFFC9D1D9),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
-}
 
-class _ProfileContentWidget extends StatelessWidget {
-  final dynamic profile;
-
-  const _ProfileContentWidget({required this.profile});
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+  Widget _buildStatsSection(UserModel userProfile) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Profile header with GitHub-style design
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF21262D), Color(0xFF30363D)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF30363D)),
+          Text(
+            'Statistics',
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFFF0F6FC),
             ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: StatsCard(
+                  title: 'Projects',
+                  value: userProfile.role == UserRole.maintainer ? '12' : '8',
+                  icon: Icons.folder,
+                  color: const Color(0xFF1F6FEB),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: StatsCard(
+                  title: 'Matches',
+                  value: '24',
+                  icon: Icons.favorite,
+                  color: const Color(0xFFE91E63),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: StatsCard(
+                  title: 'Contributions',
+                  value: '156',
+                  icon: Icons.trending_up,
+                  color: const Color(0xFF238636),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMaintainerSection(UserModel userProfile) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'My Projects',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFFF0F6FC),
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => context.go('/project/upload'),
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text('Upload Project'),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Color(0xFF8B5CF6)),
+                  foregroundColor: const Color(0xFF8B5CF6),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildProjectPreviewList(userProfile.id),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContributorSection(UserModel userProfile) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Recent Contributions',
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFFF0F6FC),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildContributionsList(userProfile.id),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProjectPreviewList(String userId) {
+    final projectsAsync = ref.watch(userProjectsProvider(userId));
+
+    return projectsAsync.when(
+      loading: () => _buildProjectSkeleton(),
+      error: (error, stack) => Center(
+        child: Text(
+          'Failed to load projects',
+          style: TextStyle(color: const Color(0xFF7D8590)),
+        ),
+      ),
+      data: (projects) {
+        if (projects.isEmpty) {
+          return _buildEmptyProjectsState();
+        }
+        return Column(
+          children: projects.take(3).map((project) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: ProjectPreviewCard(project: project),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  Widget _buildProjectSkeleton() {
+    return Column(
+      children: List.generate(3, (index) {
+        return Container(
+          height: 80,
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF161B22),
+            borderRadius: BorderRadius.circular(12),
+          ),
+        )
+            .animate(onPlay: (controller) => controller.repeat())
+            .shimmer(duration: 1000.ms);
+      }),
+    );
+  }
+
+  Widget _buildEmptyProjectsState() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: const Color(0xFF161B22),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF30363D)),
+      ),
+      child: Column(
+        children: [
+          const Icon(
+            Icons.folder_open,
+            size: 48,
+            color: Color(0xFF7D8590),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No Projects Yet',
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFFF0F6FC),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Upload your first project to start finding contributors',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Color(0xFF7D8590),
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => context.go('/project/upload'),
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('Upload Project'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF8B5CF6),
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContributionsList(String userId) {
+    return Column(
+      children: [
+        _buildContributionItem(
+          'Contributed to React Native CLI',
+          'Added support for custom templates',
+          '2 days ago',
+          const Color(0xFF238636),
+        ),
+        _buildContributionItem(
+          'Fixed bug in Flutter packages',
+          'Resolved connectivity issue',
+          '1 week ago',
+          const Color(0xFF1F6FEB),
+        ),
+        _buildContributionItem(
+          'Updated documentation',
+          'Improved installation guide',
+          '2 weeks ago',
+          const Color(0xFFE09800),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildContributionItem(
+      String title, String description, String time, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF161B22),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF30363D)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Avatar with glow effect
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(50),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF238636).withValues(alpha: 0.3),
-                        blurRadius: 20,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: CircleAvatar(
-                    radius: 50,
-                    backgroundColor: const Color(0xFF238636),
-                    backgroundImage: profile.avatarUrl != null
-                        ? NetworkImage(profile.avatarUrl!)
-                        : null,
-                    child: profile.avatarUrl == null
-                        ? const Icon(
-                            Icons.person_rounded,
-                            size: 50,
-                            color: Colors.white,
-                          )
-                        : null,
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
                 Text(
-                  profile.name,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: const Color(0xFFF0F6FC),
-                        fontWeight: FontWeight.bold,
-                      ),
-                  textAlign: TextAlign.center,
+                  title,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFFF0F6FC),
+                  ),
                 ),
-
-                const SizedBox(height: 8),
-
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF238636),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    profile.role.toString().split('.').last.toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                      letterSpacing: 1.2,
-                    ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF7D8590),
                   ),
                 ),
               ],
             ),
           ),
-
-          const SizedBox(height: 24),
-
-          // Bio section
-          if (profile.bio != null) ...[
-            _SectionCard(
-              icon: Icons.description_rounded,
-              title: 'Bio',
-              child: Text(
-                profile.bio!,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: const Color(0xFF7D8590),
-                      height: 1.6,
-                    ),
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-
-          // Skills section
-          if (profile.skills.isNotEmpty) ...[
-            _SectionCard(
-              icon: Icons.code_rounded,
-              title: 'Skills',
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: profile.skills.map<Widget>((skill) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF30363D),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: const Color(0xFF238636).withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Text(
-                      skill,
-                      style: const TextStyle(
-                        color: Color(0xFFF0F6FC),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-
-          // GitHub link
-          if (profile.githubUrl != null) ...[
-            _SectionCard(
-              icon: Icons.link_rounded,
-              title: 'GitHub',
-              child: InkWell(
-                onTap: () {
-                  // TODO: Open GitHub URL
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Opening GitHub profile...'),
-                      backgroundColor: Color(0xFF238636),
-                    ),
-                  );
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF30363D),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF30363D)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.open_in_new_rounded,
-                        color: Color(0xFF58A6FF),
-                        size: 20,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          profile.githubUrl!,
-                          style: const TextStyle(
-                            color: Color(0xFF58A6FF),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
-
-          // Edit profile button
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Edit profile functionality coming soon! 🚀'),
-                    backgroundColor: Color(0xFF238636),
-                  ),
-                );
-              },
-              icon: const Icon(
-                Icons.edit_rounded,
-                color: Color(0xFF7D8590),
-                size: 20,
-              ),
-              label: const Text(
-                'Edit Profile',
-                style: TextStyle(
-                  color: Color(0xFF7D8590),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Color(0xFF30363D)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
+          Text(
+            time,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF7D8590),
             ),
           ),
-
-          const SizedBox(height: 24),
-
-          // Email Admin Widget for testing
-          const EmailAdminWidget(),
         ],
       ),
     );
   }
-}
 
-class _SectionCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final Widget child;
-
-  const _SectionCard({
-    required this.icon,
-    required this.title,
-    required this.child,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF21262D),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF30363D)),
-      ),
+  Widget _buildSettingsSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(
-                icon,
-                color: const Color(0xFF238636),
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: const Color(0xFFF0F6FC),
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-class _LoadingWidget extends StatelessWidget {
-  const _LoadingWidget();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: 60,
-            height: 60,
-            child: CircularProgressIndicator(
-              strokeWidth: 3,
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF238636)),
-            ),
-          ),
-          SizedBox(height: 24),
           Text(
-            'Loading your profile...',
-            style: TextStyle(
-              color: Color(0xFF7D8590),
-              fontSize: 16,
+            'Settings',
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFFF0F6FC),
             ),
+          ),
+          const SizedBox(height: 16),
+          _buildSettingsItem(
+            icon: Icons.settings,
+            title: 'Account Settings',
+            subtitle: 'Manage your account preferences',
+            onTap: () {},
+          ),
+          _buildSettingsItem(
+            icon: Icons.notifications,
+            title: 'Notifications',
+            subtitle: 'Configure notification preferences',
+            onTap: () {},
+          ),
+          _buildSettingsItem(
+            icon: Icons.security,
+            title: 'Privacy & Security',
+            subtitle: 'Control your privacy settings',
+            onTap: () {},
+          ),
+          _buildSettingsItem(
+            icon: Icons.logout,
+            title: 'Sign Out',
+            subtitle: 'Sign out of your account',
+            onTap: _handleSignOut,
+            isDestructive: true,
           ),
         ],
       ),
     );
   }
-}
 
-class _ErrorWidget extends StatelessWidget {
-  final dynamic error;
-  final VoidCallback onRetry;
-  final VoidCallback onCreateProfile;
-
-  const _ErrorWidget({
-    required this.error,
-    required this.onRetry,
-    required this.onCreateProfile,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isProfileMissing = error.toString().toLowerCase().contains('profile');
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              isProfileMissing ? Icons.person_add_rounded : Icons.error_rounded,
-              size: 80,
-              color: isProfileMissing
-                  ? const Color(0xFF238636)
-                  : const Color(0xFFDA3633),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              isProfileMissing ? 'Profile Not Found' : 'Something went wrong',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: const Color(0xFFF0F6FC),
-                    fontWeight: FontWeight.bold,
-                  ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              isProfileMissing
-                  ? 'Let\'s create your developer profile!'
-                  : error.toString(),
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: const Color(0xFF7D8590),
-                    height: 1.5,
-                  ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            if (isProfileMissing) ...[
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton.icon(
-                  onPressed: onCreateProfile,
-                  icon: const Icon(Icons.rocket_launch_rounded),
-                  label: const Text('Create Profile'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF238636),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-            ] else ...[
-              ElevatedButton.icon(
-                onPressed: onRetry,
-                icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Try Again'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF238636),
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ],
-          ],
+  Widget _buildSettingsItem({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: Icon(
+          icon,
+          color:
+              isDestructive ? const Color(0xFFDA3633) : const Color(0xFF7D8590),
+          size: 20,
         ),
+        title: Text(
+          title,
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: isDestructive
+                ? const Color(0xFFDA3633)
+                : const Color(0xFFF0F6FC),
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: const TextStyle(
+            fontSize: 12,
+            color: Color(0xFF7D8590),
+          ),
+        ),
+        trailing: const Icon(
+          Icons.chevron_right,
+          color: Color(0xFF7D8590),
+          size: 16,
+        ),
+        onTap: onTap,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        tileColor: const Color(0xFF161B22),
       ),
     );
+  }
+
+  Future<void> _handleRoleSwitch(UserRole newRole) async {
+    setState(() => _isLoading = true);
+    _roleSwitchController.forward();
+
+    try {
+      AppLogger.logger.i('🔄 Switching role to: ${newRole.name}');
+
+      final authService = ref.read(authServiceProvider);
+      final currentProfile = ref.read(userProfileProvider).value;
+
+      if (currentProfile != null) {
+        await authService.upsertUserProfile(
+          name: currentProfile.displayName ?? '',
+          role: newRole,
+          bio: currentProfile.bio,
+          githubUrl: currentProfile.githubUrl,
+          skills: currentProfile.skills,
+        );
+
+        // Refresh the profile
+        ref.invalidate(userProfileProvider);
+
+        AppLogger.logger
+            .success('✅ Role switched successfully to: ${newRole.name}');
+
+        // Show success message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Role switched to ${newRole.name.toUpperCase()} successfully!',
+                style: GoogleFonts.inter(color: Colors.white),
+              ),
+              backgroundColor: const Color(0xFF238636),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      AppLogger.logger.e('❌ Failed to switch role', error: e);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to switch role: ${e.toString()}',
+              style: GoogleFonts.inter(color: Colors.white),
+            ),
+            backgroundColor: const Color(0xFFDA3633),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _roleSwitchController.reverse();
+      }
+    }
+  }
+
+  void _showEditProfileDialog(UserModel userProfile) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF161B22),
+        title: Text(
+          'Edit Profile',
+          style: GoogleFonts.jetBrainsMono(color: const Color(0xFFF0F6FC)),
+        ),
+        content: Text(
+          'Profile editing functionality coming soon!',
+          style: GoogleFonts.inter(color: const Color(0xFFC9D1D9)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleSignOut() async {
+    try {
+      await ref.read(authServiceProvider).signOut();
+      if (mounted) {
+        context.go('/login');
+      }
+    } catch (e) {
+      AppLogger.logger.e('❌ Failed to sign out', error: e);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to sign out: ${e.toString()}'),
+            backgroundColor: const Color(0xFFDA3633),
+          ),
+        );
+      }
+    }
   }
 }

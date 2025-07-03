@@ -244,7 +244,7 @@ class FirestoreService {
         parameters: {
           'project_id': project.id,
           'owner_id': project.ownerId,
-          'skills_count': project.skills?.length ?? 0,
+          'skills_count': project.skillsRequired.length,
         },
       );
     } catch (e, stackTrace) {

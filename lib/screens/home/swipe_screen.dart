@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/swipe_provider.dart';
+import '../../providers/project_provider.dart';
 import '../../core/utils/logger.dart';
 import '../../core/monitoring/analytics_service.dart';
 
@@ -65,7 +64,6 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
     }
 
     _isContributor = userProfile.role == UserRole.contributor;
-    final userId = userProfile.id;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0D1117),
@@ -93,15 +91,16 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
               // Main Content Area
               Expanded(
                 child: _isContributor
-                    ? _buildContributorSwipe(context, userId)
-                    : _buildMaintainerSwipe(context, userId),
+                    ? _buildContributorSwipe(context)
+                    : _buildMaintainerView(context),
               ),
 
               // Action Buttons
-              _buildActionButtons()
-                  .animate(controller: _buttonsController)
-                  .fadeIn(duration: 600.ms, delay: 400.ms)
-                  .slideY(begin: 0.5, curve: Curves.easeOutBack),
+              if (_isContributor)
+                _buildActionButtons()
+                    .animate(controller: _buttonsController)
+                    .fadeIn(duration: 600.ms, delay: 400.ms)
+                    .slideY(begin: 0.5, curve: Curves.easeOutBack),
             ],
           ),
         ),
@@ -157,7 +156,7 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
                 Text(
                   _isContributor
                       ? 'Amazing Projects to Join'
-                      : 'Talented Contributors',
+                      : 'Upload Projects for Contributors',
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     color: const Color(0xFF7D8590),
@@ -180,9 +179,9 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  PhosphorIcons.fire(PhosphorIconsStyle.fill),
-                  color: const Color(0xFF238636),
+                const Icon(
+                  Icons.local_fire_department,
+                  color: Color(0xFF238636),
                   size: 16,
                 ),
                 const SizedBox(width: 4),
@@ -202,17 +201,14 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
     );
   }
 
-  Widget _buildContributorSwipe(BuildContext context, String userId) {
-    final projectsAsync = ref.watch(projectsToSwipeProvider(userId));
+  Widget _buildContributorSwipe(BuildContext context) {
+    final projectsAsync = ref.watch(discoverProjectsProvider);
     return projectsAsync.when(
       data: (projects) {
         if (projects.isEmpty) return _buildEmptyState();
         return _buildProjectCards(projects);
       },
-      loading: () => _buildLoadingStateWithTimeout(
-        () => _buildMockProjectCards(),
-        3000, // Show mock data after 3 seconds
-      ),
+      loading: () => _buildLoadingState(),
       error: (error, stack) {
         AppLogger.logger.e('❌ Error loading projects', error: error);
         return _buildMockProjectCards(); // Fallback to mock data
@@ -220,34 +216,76 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
     );
   }
 
-  Widget _buildMaintainerSwipe(BuildContext context, String userId) {
-    final usersAsync = ref.watch(usersToSwipeProvider(userId));
-    return usersAsync.when(
-      data: (users) {
-        if (users.isEmpty) return _buildEmptyState();
-        return _buildUserCards(users);
-      },
-      loading: () => _buildLoadingStateWithTimeout(
-        () => _buildMockUserCards(),
-        3000, // Show mock data after 3 seconds
+  Widget _buildMaintainerView(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
+                ),
+                borderRadius: BorderRadius.circular(60),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF8B5CF6).withValues(alpha: 0.4),
+                    blurRadius: 30,
+                    spreadRadius: 5,
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.cloud_upload,
+                color: Colors.white,
+                size: 60,
+              ),
+            ),
+            const SizedBox(height: 32),
+            Text(
+              'Share Your Projects',
+              style: GoogleFonts.orbitron(
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+                color: const Color(0xFFF0F6FC),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'As a maintainer, upload your projects and let talented contributors discover them. Switch to contributor mode to discover projects to join.',
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                color: const Color(0xFF7D8590),
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () =>
+                    Navigator.pushNamed(context, '/project/upload'),
+                icon: const Icon(Icons.add, size: 20),
+                label: const Text('Upload Project'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF8B5CF6),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
-      error: (error, stack) {
-        AppLogger.logger.e('❌ Error loading users', error: error);
-        return _buildMockUserCards(); // Fallback to mock data
-      },
-    );
-  }
-
-  Widget _buildLoadingStateWithTimeout(
-      Widget Function() fallback, int timeoutMs) {
-    return FutureBuilder(
-      future: Future.delayed(Duration(milliseconds: timeoutMs)),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.done) {
-          return fallback();
-        }
-        return _buildLoadingState();
-      },
     );
   }
 
@@ -343,98 +381,6 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
     );
   }
 
-  Widget _buildMockUserCards() {
-    final mockUsers = [
-      UserModel(
-        id: 'mock-user-1',
-        email: 'alex@example.com',
-        displayName: 'Alex Chen',
-        bio:
-            'Full-stack developer passionate about clean code and innovative solutions. Love working on challenging projects that make a real impact.',
-        role: UserRole.contributor,
-        skills: ['React', 'Node.js', 'TypeScript', 'GraphQL'],
-        createdAt: DateTime.now(),
-        photoURL: null,
-      ),
-      UserModel(
-        id: 'mock-user-2',
-        email: 'sarah@example.com',
-        displayName: 'Sarah Johnson',
-        bio:
-            'Mobile developer with 5+ years experience. Specialized in Flutter and React Native. Always excited to contribute to open source projects.',
-        role: UserRole.contributor,
-        skills: ['Flutter', 'Dart', 'Swift', 'Kotlin'],
-        createdAt: DateTime.now(),
-        photoURL: null,
-      ),
-      UserModel(
-        id: 'mock-user-3',
-        email: 'marcus@example.com',
-        displayName: 'Marcus Rodriguez',
-        bio:
-            'DevOps engineer and backend specialist. Expertise in cloud architecture, microservices, and building scalable systems.',
-        role: UserRole.contributor,
-        skills: ['Docker', 'Kubernetes', 'AWS', 'Python'],
-        createdAt: DateTime.now(),
-        photoURL: null,
-      ),
-    ];
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF238636).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: const Color(0xFF238636).withValues(alpha: 0.3),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.info_outline,
-                    color: Color(0xFF238636),
-                    size: 16,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Demo Contributors - Real data loading...',
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 12,
-                      color: const Color(0xFF238636),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: SizedBox(
-                height: 600,
-                child: PageView.builder(
-                  itemCount: mockUsers.length,
-                  itemBuilder: (context, index) {
-                    return _buildEnhancedUserCard(mockUsers[index]);
-                  },
-                ),
-              )
-                  .animate()
-                  .fadeIn(duration: 800.ms)
-                  .scale(begin: const Offset(0.9, 0.9)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildProjectCards(List<ProjectModel> projects) {
     return Center(
       child: Padding(
@@ -445,26 +391,6 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
             itemCount: projects.length,
             itemBuilder: (context, index) {
               return _buildEnhancedProjectCard(projects[index]);
-            },
-          ),
-        )
-            .animate()
-            .fadeIn(duration: 1000.ms, delay: 200.ms)
-            .scale(begin: const Offset(0.8, 0.8), curve: Curves.easeOutBack),
-      ),
-    );
-  }
-
-  Widget _buildUserCards(List<UserModel> users) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: SizedBox(
-          height: 600,
-          child: PageView.builder(
-            itemCount: users.length,
-            itemBuilder: (context, index) {
-              return _buildEnhancedUserCard(users[index]);
             },
           ),
         )
@@ -506,7 +432,7 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header with icon
+            // Project Header
             Row(
               children: [
                 Container(
@@ -514,17 +440,24 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
                   height: 48,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [Color(0xFF1F6FEB), Color(0xFF388BFD)],
+                      colors: [Color(0xFF238636), Color(0xFF2EA043)],
                     ),
                     borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF238636).withValues(alpha: 0.3),
+                        blurRadius: 15,
+                        spreadRadius: 2,
+                      ),
+                    ],
                   ),
-                  child: Icon(
-                    PhosphorIcons.folder(PhosphorIconsStyle.fill),
+                  child: const Icon(
+                    Icons.folder,
                     color: Colors.white,
                     size: 24,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -539,19 +472,32 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      Text(
-                        'Open Source Project',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: const Color(0xFF7D8590),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF238636),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'OPEN SOURCE',
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            letterSpacing: 1,
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-                Icon(
-                  PhosphorIcons.star(PhosphorIconsStyle.fill),
-                  color: const Color(0xFFE09800),
+                const Icon(
+                  Icons.star,
+                  color: Color(0xFFE09800),
                   size: 20,
                 ),
               ],
@@ -627,9 +573,9 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
               ),
               child: Row(
                 children: [
-                  Icon(
-                    PhosphorIcons.gitBranch(PhosphorIconsStyle.regular),
-                    color: const Color(0xFF7D8590),
+                  const Icon(
+                    Icons.code_sharp,
+                    color: Color(0xFF7D8590),
                     size: 16,
                   ),
                   const SizedBox(width: 8),
@@ -641,9 +587,9 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
                     ),
                   ),
                   const Spacer(),
-                  Icon(
-                    PhosphorIcons.heart(PhosphorIconsStyle.regular),
-                    color: const Color(0xFF238636),
+                  const Icon(
+                    Icons.favorite,
+                    color: Color(0xFF238636),
                     size: 18,
                   ),
                 ],
@@ -651,228 +597,6 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildEnhancedUserCard(UserModel user) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF21262D),
-            Color(0xFF161B22),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: const Color(0xFF30363D),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 30,
-            spreadRadius: 0,
-            offset: const Offset(0, 15),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // User Header
-            Row(
-              children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: const Color(0xFF238636),
-                      width: 2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF238636).withValues(alpha: 0.3),
-                        blurRadius: 20,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(18),
-                    child: user.photoURL != null
-                        ? Image.network(
-                            user.photoURL!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _buildDefaultAvatar(),
-                          )
-                        : _buildDefaultAvatar(),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        user.displayName ?? 'Anonymous User',
-                        style: GoogleFonts.orbitron(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFFF0F6FC),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF238636),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          user.role.toString().split('.').last.toUpperCase(),
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(
-                  PhosphorIcons.star(PhosphorIconsStyle.fill),
-                  color: const Color(0xFFE09800),
-                  size: 20,
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            // Bio
-            if (user.bio?.isNotEmpty == true) ...[
-              Text(
-                user.bio!,
-                style: GoogleFonts.inter(
-                  fontSize: 16,
-                  height: 1.6,
-                  color: const Color(0xFFC9D1D9),
-                ),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 24),
-            ],
-
-            // Skills
-            if (user.skills.isNotEmpty) ...[
-              Text(
-                'Skills & Expertise',
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF238636),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: user.skills.take(6).map((skill) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1F6FEB).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: const Color(0xFF1F6FEB).withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Text(
-                      skill,
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: const Color(0xFF1F6FEB),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
-
-            const Spacer(),
-
-            // Footer
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0D1117).withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: const Color(0xFF30363D),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    PhosphorIcons.users(PhosphorIconsStyle.regular),
-                    color: const Color(0xFF7D8590),
-                    size: 16,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Swipe right to connect',
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      color: const Color(0xFF7D8590),
-                    ),
-                  ),
-                  const Spacer(),
-                  Icon(
-                    PhosphorIcons.heart(PhosphorIconsStyle.regular),
-                    color: const Color(0xFF238636),
-                    size: 18,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDefaultAvatar() {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF238636), Color(0xFF2EA043)],
-        ),
-      ),
-      child: Icon(
-        PhosphorIcons.user(PhosphorIconsStyle.fill),
-        color: Colors.white,
-        size: 32,
       ),
     );
   }
@@ -884,18 +608,18 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _buildActionButton(
-            icon: PhosphorIcons.x(PhosphorIconsStyle.bold),
+            icon: Icons.close,
             color: const Color(0xFFDA3633),
             onTap: () => _programmaticSwipe('left'),
           ),
           _buildActionButton(
-            icon: PhosphorIcons.star(PhosphorIconsStyle.fill),
+            icon: Icons.star,
             color: const Color(0xFFE09800),
             onTap: () => _showSuperLike(),
             size: 56,
           ),
           _buildActionButton(
-            icon: PhosphorIcons.heart(PhosphorIconsStyle.fill),
+            icon: Icons.favorite,
             color: const Color(0xFF238636),
             onTap: () => _programmaticSwipe('right'),
           ),
@@ -945,10 +669,34 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
 
   void _programmaticSwipe(String direction) {
     AppLogger.logger.d('🔄 Programmatic swipe: $direction');
+
+    if (direction == 'right') {
+      // Show interest animation
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '💖 Interested! Project saved to your matches.',
+            style: GoogleFonts.inter(color: Colors.white),
+          ),
+          backgroundColor: const Color(0xFF238636),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   void _showSuperLike() {
     AppLogger.logger.d('⭐ Super like triggered');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '⭐ Super Like! This project will be prioritized.',
+          style: GoogleFonts.inter(color: Colors.white),
+        ),
+        backgroundColor: const Color(0xFFE09800),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   Widget _buildLoadingState() {
@@ -984,7 +732,7 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
                   begin: const Offset(1.2, 1.2), end: const Offset(0.8, 0.8)),
           const SizedBox(height: 32),
           Text(
-            'Finding Amazing Matches',
+            'Finding Amazing Projects',
             style: GoogleFonts.orbitron(
               fontSize: 24,
               fontWeight: FontWeight.w700,
@@ -1017,8 +765,8 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
                 ),
               ],
             ),
-            child: Icon(
-              PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.fill),
+            child: const Icon(
+              Icons.search,
               color: Colors.white,
               size: 60,
             ),
@@ -1028,7 +776,7 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
               .fadeIn(duration: 800.ms),
           const SizedBox(height: 32),
           Text(
-            'No More Matches',
+            'No More Projects',
             style: GoogleFonts.orbitron(
               fontSize: 28,
               fontWeight: FontWeight.w900,
@@ -1038,6 +786,15 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
               .animate()
               .fadeIn(duration: 800.ms, delay: 200.ms)
               .slideY(begin: 0.3),
+          const SizedBox(height: 16),
+          Text(
+            'Check back later for new projects to discover!',
+            style: GoogleFonts.inter(
+              fontSize: 16,
+              color: const Color(0xFF7D8590),
+            ),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
