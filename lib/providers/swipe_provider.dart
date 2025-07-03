@@ -33,20 +33,20 @@ class ProjectsToSwipeNotifier
           .catchError((error) {
         AppLogger.logger
             .w('⚠️ Primary query failed, using fallback', error: error);
-        return <ProjectModel>[]; // Return empty list as fallback
+        return const <ProjectModel>[]; // Return empty list as fallback
       });
 
       if (projects.isNotEmpty) {
         state = AsyncValue.data(projects);
       } else {
         // If no real data, the UI will handle showing mock data
-        state = AsyncValue.data([]);
+        state = const AsyncValue.data([]);
       }
     } catch (error, stackTrace) {
       AppLogger.logger
           .e('❌ Failed to load projects', error: error, stackTrace: stackTrace);
       // Don't set error state immediately, let UI handle fallback
-      state = AsyncValue.data([]);
+      state = const AsyncValue.data([]);
     }
   }
 
@@ -92,20 +92,20 @@ class UsersToSwipeNotifier extends StateNotifier<AsyncValue<List<UserModel>>> {
           .catchError((error) {
         AppLogger.logger
             .w('⚠️ Primary query failed, using fallback', error: error);
-        return <UserModel>[]; // Return empty list as fallback
+        return const <UserModel>[]; // Return empty list as fallback
       });
 
       if (users.isNotEmpty) {
         state = AsyncValue.data(users);
       } else {
         // If no real data, the UI will handle showing mock data
-        state = AsyncValue.data([]);
+        state = const AsyncValue.data([]);
       }
     } catch (error, stackTrace) {
       AppLogger.logger
           .e('❌ Failed to load users', error: error, stackTrace: stackTrace);
       // Don't set error state immediately, let UI handle fallback
-      state = AsyncValue.data([]);
+      state = const AsyncValue.data([]);
     }
   }
 

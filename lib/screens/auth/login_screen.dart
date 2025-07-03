@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:glassmorphism/glassmorphism.dart';
+
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
@@ -452,33 +452,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 minHeight: 500,
                 maxHeight: MediaQuery.of(context).size.height * 0.75,
               ),
-              child: GlassmorphicContainer(
+              child: Container(
                 width: double.infinity,
                 height: double.infinity,
-                borderRadius: 24,
-                blur: 20,
-                alignment: Alignment.center,
-                border: 2,
-                linearGradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    const Color(
-                      0xFF21262D,
-                    ).withValues(alpha: 0.2), // GitHub gray
-                    const Color(
-                      0xFF161B22,
-                    ).withValues(alpha: 0.1), // GitHub dark gray
-                  ],
-                ),
-                borderGradient: LinearGradient(
-                  colors: [
-                    const Color(
-                      0xFF238636,
-                    ).withValues(alpha: 0.3), // GitHub green
-                    const Color(
-                      0xFF30363D,
-                    ).withValues(alpha: 0.2), // GitHub border
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      const Color(0xFF21262D)
+                          .withValues(alpha: 0.8), // GitHub gray
+                      const Color(0xFF161B22)
+                          .withValues(alpha: 0.9), // GitHub dark gray
+                    ],
+                  ),
+                  border: Border.all(
+                    color: const Color(0xFF238636)
+                        .withValues(alpha: 0.3), // GitHub green
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF000000).withValues(alpha: 0.2),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                    ),
                   ],
                 ),
                 child: Padding(

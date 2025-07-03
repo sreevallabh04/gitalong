@@ -305,9 +305,9 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.info_outline,
-                    color: const Color(0xFF1F6FEB),
+                    color: Color(0xFF1F6FEB),
                     size: 16,
                   ),
                   const SizedBox(width: 8),
@@ -397,9 +397,9 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.info_outline,
-                    color: const Color(0xFF238636),
+                    color: Color(0xFF238636),
                     size: 16,
                   ),
                   const SizedBox(width: 8),
@@ -949,19 +949,6 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
 
   void _showSuperLike() {
     AppLogger.logger.d('⭐ Super like triggered');
-  }
-
-  void _handleSwipe(dynamic item, String direction) {
-    final itemType = item is ProjectModel ? 'project' : 'user';
-    final itemId = item is ProjectModel ? item.id : (item as UserModel).id;
-
-    AnalyticsService.trackSwipe(
-      direction: direction,
-      targetType: itemType,
-      targetId: itemId,
-    );
-
-    AppLogger.logger.d('👆 Swiped $direction on $itemType: $itemId');
   }
 
   Widget _buildLoadingState() {

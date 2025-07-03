@@ -77,12 +77,12 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
     super.initState();
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: _currentIndex);
-    
+
     _backgroundController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    
+
     AppLogger.logger.navigation(
         '🏠 Main navigation initialized with index: $_currentIndex');
     AnalyticsService.trackScreenView('main_navigation');
@@ -97,15 +97,15 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
 
   void _onDestinationSelected(int index) {
     if (_currentIndex == index) return;
-    
+
     setState(() {
       _currentIndex = index;
     });
 
     _pageController.animateToPage(
       index,
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeInOutCubic,
+      duration: const Duration(milliseconds: 250), // Faster transitions
+      curve: Curves.easeOut, // Snappier curve
     );
 
     // Trigger haptic feedback
@@ -140,12 +140,18 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
 
   String _getScreenName(int index) {
     switch (index) {
-      case 0: return 'swipe_screen';
-      case 1: return 'messages_screen';
-      case 2: return 'saved_screen';
-      case 3: return 'github_explore_screen';
-      case 4: return 'profile_screen';
-      default: return 'unknown_screen';
+      case 0:
+        return 'swipe_screen';
+      case 1:
+        return 'messages_screen';
+      case 2:
+        return 'saved_screen';
+      case 3:
+        return 'github_explore_screen';
+      case 4:
+        return 'profile_screen';
+      default:
+        return 'unknown_screen';
     }
   }
 
@@ -221,7 +227,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
               final index = entry.key;
               final item = entry.value;
               final isSelected = _currentIndex == index;
-              
+
               return _buildNavigationItem(
                 item: item,
                 index: index,
@@ -231,9 +237,10 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
           ),
         ),
       ),
-    ).animate()
-      .slideY(begin: 1, duration: 600.ms, curve: Curves.easeOutBack)
-      .fadeIn(duration: 400.ms);
+    )
+        .animate()
+        .slideY(begin: 1, duration: 600.ms, curve: Curves.easeOutBack)
+        .fadeIn(duration: 400.ms);
   }
 
   Widget _buildNavigationItem({
@@ -249,15 +256,15 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
-          color: isSelected 
-            ? item.color.withValues(alpha: 0.15)
-            : Colors.transparent,
+          color: isSelected
+              ? item.color.withValues(alpha: 0.15)
+              : Colors.transparent,
           border: isSelected
-            ? Border.all(
-                color: item.color.withValues(alpha: 0.3),
-                width: 1,
-              )
-            : null,
+              ? Border.all(
+                  color: item.color.withValues(alpha: 0.3),
+                  width: 1,
+                )
+              : null,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -269,17 +276,17 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
                 color: isSelected
-                  ? item.color.withValues(alpha: 0.2)
-                  : Colors.transparent,
+                    ? item.color.withValues(alpha: 0.2)
+                    : Colors.transparent,
                 boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                        color: item.color.withValues(alpha: 0.3),
-                        blurRadius: 12,
-                        spreadRadius: 2,
-                      ),
-                    ]
-                  : null,
+                    ? [
+                        BoxShadow(
+                          color: item.color.withValues(alpha: 0.3),
+                          blurRadius: 12,
+                          spreadRadius: 2,
+                        ),
+                      ]
+                    : null,
               ),
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 200),
@@ -311,13 +318,12 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
           ],
         ),
       ),
-    ).animate(target: isSelected ? 1 : 0)
-      .scale(
-        begin: const Offset(1.0, 1.0),
-        end: const Offset(1.1, 1.1),
-        duration: 200.ms,
-        curve: Curves.easeInOut,
-      );
+    ).animate(target: isSelected ? 1 : 0).scale(
+          begin: const Offset(1.0, 1.0),
+          end: const Offset(1.1, 1.1),
+          duration: 200.ms,
+          curve: Curves.easeInOut,
+        );
   }
 }
 

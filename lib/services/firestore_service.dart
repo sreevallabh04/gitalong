@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
 import '../models/models.dart';
 import '../core/utils/logger.dart';
 import '../core/monitoring/analytics_service.dart';
@@ -34,7 +34,7 @@ class FirestoreService {
       _firestore = FirebaseFirestore.instance;
 
       // Configure Firestore settings for production
-      await _firestore.enablePersistence();
+      // Persistence is now enabled via Settings.persistenceEnabled
 
       _initialized = true;
       AppLogger.logger.i('✅ Firestore initialized successfully');

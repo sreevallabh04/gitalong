@@ -249,8 +249,7 @@ class EmailService {
   static Future<Map<String, dynamic>> performHealthCheck() async {
     try {
       // Test Firestore connectivity
-      final testDoc =
-          await _firestore.collection('_email_health_check').doc('test').get();
+      await _firestore.collection('_email_health_check').doc('test').get();
 
       return {
         'status': 'healthy',

@@ -31,76 +31,85 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Core packages
+  # ============================================================================
+  # 🔥 CORE PACKAGES - Essential for app functionality
+  # ============================================================================
   cupertino_icons: ^1.0.6
   
-  # State management
+  # ============================================================================
+  # 🏗️ STATE MANAGEMENT - Riverpod for robust state management
+  # ============================================================================
   flutter_riverpod: ^2.5.1
   riverpod_annotation: ^2.3.3
   
-  # UI and theming
+  # ============================================================================
+  # 🎨 UI & THEMING - Minimal but powerful UI components
+  # ============================================================================
   google_fonts: ^6.2.1
-  glassmorphism: ^3.0.0
-  flutter_animate: ^4.5.0
-  shimmer: ^3.0.0
-  lottie: ^3.1.2
-  phosphor_flutter: ^2.1.0
+  flutter_animate: ^4.5.0 # For smooth animations
+  phosphor_flutter: ^2.1.0 # Consistent icon set
   
-  # Responsive design and navigation
-  flutter_screenutil: ^5.9.3
-  responsive_framework: ^1.4.0
+  # ============================================================================
+  # 🧭 NAVIGATION - Modern declarative routing
+  # ============================================================================
   go_router: ^14.2.0
   
-  # Development tools
-  device_preview: ^1.2.0
-  
-  # Firebase - Core and Authentication
+  # ============================================================================
+  # 🔥 FIREBASE - Complete Firebase integration
+  # ============================================================================
   firebase_core: ^2.31.0
   firebase_auth: ^4.19.0
   cloud_firestore: ^4.17.0
   firebase_storage: ^11.7.0
   firebase_analytics: ^10.10.0
   firebase_crashlytics: ^3.5.0
-  firebase_performance: ^0.9.4
   firebase_messaging: ^14.9.0
+  
+  # ============================================================================
+  # 🔐 AUTHENTICATION - Social login providers
+  # ============================================================================
   google_sign_in: ^6.1.6
   sign_in_with_apple: ^7.0.1
   
-  # Local storage and caching
-  hive_flutter: ^1.1.0
-  shared_preferences: ^2.2.3
+  # ============================================================================
+  # 🗄️ DATA STORAGE - Local and remote data management
+  # ============================================================================
+  hive_flutter: ^1.1.0 # Fast local database
+  shared_preferences: ^2.2.3 # Simple key-value storage
   
-  # Network and API
-  dio: ^5.4.3+1
-  connectivity_plus: ^5.0.2
-  http: ^1.1.0
-  oauth2: ^2.0.2
-  url_launcher: ^6.2.1
+  # ============================================================================
+  # 🌐 NETWORK & API - HTTP client and connectivity
+  # ============================================================================
+  dio: ^5.4.3+1 # Advanced HTTP client with interceptors
+  connectivity_plus: ^5.0.2 # Network connectivity detection
+  http: ^1.1.0 # HTTP client for GitHub API
   
-  # Device and platform
+  # ============================================================================
+  # 📱 DEVICE & PLATFORM - Platform-specific functionality
+  # ============================================================================
   device_info_plus: ^10.1.0
   permission_handler: ^11.1.0
+  url_launcher: ^6.2.1
   
-  # Utilities
-  logger: ^2.0.2+1
-  path_provider: ^2.1.1
-  uuid: ^4.5.1
-  stack_trace: ^1.12.1
+  # ============================================================================
+  # 🛠️ UTILITIES - Essential utilities for production apps
+  # ============================================================================
+  logger: ^2.0.2+1 # Structured logging
+  stack_trace: ^1.11.1 # Stack trace formatting for better error handling
+  path_provider: ^2.1.1 # File system paths
+  uuid: ^4.5.1 # Unique ID generation
+  flutter_dotenv: ^5.1.0 # Environment variable management
+  package_info_plus: ^8.0.0 # App version and build info
   
-  # Fonts & Icons
-  flutter_svg: ^2.0.10+1
+  # ============================================================================
+  # 🖼️ MEDIA & ASSETS - Image handling and caching
+  # ============================================================================
+  cached_network_image: ^3.3.1 # Efficient image loading with cache
+  flutter_svg: ^2.0.10+1 # SVG support for crisp icons
   
-  # Environment
-  flutter_dotenv: ^5.1.0
-  
-  # Image Handling
-  cached_network_image: ^3.3.1
-  image_picker: ^1.1.2
-  
-  # Package Info
-  package_info_plus: ^8.0.0
-  
-  # JSON serialization
+  # ============================================================================
+  # 📄 SERIALIZATION - JSON handling for API communication
+  # ============================================================================
   json_annotation: ^4.8.1
   freezed_annotation: ^2.4.4
 

@@ -3,7 +3,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -235,35 +234,27 @@ class GitAlongApp extends ConsumerWidget {
     // Get the router from provider
     final router = ref.watch(routerProvider);
 
-    return ScreenUtilInit(
-      designSize: const Size(375, 812), // iPhone 13 mini size as baseline
-      minTextAdapt: true,
-      splitScreenMode: true,
-      useInheritedMediaQuery: true,
+    return MaterialApp.router(
+      title: 'GitAlong',
+      debugShowCheckedModeBanner: false,
+
+      // Use the bleeding GitHub theme
+      theme: githubDarkTheme,
+
+      // GoRouter configuration - this is the key!
+      routerConfig: router,
+
+      // Builder for additional global configuration
       builder: (context, child) {
-        return MaterialApp.router(
-          title: 'GitAlong',
-          debugShowCheckedModeBanner: false,
-
-          // Use the bleeding GitHub theme
-          theme: githubDarkTheme,
-
-          // GoRouter configuration - this is the key!
-          routerConfig: router,
-
-          // Builder for additional global configuration
-          builder: (context, child) {
-            // Ensure text scaling doesn't break the UI
-            final mediaQuery = MediaQuery.of(context);
-            return MediaQuery(
-              data: mediaQuery.copyWith(
-                textScaler: TextScaler.linear(
-                  mediaQuery.textScaler.scale(1.0).clamp(0.8, 1.2),
-                ),
-              ),
-              child: child ?? const SizedBox.shrink(),
-            );
-          },
+        // Ensure text scaling doesn't break the UI
+        final mediaQuery = MediaQuery.of(context);
+        return MediaQuery(
+          data: mediaQuery.copyWith(
+            textScaler: TextScaler.linear(
+              mediaQuery.textScaler.scale(1.0).clamp(0.8, 1.2),
+            ),
+          ),
+          child: child ?? const SizedBox.shrink(),
         );
       },
     );

@@ -308,12 +308,15 @@ Future<void> _checkEmailVerificationAndTriggerWelcome(User user) async {
     final refreshedUser = FirebaseAuth.instance.currentUser;
 
     if (refreshedUser != null && refreshedUser.emailVerified) {
-      // Trigger welcome email after verification
-      await EmailService.checkAndTriggerWelcomeEmail();
+      AppLogger.logger.success('✅ Email verified! Triggering welcome email...');
+
+      // 🎯 FIXED: Actually trigger welcome email after verification
+      await EmailService.sendWelcomeEmailAfterVerification(refreshedUser);
+
+      AppLogger.logger.success('🎉 Welcome email sent successfully!');
     }
   } catch (error) {
-    AppLogger.logger
-        .w('⚠️ Error checking email verification status', error: error);
+    AppLogger.logger.e('❌ Error in verification/welcome flow', error: error);
   }
 }
 
@@ -430,13 +433,11 @@ enum AuthStatus {
 
 // 📧 EMAIL ACTIONS PROVIDER - Email related actions
 final emailActionsProvider = Provider<EmailActions>((ref) {
-  return EmailActions(ref);
+  return EmailActions();
 });
 
 class EmailActions {
-  final Ref _ref;
-
-  EmailActions(this._ref);
+  EmailActions();
 
   /// Send verification email
   Future<void> sendVerificationEmail() async {
