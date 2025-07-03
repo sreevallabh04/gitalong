@@ -14,7 +14,15 @@
       },
       "oauth_client": [
         {
-          "client_id": "267802124592-tv5mnvog8sblshvnarf0c78ujf4pjbq7.apps.googleusercontent.com",
+          "client_id": "267802124592-guu8p2dhn2sr6vfpd2aq9r7q19dnfbdm.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.gitalong",
+            "certificate_hash": "f9380508144eed79173e6e45f206383bc5f80939"
+          }
+        },
+        {
+          "client_id": "267802124592-uq6jasrgchp7nidu7p12i6779q99hhjn.apps.googleusercontent.com",
           "client_type": 3
         }
       ],

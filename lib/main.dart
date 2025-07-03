@@ -34,9 +34,7 @@ final githubDarkTheme = ThemeData(
   cardTheme: CardTheme(
     color: const Color(0xFF161B22),
     elevation: 2,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
-    ),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     shadowColor: Colors.black.withValues(alpha: 0.2),
     margin: const EdgeInsets.all(12),
   ),
@@ -98,14 +96,23 @@ void main() async {
     AppLogger.initialize();
     AppLogger.logger.i('🚀 Starting GitAlong app initialization...');
 
-    // Load environment configuration
+    // Load environment configuration (optional)
     try {
       await dotenv.load(fileName: ".env");
-      AppLogger.logger.d('✅ Environment configuration loaded');
+      AppLogger.logger.d('✅ Environment configuration loaded from .env file');
     } catch (e) {
+      // Initialize dotenv with empty state first
+      dotenv.testLoad(fileInput: '');
+
+      // Then manually set default environment variables
+      dotenv.env['APP_NAME'] = 'GitAlong';
+      dotenv.env['ENVIRONMENT'] = 'development';
+      dotenv.env['ENABLE_ANALYTICS'] = 'true';
+      dotenv.env['ENABLE_DEBUG_LOGGING'] = 'true';
+      dotenv.env['API_TIMEOUT_SECONDS'] = '30';
+
       AppLogger.logger
-          .w('⚠️ No .env file found, using default configuration', error: e);
-      // Continue without .env file - GitHub service will handle missing credentials gracefully
+          .d('✅ Using default environment configuration (no .env file found)');
     }
 
     // Configure system UI overlay style for GitHub theme
@@ -136,11 +143,7 @@ void main() async {
 
     // Run the app with GoRouter
     AppLogger.logger.i('🎯 Launching GitAlong app with GoRouter...');
-    runApp(
-      const ProviderScope(
-        child: GitAlongApp(),
-      ),
-    );
+    runApp(const ProviderScope(child: GitAlongApp()));
   } catch (error, stackTrace) {
     AppLogger.logger.e(
       '💥 Critical error during app initialization',
@@ -177,10 +180,7 @@ void main() async {
                 const Text(
                   'Failed to initialize the app.\nPlease restart the application.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Color(0xFF7D8590),
-                    fontSize: 16,
-                  ),
+                  style: TextStyle(color: Color(0xFF7D8590), fontSize: 16),
                 ),
                 const SizedBox(height: 32),
                 Text(
@@ -269,8 +269,9 @@ class AppProviderObserver extends ProviderObserver {
     Object? value,
     ProviderContainer container,
   ) {
-    AppLogger.logger
-        .d('🔧 Provider added: ${provider.name ?? provider.runtimeType}');
+    AppLogger.logger.d(
+      '🔧 Provider added: ${provider.name ?? provider.runtimeType}',
+    );
   }
 
   @override
@@ -280,8 +281,9 @@ class AppProviderObserver extends ProviderObserver {
     Object? newValue,
     ProviderContainer container,
   ) {
-    AppLogger.logger
-        .d('🔄 Provider updated: ${provider.name ?? provider.runtimeType}');
+    AppLogger.logger.d(
+      '🔄 Provider updated: ${provider.name ?? provider.runtimeType}',
+    );
   }
 
   @override
@@ -289,8 +291,9 @@ class AppProviderObserver extends ProviderObserver {
     ProviderBase<Object?> provider,
     ProviderContainer container,
   ) {
-    AppLogger.logger
-        .d('🗑️ Provider disposed: ${provider.name ?? provider.runtimeType}');
+    AppLogger.logger.d(
+      '🗑️ Provider disposed: ${provider.name ?? provider.runtimeType}',
+    );
   }
 
   @override
