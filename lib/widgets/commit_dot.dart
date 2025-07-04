@@ -73,8 +73,7 @@ class _CommitDotState extends State<CommitDot>
     if (_heatLevel == 0) return [];
 
     final intensity = _heatLevel / 4.0;
-    final glowColor =
-        GitAlongTheme.neonGreen.withValues(alpha: 0.3 * intensity);
+    final glowColor = AppTheme.accentColor.withValues(alpha: 0.3 * intensity);
 
     return [
       BoxShadow(
@@ -120,7 +119,7 @@ class _CommitDotState extends State<CommitDot>
                   borderRadius: BorderRadius.circular(2),
                   border: _isHovered
                       ? Border.all(
-                          color: GitAlongTheme.neonGreen.withValues(alpha: 0.5),
+                          color: AppTheme.accentColor.withValues(alpha: 0.5),
                           width: 1,
                         )
                       : null,
@@ -132,7 +131,7 @@ class _CommitDotState extends State<CommitDot>
                           width: widget.size * 0.3,
                           height: widget.size * 0.3,
                           decoration: BoxDecoration(
-                            color: GitAlongTheme.neonGreen.withValues(alpha: 0.8),
+                            color: AppTheme.accentColor.withValues(alpha: 0.8),
                             borderRadius: BorderRadius.circular(1),
                           ),
                         ),
@@ -183,17 +182,23 @@ class CommitTooltip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Tooltip(
       message: _tooltipText,
-      textStyle: GitAlongTheme.terminalStyle.copyWith(
-        color: GitAlongTheme.ghostWhite,
+      textStyle: AppTheme.codeStyle.copyWith(
+        color: AppTheme.textPrimary,
       ),
       decoration: BoxDecoration(
-        color: GitAlongTheme.surfaceGray,
+        color: AppTheme.surfaceColor,
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
-          color: GitAlongTheme.borderGray,
+          color: AppTheme.borderColor,
           width: 1,
         ),
-        boxShadow: const [GitAlongTheme.cardShadow],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       waitDuration: const Duration(milliseconds: 500),

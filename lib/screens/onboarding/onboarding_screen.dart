@@ -6,7 +6,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/utils/logger.dart';
 import '../../core/router/app_router.dart';
 import '../../core/utils/firestore_utils.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../providers/auth_provider.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -167,14 +166,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     try {
       final trimmedName = _nameController.text.trim();
       final githubUrl = _githubController.text.trim();
-      final result = await safeQuery(() async {
-        await ref.read(userProfileProvider.notifier).createProfile(
-              name: trimmedName,
-              bio: _bioController.text.trim(),
-              role: _selectedRole.toString().split('.').last,
-              skills: List<String>.from(_selectedSkills),
-              githubUrl: githubUrl.isEmpty ? null : githubUrl,
-            );
+
+      // Use the userProfileProvider from auth_provider.dart
+      final userProfileNotifier = ref.read(userProfileProvider.notifier);
+
+      await safeQuery(() async {
+        await userProfileNotifier.createProfile(
+          name: trimmedName,
+          bio: _bioController.text.trim(),
+          role: _selectedRole.toString().split('.').last,
+          skills: List<String>.from(_selectedSkills),
+          githubUrl: githubUrl.isEmpty ? null : githubUrl,
+        );
       }, onError: (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -185,24 +188,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           );
         }
       });
-      if (result == null) return;
-      // After profile creation, check isMaintainer
-      final auth = ref.read(authServiceProvider);
-      final user = auth.currentUser;
-      if (user == null) {
-        _showError('User not authenticated.');
-        return;
-      }
-      final userDoc = await safeQuery(() async {
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-        return doc.data();
-      });
-      if (userDoc != null && userDoc['isMaintainer'] == true) {
+
+      // After profile creation, check isMaintainer from the updated profile state
+      final createdProfile = ref.read(userProfileProvider).value;
+
+      if (createdProfile != null &&
+          createdProfile.role == UserRole.maintainer) {
         if (mounted) {
-          Navigator.of(context).pushReplacementNamed('/maintainer-dashboard');
+          context.go('/maintainer'); // Use GoRouter for navigation
         }
       } else {
         if (mounted) {

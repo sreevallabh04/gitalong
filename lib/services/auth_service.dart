@@ -6,6 +6,7 @@ import '../config/firebase_config.dart';
 import '../models/models.dart';
 import '../core/utils/logger.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../core/utils/firestore_utils.dart'; // Import safeQuery
 
 final authServiceProvider = Provider<AuthService>((ref) {
   return AuthService();
@@ -429,7 +430,7 @@ class AuthService {
         stackTrace: stackTrace,
       );
 
-      throw AuthException(
+      throw const AuthException(
         'An unexpected error occurred during Google sign-in. Please try again.',
         code: 'unknown-error',
       );
@@ -612,20 +613,30 @@ class AuthService {
   }
 
   // Get current user profile
-  Future<UserModel?> getCurrentUserProfile() async {
-    if (!isAuthenticated) return null;
+  Future<UserModel> getCurrentUserProfile() async {
+    if (!isAuthenticated)
+      throw AuthException('User not authenticated', code: 'not-authenticated');
 
-    try {
+    final result = await safeQuery(() async {
       final doc =
           await _firestore.collection('users').doc(currentUser!.uid).get();
-
-      return doc.exists ? UserModel.fromJson(doc.data()!) : null;
-    } catch (e) {
+      if (!doc.exists) {
+        throw AuthException('User profile not found',
+            code: 'profile-not-found');
+      }
+      return UserModel.fromJson(doc.data()!);
+    }, onError: (e) {
+      AppLogger.logger.e('❌ Failed to get user profile', error: e);
       throw AuthException(
         'Failed to get user profile: ${e.toString()}',
         code: 'profile-fetch-error',
       );
+    });
+    if (result == null) {
+      throw AuthException('Unknown error fetching user profile',
+          code: 'unknown-profile-error');
     }
+    return result;
   }
 
   // Create or update user profile
@@ -661,32 +672,41 @@ class AuthService {
       'updated_at': FieldValue.serverTimestamp(),
     };
 
-    try {
+    final result = await safeQuery(() async {
       await _firestore
           .collection('users')
           .doc(user.uid)
           .set(userData, SetOptions(merge: true));
-
       return UserModel.fromJson(userData);
-    } catch (e) {
+    }, onError: (e) {
+      AppLogger.logger.e('❌ Failed to upsert user profile', error: e);
       throw AuthException(
         'Failed to update user profile: ${e.toString()}',
         code: 'profile-update-error',
       );
+    });
+    if (result == null) {
+      throw const AuthException(
+          'Failed to create/update user profile: Unknown error',
+          code: 'unknown-profile-error');
     }
+    return result;
   }
 
   // Check if user profile exists
   Future<bool> hasUserProfile() async {
     if (!isAuthenticated) return false;
 
-    try {
-      final doc =
-          await _firestore.collection('users').doc(currentUser!.uid).get();
-      return doc.exists;
-    } catch (e) {
-      return false;
-    }
+    return await safeQuery(() async {
+          final doc =
+              await _firestore.collection('users').doc(currentUser!.uid).get();
+          return doc.exists;
+        }, onError: (e) {
+          AppLogger.logger
+              .e('❌ Failed to check user profile existence', error: e);
+          return false;
+        }) ??
+        false; // Return false if safeQuery returns null
   }
 
   // Update user profile
@@ -714,7 +734,7 @@ class AuthService {
     if (skills != null) updateData['skills'] = skills;
     if (avatarUrl != null) updateData['avatar_url'] = avatarUrl;
 
-    try {
+    final result = await safeQuery(() async {
       await _firestore
           .collection('users')
           .doc(currentUser!.uid)
@@ -724,12 +744,18 @@ class AuthService {
           await _firestore.collection('users').doc(currentUser!.uid).get();
 
       return UserModel.fromJson(doc.data()!);
-    } catch (e) {
+    }, onError: (e) {
+      AppLogger.logger.e('❌ Failed to update user profile', error: e);
       throw AuthException(
         'Failed to update user profile: ${e.toString()}',
         code: 'profile-update-error',
       );
+    });
+    if (result == null) {
+      throw const AuthException('Failed to update user profile: Unknown error',
+          code: 'unknown-profile-error');
     }
+    return result;
   }
 
   // Delete user account
@@ -741,7 +767,7 @@ class AuthService {
       );
     }
 
-    try {
+    await safeQuery(() async {
       // Delete user data from Firestore
       await _firestore.collection('users').doc(currentUser!.uid).delete();
 
@@ -750,12 +776,13 @@ class AuthService {
 
       // Delete the user account
       await currentUser!.delete();
-    } catch (e) {
+    }, onError: (e) {
+      AppLogger.logger.e('❌ Failed to delete account', error: e);
       throw AuthException(
         'Failed to delete account: ${e.toString()}',
         code: 'account-deletion-error',
       );
-    }
+    });
   }
 
   /// Send email verification to current user
@@ -775,37 +802,36 @@ class AuthService {
       );
     }
 
-    try {
+    await safeQuery(() async {
       await user.sendEmailVerification();
       AppLogger.logger.auth('📧 Email verification sent to: ${user.email}');
-    } on FirebaseAuthException catch (e) {
+    }, onError: (e) {
       AppLogger.logger.e('❌ Error sending email verification', error: e);
-
-      switch (e.code) {
-        case 'too-many-requests':
-          throw const AuthException(
-            'Too many verification emails sent. Please wait before requesting another.',
-            code: 'too-many-requests',
-          );
-        case 'invalid-email':
-          throw const AuthException(
-            'Invalid email address.',
-            code: 'invalid-email',
-          );
-        default:
-          throw AuthException(
-            'Failed to send verification email: ${e.message ?? 'Unknown error'}',
-            code: e.code,
-          );
+      if (e is FirebaseAuthException) {
+        switch (e.code) {
+          case 'too-many-requests':
+            throw const AuthException(
+              'Too many verification emails sent. Please wait before requesting another.',
+              code: 'too-many-requests',
+            );
+          case 'invalid-email':
+            throw const AuthException(
+              'Invalid email address.',
+              code: 'invalid-email',
+            );
+          default:
+            throw AuthException(
+              'Failed to send verification email: ${e.message ?? 'Unknown error'}',
+              code: e.code,
+            );
+        }
+      } else {
+        throw const AuthException(
+          'Failed to send verification email. Please try again.',
+          code: 'unknown-error',
+        );
       }
-    } catch (e) {
-      AppLogger.logger
-          .e('❌ Unexpected error sending email verification', error: e);
-      throw const AuthException(
-        'Failed to send verification email. Please try again.',
-        code: 'unknown-error',
-      );
-    }
+    });
   }
 
   /// Reload current user to check latest email verification status
@@ -818,16 +844,16 @@ class AuthService {
       );
     }
 
-    try {
+    await safeQuery(() async {
       await user.reload();
       AppLogger.logger.auth('🔄 User data reloaded for: ${user.email}');
-    } catch (e) {
+    }, onError: (e) {
       AppLogger.logger.e('❌ Error reloading user', error: e);
       throw const AuthException(
         'Failed to refresh user data. Please try again.',
         code: 'reload-error',
       );
-    }
+    });
   }
 
   /// Send verification email to a specific user by email (for existing users)
@@ -839,15 +865,15 @@ class AuthService {
       );
     }
 
-    try {
-      final cleanEmail = email.trim();
-      if (!_isValidEmail(cleanEmail)) {
-        throw const AuthException(
-          'Invalid email format.',
-          code: 'invalid-email',
-        );
-      }
+    final cleanEmail = email.trim();
+    if (!_isValidEmail(cleanEmail)) {
+      throw const AuthException(
+        'Invalid email format.',
+        code: 'invalid-email',
+      );
+    }
 
+    await safeQuery(() async {
       // Check if user exists in Firestore
       final userQuery = await _firestore
           .collection('users')
@@ -874,13 +900,13 @@ class AuthService {
 
       AppLogger.logger
           .auth('📧 Verification reminder created for: $cleanEmail');
-    } catch (e) {
+    }, onError: (e) {
       AppLogger.logger.e('❌ Error sending verification reminder', error: e);
       throw AuthException(
         'Failed to send verification reminder: ${e.toString()}',
         code: 'verification-reminder-error',
       );
-    }
+    });
   }
 }
 

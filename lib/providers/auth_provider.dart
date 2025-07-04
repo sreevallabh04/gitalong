@@ -5,7 +5,7 @@ import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../models/user_model.dart';
 import '../core/utils/logger.dart';
-import '../core/utils/firestore_utils.dart';
+import '../core/utils/firestore_utils.dart'; // Re-add safeQuery import
 import '../services/email_service.dart';
 
 // Firestore service provider

@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/project_provider.dart';
-import '../../core/router/app_router.dart';
 import '../../core/utils/logger.dart';
 import '../../models/models.dart';
 import '../../widgets/profile/role_switch_card.dart';
@@ -27,7 +26,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   late AnimationController _roleSwitchController;
 
   bool _isLoading = false;
-  bool _isEditingProfile = false;
 
   @override
   void initState() {
@@ -465,21 +463,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 ),
               ),
               const SizedBox(width: 12),
-              Expanded(
+              const Expanded(
                 child: StatsCard(
                   title: 'Matches',
                   value: '24',
                   icon: Icons.favorite,
-                  color: const Color(0xFFE91E63),
+                  color: Color(0xFFE91E63),
                 ),
               ),
               const SizedBox(width: 12),
-              Expanded(
+              const Expanded(
                 child: StatsCard(
                   title: 'Contributions',
                   value: '156',
                   icon: Icons.trending_up,
-                  color: const Color(0xFF238636),
+                  color: Color(0xFF238636),
                 ),
               ),
             ],
@@ -550,10 +548,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
     return projectsAsync.when(
       loading: () => _buildProjectSkeleton(),
-      error: (error, stack) => Center(
+      error: (error, stack) => const Center(
         child: Text(
           'Failed to load projects',
-          style: TextStyle(color: const Color(0xFF7D8590)),
+          style: TextStyle(color: Color(0xFF7D8590)),
         ),
       ),
       data: (projects) {

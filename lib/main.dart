@@ -7,14 +7,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
 
-import 'config/firebase_config.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/error_handler.dart';
 import 'core/utils/logger.dart';
 import 'providers/app_lifecycle_provider.dart';
 import 'core/router/app_router.dart';
-import 'core/theme/github_theme.dart';
-import 'core/providers/firebase_provider.dart';
+import 'core/widgets/octocat_floating_widget.dart';
+import 'firebase_options.dart';
 
 final githubDarkTheme = ThemeData(
   brightness: Brightness.dark,
@@ -121,12 +120,12 @@ void main() async {
     // Configure system UI overlay style for GitHub theme
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
-        statusBarColor: GitAlongTheme.carbonBlack,
+        statusBarColor: AppTheme.backgroundColor,
         statusBarIconBrightness: Brightness.light,
         statusBarBrightness: Brightness.dark,
-        systemNavigationBarColor: GitAlongTheme.surfaceGray,
+        systemNavigationBarColor: AppTheme.surfaceColor,
         systemNavigationBarIconBrightness: Brightness.light,
-        systemNavigationBarDividerColor: GitAlongTheme.borderGray,
+        systemNavigationBarDividerColor: AppTheme.borderColor,
       ),
     );
 
@@ -138,7 +137,9 @@ void main() async {
 
     // Initialize Firebase
     AppLogger.logger.i('🔥 Initializing Firebase...');
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
     AppLogger.logger.success('✅ Firebase initialized successfully');
 
     // Set up error handling
@@ -158,7 +159,7 @@ void main() async {
     runApp(
       MaterialApp(
         debugShowCheckedModeBanner: false,
-        theme: githubDarkTheme,
+        theme: AppTheme.darkTheme,
         home: Scaffold(
           backgroundColor: const Color(0xFF0D1117),
           body: Center(
@@ -241,8 +242,8 @@ class GitAlongApp extends ConsumerWidget {
       title: 'GitAlong',
       debugShowCheckedModeBanner: false,
 
-      // Use the bleeding GitHub theme
-      theme: githubDarkTheme,
+      // Use the GitHub-inspired theme
+      theme: AppTheme.darkTheme,
 
       // GoRouter configuration - this is the key!
       routerConfig: router,
@@ -251,13 +252,23 @@ class GitAlongApp extends ConsumerWidget {
       builder: (context, child) {
         // Ensure text scaling doesn't break the UI
         final mediaQuery = MediaQuery.of(context);
-        return MediaQuery(
-          data: mediaQuery.copyWith(
-            textScaler: TextScaler.linear(
-              mediaQuery.textScaler.scale(1.0).clamp(0.8, 1.2),
+        return Stack(
+          children: [
+            MediaQuery(
+              data: mediaQuery.copyWith(
+                textScaler: TextScaler.linear(
+                  mediaQuery.textScaler.scale(1.0).clamp(0.8, 1.2),
+                ),
+              ),
+              child: child ?? const SizedBox.shrink(),
             ),
-          ),
-          child: child ?? const SizedBox.shrink(),
+
+            // Global Octocat floating widget
+            const OctocatFloatingWidget(
+              showPulse: true,
+              size: 50,
+            ),
+          ],
         );
       },
     );

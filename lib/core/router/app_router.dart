@@ -210,7 +210,7 @@ class GoRouterRefreshStream extends ChangeNotifier {
 
 class PlaceholderWidget extends StatelessWidget {
   final String label;
-  const PlaceholderWidget(this.label, {Key? key}) : super(key: key);
+  const PlaceholderWidget(this.label, {super.key});
   @override
   Widget build(BuildContext context) {
     return Scaffold(

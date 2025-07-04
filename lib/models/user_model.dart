@@ -76,9 +76,9 @@ class UserModel {
         isEmailVerified: _parseBool(json['is_email_verified']) ??
             _parseBool(json['isEmailVerified']) ??
             false,
-        isProfileComplete: _parseBool(json['is_profile_complete']) ??
-            _parseBool(json['isProfileComplete']) ??
-            false,
+        isProfileComplete: (_parseBool(json['is_profile_complete']) ??
+                _parseBool(json['isProfileComplete'])) ==
+            true,
         followers: _parseInt(json['followers']),
         following: _parseInt(json['following']),
         repositories: _parseInt(json['repositories']),
