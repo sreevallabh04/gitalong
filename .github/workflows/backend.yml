@@ -1,0 +1,32 @@
+name: Backend CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+      - name: Lint
+        run: |
+          cd backend
+          pip install flake8
+          flake8 .
+      - name: Test
+        run: |
+          cd backend
+          if [ -f test_main.py ]; then python test_main.py; else echo "No tests"; fi
+      - name: Docker build
+        run: |
+          cd backend
+          docker build -t gitalong-backend . 

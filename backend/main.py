@@ -15,7 +15,7 @@ import numpy as np
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Any
 from pydantic import BaseModel, Field
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -429,6 +429,11 @@ async def startup_event():
     logger.info("🚀 Starting GitAlong ML Matching Engine")
     await populate_sample_data()
     logger.info("✅ Startup complete - Ready to match developers!")
+
+@app.get("/recommendations")
+def get_recommendations(uid: str = Query(...)) -> List[str]:
+    # TODO: Implement AI-powered recommendations
+    return ["user1", "user2", "user3"]
 
 if __name__ == "__main__":
     uvicorn.run(

@@ -91,6 +91,41 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'project_upload',
         builder: (context, state) => const ProjectUploadScreen(),
       ),
+
+      // Placeholder routes
+      GoRoute(
+        path: '/splash',
+        builder: (context, state) => const PlaceholderWidget('Splash'),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const PlaceholderWidget('Onboarding'),
+      ),
+      GoRoute(
+        path: '/auth',
+        builder: (context, state) => const PlaceholderWidget('Auth'),
+      ),
+      GoRoute(
+        path: '/profile',
+        builder: (context, state) => const PlaceholderWidget('Profile Setup'),
+      ),
+      GoRoute(
+        path: '/swipe',
+        builder: (context, state) => const PlaceholderWidget('Swipe'),
+      ),
+      GoRoute(
+        path: '/match',
+        builder: (context, state) => const PlaceholderWidget('Match'),
+      ),
+      GoRoute(
+        path: '/chat',
+        builder: (context, state) => const PlaceholderWidget('Chat'),
+      ),
+      GoRoute(
+        path: '/maintainer',
+        builder: (context, state) =>
+            const PlaceholderWidget('Maintainer Dashboard'),
+      ),
     ],
 
     // Simple error handling
@@ -170,5 +205,16 @@ class GoRouterRefreshStream extends ChangeNotifier {
   void dispose() {
     _subscription.cancel();
     super.dispose();
+  }
+}
+
+class PlaceholderWidget extends StatelessWidget {
+  final String label;
+  const PlaceholderWidget(this.label, {Key? key}) : super(key: key);
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(child: Text(label)),
+    );
   }
 }

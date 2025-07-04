@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../core/utils/production_logger.dart';
+import '../core/utils/logger.dart';
 
 enum UserRole { contributor, maintainer }
 
@@ -89,11 +89,10 @@ class UserModel {
         website: _parseString(json['website']),
       );
     } catch (e, stackTrace) {
-      ProductionLogger.error(
+      AppLogger.logger.e(
         'Failed to parse UserModel from JSON',
         error: e,
         stackTrace: stackTrace,
-        data: {'json': json},
       );
 
       // Fallback with minimal required fields to prevent crashes
@@ -169,12 +168,10 @@ class UserModel {
         }
       }
 
-      ProductionLogger.warning(
-          'Unknown timestamp format: ${value.runtimeType}');
+      AppLogger.logger.w('Unknown timestamp format: ${value.runtimeType}');
       return null;
     } catch (e) {
-      ProductionLogger.warning(
-          'Failed to parse DateTime from: $value, error: $e');
+      AppLogger.logger.w('Failed to parse DateTime from: $value, error: $e');
       return null;
     }
   }

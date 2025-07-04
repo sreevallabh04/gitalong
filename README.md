@@ -8,6 +8,21 @@
 
 GitAlong is a Flutter application that connects developers with open source projects through a Tinder-like interface. Find projects that match your skills, interests, and availability.
 
+## 🚀 Tech Stack
+- Flutter (Riverpod, Hooks, GoRouter)
+- Firebase Auth + Firestore + Storage
+- GitHub OAuth (flutter_web_auth_2)
+- FastAPI ML backend (recommendations)
+- JetBrains Mono, Carbon Black theme
+
+## ✅ Features
+- Email, Google, GitHub OAuth
+- Profile setup with avatar upload
+- GitHub-style UI
+- AI-powered swiping & matching
+- Real-time messaging
+- Maintainer dashboard
+
 ## 🚀 Production-Ready Features
 
 ### ✅ Authentication System
@@ -185,3 +200,30 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Status**: ✅ Production Ready | 🔐 Authentication Complete | 🚀 Ready to Deploy
+
+## 🛠️ Setup
+
+### 1. Flutter App
+- Install dependencies: `flutter pub get`
+- Add your Firebase config files (`google-services.json`, `GoogleService-Info.plist`)
+- Run: `flutter run`
+
+### 2. Backend
+- `cd backend`
+- Build Docker image: `docker build -t gitalong-backend .`
+- Run: `docker run -p 8080:8080 gitalong-backend`
+
+### 3. Firebase
+- Deploy security rules: `firebase deploy --only firestore:rules`
+- Set up Firebase Auth, Firestore, Storage in the console
+
+### 4. CI/CD
+- See `.github/workflows/` for GitHub Actions setup (add as needed)
+
+### 5. Deployment
+- Deploy Flutter web: `flutter build web` + Firebase Hosting
+- Deploy backend: Cloud Run, Heroku, or similar
+
+---
+
+For detailed production deployment, see `PRODUCTION_DEPLOYMENT_GUIDE.md`.

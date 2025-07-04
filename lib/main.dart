@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 import 'config/firebase_config.dart';
 import 'core/theme/app_theme.dart';
@@ -12,6 +13,8 @@ import 'core/utils/error_handler.dart';
 import 'core/utils/logger.dart';
 import 'providers/app_lifecycle_provider.dart';
 import 'core/router/app_router.dart';
+import 'core/theme/github_theme.dart';
+import 'core/providers/firebase_provider.dart';
 
 final githubDarkTheme = ThemeData(
   brightness: Brightness.dark,
@@ -135,7 +138,7 @@ void main() async {
 
     // Initialize Firebase
     AppLogger.logger.i('🔥 Initializing Firebase...');
-    await FirebaseConfig.initialize();
+    await Firebase.initializeApp();
     AppLogger.logger.success('✅ Firebase initialized successfully');
 
     // Set up error handling
