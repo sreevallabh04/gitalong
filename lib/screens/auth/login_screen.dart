@@ -11,7 +11,9 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../services/auth_service.dart' as auth;
 import '../../providers/auth_provider.dart';
 import '../../core/utils/logger.dart';
+import '../../core/utils/responsive_utils.dart';
 import '../../core/router/app_router.dart';
+import '../../core/widgets/responsive_buttons.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -248,6 +250,98 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     }
   }
 
+  void _signUpWithGoogle() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      AppLogger.logger.auth('🔐 Starting Google Sign-Up process...');
+
+      // Use the improved AuthService with comprehensive error handling
+      final credential = await ref.read(authServiceProvider).signInWithGoogle();
+
+      if (credential.user != null) {
+        AppLogger.logger
+            .auth('✅ Google sign-up successful for: ${credential.user!.email}');
+
+        if (mounted) {
+          // Navigate to onboarding for new users
+          AppLogger.logger.navigation(
+              '✅ Google sign-up successful, navigating to onboarding');
+          context.goToOnboarding();
+        }
+      } else {
+        throw const auth.AuthException(
+          'Google sign-up completed but no user was returned.',
+          code: 'no-user-returned',
+        );
+      }
+    } on auth.AuthException catch (e) {
+      AppLogger.logger.e('❌ Auth error during Google sign-up', error: e);
+
+      if (mounted) {
+        String userFriendlyMessage;
+
+        // Provide more specific error messages based on the error code
+        switch (e.code) {
+          case 'sign-in-cancelled':
+            userFriendlyMessage =
+                'Google sign-up was cancelled. Please try again.';
+            break;
+          case 'network-request-failed':
+            userFriendlyMessage =
+                'Network error. Please check your connection and try again.';
+            break;
+          case 'operation-not-allowed':
+            userFriendlyMessage =
+                'Google sign-up is not enabled. Please contact support.';
+            break;
+          case 'invalid-credential':
+            userFriendlyMessage =
+                'Invalid credentials. Please try signing up again.';
+            break;
+          default:
+            userFriendlyMessage = e.message;
+        }
+
+        setState(() {
+          _isLoading = false;
+        });
+
+        // Show snackbar for better visibility
+        _showErrorSnackbar(userFriendlyMessage);
+      }
+    } catch (e, stackTrace) {
+      AppLogger.logger.e(
+        '❌ Unexpected error during Google sign-up',
+        error: e,
+        stackTrace: stackTrace,
+      );
+
+      if (mounted) {
+        String errorMessage = 'Google sign-up failed. Please try again.';
+
+        // Handle specific platform errors
+        if (e.toString().contains('DEVELOPER_ERROR') ||
+            e.toString().contains('Error 10')) {
+          errorMessage =
+              'Google sign-up configuration error. Please contact support.';
+        } else if (e.toString().contains('network') ||
+            e.toString().contains('connection')) {
+          errorMessage =
+              'Network error. Please check your internet connection.';
+        }
+
+        setState(() {
+          _isLoading = false;
+        });
+
+        _showErrorSnackbar(errorMessage);
+      }
+    }
+  }
+
   void _signInWithApple() async {
     setState(() {
       _isLoading = true;
@@ -290,20 +384,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     setState(() {
       _isLoading = true;
     });
-
     try {
       AppLogger.logger.auth('🐙 Starting GitHub Sign-In process...');
-
-      // Use the improved AuthService with comprehensive error handling
       final credential =
           await ref.read(authServiceProvider).signInWithGitHubMobile();
-
       if (credential.user != null) {
-        AppLogger.logger
-            .auth('✅ GitHub sign-in successful for: ${credential.user!.email}');
-
+        AppLogger.logger.auth(
+            '✅ GitHub sign-in successful for: \\${credential.user!.email}');
         if (mounted) {
-          // Navigate using GoRouter - this will trigger the auth redirect
           AppLogger.logger
               .navigation('✅ GitHub sign-in successful, navigating to home');
           context.goToHome();
@@ -316,11 +404,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       }
     } on auth.AuthException catch (e) {
       AppLogger.logger.e('❌ Auth error during GitHub sign-in', error: e);
-
       if (mounted) {
         String userFriendlyMessage;
-
-        // Provide more specific error messages based on the error code
         switch (e.code) {
           case 'sign-in-cancelled':
             userFriendlyMessage =
@@ -345,16 +430,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           default:
             userFriendlyMessage = e.message;
         }
-
         _showErrorSnackbar(userFriendlyMessage);
       }
     } catch (e, stackTrace) {
-      AppLogger.logger.e(
-        '❌ Unexpected error during GitHub sign-in',
-        error: e,
-        stackTrace: stackTrace,
-      );
-
+      AppLogger.logger.e('❌ Unexpected error during GitHub sign-in',
+          error: e, stackTrace: stackTrace);
       if (mounted) {
         _showErrorSnackbar('An unexpected error occurred. Please try again.');
       }
@@ -611,7 +691,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         _buildOAuthButton(
           onPressed: _isLoading ? null : _signInWithGoogle,
           icon: Icons.g_mobiledata,
-          label: 'Continue with Google',
+          label: 'Sign in with Google',
+          backgroundColor: const Color(0xFF21262D),
+          borderColor: const Color(0xFF30363D),
+          textColor: const Color(0xFFF0F6FC),
+        ),
+        const SizedBox(height: 16),
+        _buildOAuthButton(
+          onPressed: _isLoading ? null : _signUpWithGoogle,
+          icon: Icons.g_mobiledata,
+          label: 'Sign up with Google',
           backgroundColor: const Color(0xFF21262D),
           borderColor: const Color(0xFF30363D),
           textColor: const Color(0xFFF0F6FC),
@@ -656,49 +745,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     required Color borderColor,
     required Color textColor,
   }) {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: ElevatedButton.icon(
-        onPressed: onPressed,
-        icon: Icon(icon, size: 24, color: textColor),
-        label: Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: textColor,
-          ),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: backgroundColor,
-          foregroundColor: textColor,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: borderColor, width: 1),
-          ),
-        ).copyWith(
-          backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
-            if (states.contains(WidgetState.hovered)) {
-              return const Color(0xFF30363D); // GitHub light gray
-            }
-            if (states.contains(WidgetState.pressed)) {
-              return const Color(0xFF238636); // GitHub green
-            }
-            return backgroundColor;
-          }),
-          side: WidgetStateProperty.resolveWith<BorderSide>((states) {
-            if (states.contains(WidgetState.hovered)) {
-              return const BorderSide(
-                color: Color(0xFF238636),
-                width: 1,
-              ); // GitHub green
-            }
-            return BorderSide(color: borderColor, width: 1);
-          }),
-        ),
-      ),
+    return ResponsiveIconLabelButton(
+      onPressed: onPressed,
+      icon: icon,
+      label: label,
+      backgroundColor: backgroundColor,
+      foregroundColor: textColor,
+      isLoading: _isLoading,
+      isOutlined: true,
     );
   }
 
@@ -849,9 +903,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           const SizedBox(height: 20),
 
           // Sign in button
-          _buildActionButton(
+          ResponsiveElevatedButton(
             onPressed: _isLoading ? null : _signIn,
-            label: 'Sign In',
+            isLoading: _isLoading,
+            child: const Text('Sign In'),
           ),
 
           const SizedBox(height: 20),
@@ -964,9 +1019,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           const SizedBox(height: 24),
 
           // Sign up button
-          _buildActionButton(
+          ResponsiveElevatedButton(
             onPressed: _isLoading ? null : _signUp,
-            label: 'Create Account & Set Up Profile',
+            isLoading: _isLoading,
+            child: const Text('Create Account & Set Up Profile'),
           ),
         ],
       ),

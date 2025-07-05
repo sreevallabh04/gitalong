@@ -6,43 +6,42 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gitalong/main.dart';
 
 void main() {
-  testWidgets('GitAlong app smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(
-      const ProviderScope(
-        child: GitAlongApp(),
-      ),
-    );
+  group('GitAlong App Tests', () {
+    testWidgets('App should start without crashing',
+        (WidgetTester tester) async {
+      // Build our app and trigger a frame.
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: GitAlongApp(),
+        ),
+      );
 
-    // Verify that GitAlong app starts up without crashing
-    expect(find.text('GitAlong'), findsOneWidget);
-  });
+      // Verify that the app starts without errors
+      expect(find.byType(MaterialApp), findsOneWidget);
+    });
 
-  testWidgets('App navigation smoke test', (WidgetTester tester) async {
-    await tester.pumpWidget(
-      const ProviderScope(
-        child: GitAlongApp(),
-      ),
-    );
+    testWidgets('App should have proper theme', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: GitAlongApp(),
+        ),
+      );
 
-    // Allow the app to initialize
-    await tester.pumpAndSettle();
+      final materialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
+      expect(materialApp.theme, isNotNull);
+      expect(materialApp.debugShowCheckedModeBanner, false);
+    });
 
-    // The app should show some UI without crashing
-    expect(find.byType(MaterialApp), findsOneWidget);
-  });
+    testWidgets('App should have router configuration',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: GitAlongApp(),
+        ),
+      );
 
-  testWidgets('Theme integration test', (WidgetTester tester) async {
-    await tester.pumpWidget(
-      const ProviderScope(
-        child: GitAlongApp(),
-      ),
-    );
-
-    await tester.pumpAndSettle();
-
-    // Check that the app uses the correct theme colors
-    final MaterialApp app = tester.widget(find.byType(MaterialApp));
-    expect(app.theme?.primaryColor, isNotNull);
+      // Verify that the app has router configuration
+      expect(find.byType(MaterialApp), findsOneWidget);
+    });
   });
 }

@@ -3,9 +3,9 @@ service cloud.firestore {
   match /databases/{database}/documents {
     
     // ============================================================================
-    // DEVELOPMENT FIRESTORE RULES FOR GITALONG
-    // 🔐 Security Level: Development (More Permissive)
-    // 🎯 Designed for: Testing and Development
+    // PRODUCTION FIRESTORE RULES FOR GITALONG
+    // 🔐 Security Level: Production (Strict)
+    // 🎯 Designed for: Production Deployment
     // 📝 Last Updated: 2025-01-02
     // ============================================================================
     
@@ -14,8 +14,7 @@ service cloud.firestore {
     // ============================================================================
     match /users/{userId} {
       // Users can read/write their own profile
-      allow read, write: if request.auth != null 
-        && request.auth.uid == userId;
+      allow read, write: if request.auth != null && request.auth.uid == userId;
       
       // Allow reading basic profile info for matching
       allow read: if request.auth != null;
@@ -26,16 +25,13 @@ service cloud.firestore {
     // ============================================================================
     match /projects/{projectId} {
       // Project owners can read/write their projects
-      allow read, write: if request.auth != null 
-        && request.auth.uid == resource.data.owner_id;
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.owner_id;
       
       // All authenticated users can read active projects
-      allow read: if request.auth != null 
-        && resource.data.status == 'active';
+      allow read: if request.auth != null && resource.data.status == 'active';
       
-      // Authenticated users can create new projects
-      allow create: if request.auth != null 
-        && request.auth.uid == request.resource.data.owner_id;
+      // Only owners can create projects
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.owner_id;
     }
     
     // ============================================================================
@@ -43,13 +39,12 @@ service cloud.firestore {
     // ============================================================================
     match /swipes/{swipeId} {
       // Users can create their own swipes
-      allow create: if request.auth != null 
-        && request.auth.uid == request.resource.data.swiper_id;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.swiper_id;
       
       // Users can read their own swipes
-      allow read: if request.auth != null 
-        && (request.auth.uid == resource.data.swiper_id 
-           || request.auth.uid == resource.data.target_id);
+      allow read: if request.auth != null && (request.auth.uid == resource.data.swiper_id || request.auth.uid == resource.data.target_id);
+      
+      // No update/delete allowed (immutable)
     }
     
     // ============================================================================
@@ -57,14 +52,12 @@ service cloud.firestore {
     // ============================================================================
     match /matches/{matchId} {
       // Users can read matches they're part of
-      allow read: if request.auth != null 
-        && (request.auth.uid == resource.data.user1_id 
-           || request.auth.uid == resource.data.user2_id);
+      allow read: if request.auth != null && (request.auth.uid == resource.data.user1_id || request.auth.uid == resource.data.user2_id);
       
-      // Users can update match status
-      allow update: if request.auth != null 
-        && (request.auth.uid == resource.data.user1_id 
-           || request.auth.uid == resource.data.user2_id);
+      // Users can update match status if they're part of the match
+      allow update: if request.auth != null && (request.auth.uid == resource.data.user1_id || request.auth.uid == resource.data.user2_id);
+      
+      // No create/delete from client
     }
     
     // ============================================================================
@@ -72,13 +65,12 @@ service cloud.firestore {
     // ============================================================================
     match /messages/{messageId} {
       // Users can send/receive messages
-      allow read, write: if request.auth != null 
-        && (request.auth.uid == resource.data.sender_id 
-           || request.auth.uid == resource.data.receiver_id);
+      allow read, write: if request.auth != null && (request.auth.uid == resource.data.sender_id || request.auth.uid == resource.data.receiver_id);
       
       // Allow creation of messages
-      allow create: if request.auth != null 
-        && request.auth.uid == request.resource.data.sender_id;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.sender_id;
+      
+      // No update/delete from client
     }
     
     // ============================================================================
@@ -88,14 +80,14 @@ service cloud.firestore {
       // Allow authenticated users to create welcome email records
       allow create: if request.auth != null;
       // Allow reading own welcome email records
-      allow read: if request.auth != null;
+      allow read: if request.auth != null && request.auth.uid == resource.data.user_id;
     }
     
     match /email_errors/{docId} {
       // Allow authenticated users to create error records
       allow create: if request.auth != null;
       // Allow reading own error records
-      allow read: if request.auth != null;
+      allow read: if request.auth != null && request.auth.uid == resource.data.user_id;
     }
     
     // ============================================================================
@@ -103,8 +95,7 @@ service cloud.firestore {
     // ============================================================================
     match /recommendations/{userId} {
       // Users can only read their own recommendations
-      allow read: if request.auth != null 
-        && request.auth.uid == userId;
+      allow read: if request.auth != null && request.auth.uid == userId;
     }
     
     // ============================================================================
@@ -129,8 +120,8 @@ service cloud.firestore {
     // 🛎️ USER NOTIFICATIONS COLLECTION
     // ============================================================================
     match /user_notifications/{docId} {
-      // Allow authenticated users to create notification records
-      allow create: if request.auth != null;
+      // Allow authenticated users to create notification records for themselves
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.user_id;
       // Allow reading own notification records
       allow read: if request.auth != null && request.auth.uid == resource.data.user_id;
     }

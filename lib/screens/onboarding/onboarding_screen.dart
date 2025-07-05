@@ -4,9 +4,11 @@ import '../../models/models.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/utils/logger.dart';
+import '../../core/utils/responsive_utils.dart';
 import '../../core/router/app_router.dart';
 import '../../core/utils/firestore_utils.dart';
 import '../../providers/auth_provider.dart';
+import '../../core/widgets/responsive_buttons.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -327,59 +329,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 top: BorderSide(color: Color(0xFF30363D), width: 1),
               ),
             ),
-            child: Row(
+            child: ResponsiveButtonGroup(
               children: [
                 if (_currentPage > 0)
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _isLoading ? null : _previousPage,
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFF30363D)),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Text(
-                        'Back',
-                        style: TextStyle(
-                          color: Color(0xFF7D8590),
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
+                  ResponsiveOutlinedButton(
+                    onPressed: _isLoading ? null : _previousPage,
+                    child: const Text('Back'),
                   ),
-                if (_currentPage > 0) const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _nextPage,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF238636),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : Text(
-                            _currentPage == 2 ? 'Complete Profile' : 'Next',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                ResponsiveElevatedButton(
+                  onPressed: _isLoading ? null : _nextPage,
+                  isLoading: _isLoading,
+                  child: Text(
+                    _currentPage == 2 ? 'Complete Profile' : 'Next',
                   ),
                 ),
               ],

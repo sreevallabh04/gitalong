@@ -7,10 +7,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/project_provider.dart';
 import '../../core/utils/logger.dart';
+import '../../core/utils/responsive_utils.dart';
 import '../../models/models.dart';
 import '../../widgets/profile/role_switch_card.dart';
 import '../../widgets/profile/stats_card.dart';
 import '../../widgets/profile/project_preview_card.dart';
+import '../../core/widgets/responsive_buttons.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
@@ -326,7 +328,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 bottom: 8,
                 right: 8,
                 child: GestureDetector(
-                  onTap: _isLoading ? null : () => _pickAndUploadProfileImage(userProfile),
+                  onTap: _isLoading
+                      ? null
+                      : () => _pickAndUploadProfileImage(userProfile),
                   child: Container(
                     decoration: BoxDecoration(
                       color: Colors.black.withOpacity(0.7),
@@ -530,14 +534,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   color: const Color(0xFFF0F6FC),
                 ),
               ),
-              OutlinedButton.icon(
+              ResponsiveIconLabelButton(
                 onPressed: () => context.go('/project/upload'),
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('Upload Project'),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Color(0xFF8B5CF6)),
-                  foregroundColor: const Color(0xFF8B5CF6),
-                ),
+                icon: Icons.add,
+                label: 'Upload Project',
+                foregroundColor: const Color(0xFF8B5CF6),
+                isOutlined: true,
               ),
             ],
           ),
@@ -647,17 +649,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             ),
           ),
           const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () => context.go('/project/upload'),
-              icon: const Icon(Icons.add, size: 16),
-              label: const Text('Upload Project'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF8B5CF6),
-                foregroundColor: Colors.white,
-              ),
-            ),
+          ResponsiveIconLabelButton(
+            onPressed: () => context.go('/project/upload'),
+            icon: Icons.add,
+            label: 'Upload Project',
+            backgroundColor: const Color(0xFF8B5CF6),
+            foregroundColor: Colors.white,
           ),
         ],
       ),
@@ -942,7 +939,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
   Future<void> _pickAndUploadProfileImage(UserModel userProfile) async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    final pickedFile =
+        await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
     if (pickedFile == null) return;
 
     setState(() => _isLoading = true);
@@ -955,8 +953,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       final downloadUrl = await storageRef.getDownloadURL();
       // Update user profile with new photoURL
       await ref.read(userProfileProvider.notifier).updateProfile(
-        userProfile.copyWith(photoURL: downloadUrl),
-      );
+            userProfile.copyWith(photoURL: downloadUrl),
+          );
       AppLogger.logger.success('✅ Profile picture updated');
     } catch (e) {
       AppLogger.logger.e('❌ Failed to upload profile picture', error: e);

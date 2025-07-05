@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../providers/auth_provider.dart';
 import '../../core/utils/firestore_utils.dart';
+import '../../core/utils/responsive_utils.dart';
+import '../../core/widgets/responsive_buttons.dart';
 
 class MaintainerLoginScreen extends ConsumerStatefulWidget {
   const MaintainerLoginScreen({super.key});
@@ -183,14 +185,13 @@ class _MaintainerLoginScreenState extends ConsumerState<MaintainerLoginScreen> {
                 },
               ),
               const SizedBox(height: 24),
-              ElevatedButton(
+              ResponsiveElevatedButton(
                 onPressed: _isLoading ? null : _signIn,
-                child: _isLoading
-                    ? const CircularProgressIndicator()
-                    : const Text('Sign In'),
+                isLoading: _isLoading,
+                child: const Text('Sign In'),
               ),
               const SizedBox(height: 16),
-              TextButton(
+              ResponsiveTextButton(
                 onPressed: _requestMaintainerAccess,
                 child: const Text('Request Maintainer Access'),
               ),

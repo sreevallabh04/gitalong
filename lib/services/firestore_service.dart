@@ -602,4 +602,29 @@ class FirestoreService {
 
   /// Check if service is initialized
   static bool get isInitialized => _initialized;
+
+  /// Send a notification to the project owner when a user right swipes
+  static Future<void> sendSwipeNotification({
+    required String ownerId,
+    required String projectId,
+    required String swiperId,
+    required String status, // 'pending', 'accepted', 'rejected'
+  }) async {
+    if (!_initialized) throw Exception('Firestore not initialized');
+    try {
+      await _firestore.collection('user_notifications').add({
+        'owner_id': ownerId,
+        'project_id': projectId,
+        'swiper_id': swiperId,
+        'status': status,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+      AppLogger.logger
+          .i('🔔 Notification sent to owner $ownerId for project $projectId');
+    } catch (e, stackTrace) {
+      AppLogger.logger.e('❌ Failed to send swipe notification',
+          error: e, stackTrace: stackTrace);
+      rethrow;
+    }
+  }
 }

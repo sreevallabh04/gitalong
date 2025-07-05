@@ -3,12 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import 'package:swipe_cards/swipe_cards.dart';
 
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/project_provider.dart';
 import '../../core/utils/logger.dart';
+import '../../core/utils/responsive_utils.dart';
 import '../../core/monitoring/analytics_service.dart';
+import '../../services/firestore_service.dart';
+import '../../services/notification_service.dart';
+import '../../core/widgets/responsive_buttons.dart';
 
 class SwipeScreen extends ConsumerStatefulWidget {
   const SwipeScreen({super.key});
@@ -49,6 +54,54 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
     )..forward();
   }
 
+  void _onRightSwipe(ProjectModel project) async {
+    final user = ref.read(currentUserProvider);
+    if (user == null) return;
+
+    try {
+      // Create a Firestore notification for the project owner
+      await FirestoreService.sendSwipeNotification(
+        ownerId: project.ownerId,
+        projectId: project.id,
+        swiperId: user.uid,
+        status: 'pending',
+      );
+
+      // Send push notification to project owner
+      await NotificationService().sendSwipeNotification(
+        projectOwnerId: project.ownerId,
+        swiperName: user.displayName ?? 'Someone',
+        projectTitle: project.title,
+      );
+
+      // Show success feedback
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('💖 Swipe sent! The project owner will be notified.'),
+          backgroundColor: const Color(0xFF238636),
+        ),
+      );
+
+      // Track analytics
+      AnalyticsService.trackCustomEvent(
+        eventName: 'swipe_right',
+        parameters: {
+          'project_id': project.id,
+          'project_title': project.title,
+          'owner_id': project.ownerId,
+        },
+      );
+    } catch (e) {
+      AppLogger.logger.e('❌ Failed to send swipe notification', error: e);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('⚠️ Failed to send notification. Please try again.'),
+          backgroundColor: Color(0xFFDA3633),
+        ),
+      );
+    }
+  }
+
   @override
   void dispose() {
     _backgroundController.dispose();
@@ -65,6 +118,27 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
     }
 
     _isContributor = userProfile.role == UserRole.contributor;
+
+    final projectsAsync = ref.watch(discoverProjectsProvider);
+    List<ProjectModel> projects = [];
+    List<SwipeItem> swipeItems = [];
+    MatchEngine? matchEngine;
+    projectsAsync.when(
+      data: (data) {
+        projects = data;
+        swipeItems = projects
+            .map((project) => SwipeItem(
+                  content: project,
+                  likeAction: () => _onRightSwipe(project),
+                  nopeAction: () {},
+                  superlikeAction: () {},
+                ))
+            .toList();
+        matchEngine = MatchEngine(swipeItems: swipeItems);
+      },
+      loading: () {},
+      error: (e, s) {},
+    );
 
     return Scaffold(
       backgroundColor: const Color(0xFF0D1117),
@@ -92,7 +166,7 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
               // Main Content Area
               Expanded(
                 child: _isContributor
-                    ? _buildContributorSwipe(context)
+                    ? _buildSwipeCards(context, matchEngine, projects)
                     : _buildMaintainerView(context),
               ),
 
@@ -202,18 +276,25 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
     );
   }
 
-  Widget _buildContributorSwipe(BuildContext context) {
-    final projectsAsync = ref.watch(discoverProjectsProvider);
-    return projectsAsync.when(
-      data: (projects) {
-        if (projects.isEmpty) return _buildEmptyState();
-        return _buildProjectCards(projects);
-      },
-      loading: () => _buildLoadingState(),
-      error: (error, stack) {
-        AppLogger.logger.e('❌ Error loading projects', error: error);
-        return _buildMockProjectCards(); // Fallback to mock data
-      },
+  Widget _buildSwipeCards(BuildContext context, MatchEngine? matchEngine,
+      List<ProjectModel> projects) {
+    if (matchEngine == null || projects.isEmpty) return _buildEmptyState();
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: SwipeCards(
+        matchEngine: matchEngine,
+        itemBuilder: (context, index) {
+          final project = projects[index];
+          return _buildEnhancedProjectCard(project);
+        },
+        onStackFinished: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('No more projects!')),
+          );
+        },
+        upSwipeAllowed: false,
+        fillSpace: true,
+      ),
     );
   }
 
@@ -289,98 +370,6 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
     );
   }
 
-  Widget _buildMockProjectCards() {
-    final mockProjects = [
-      ProjectModel(
-        id: 'mock-1',
-        title: 'Open Source Flutter UI Kit',
-        description:
-            'Beautiful, customizable UI components for Flutter apps. Help us build the next generation of mobile interfaces with stunning animations and smooth performance.',
-        ownerId: 'owner-1',
-        skillsRequired: ['Flutter', 'Dart', 'UI/UX', 'Animation'],
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        repoUrl: 'https://github.com/example/flutter-ui-kit',
-      ),
-      ProjectModel(
-        id: 'mock-2',
-        title: 'AI-Powered Code Review Tool',
-        description:
-            'Revolutionary code review system using machine learning to detect bugs, suggest improvements, and maintain code quality standards.',
-        ownerId: 'owner-2',
-        skillsRequired: ['Python', 'Machine Learning', 'TensorFlow', 'Docker'],
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        repoUrl: 'https://github.com/example/ai-code-review',
-      ),
-      ProjectModel(
-        id: 'mock-3',
-        title: 'Blockchain DeFi Platform',
-        description:
-            'Decentralized finance platform built on Ethereum. Contributing to the future of digital finance with smart contracts and Web3 integration.',
-        ownerId: 'owner-3',
-        skillsRequired: ['Solidity', 'Web3', 'React', 'Node.js'],
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        repoUrl: 'https://github.com/example/defi-platform',
-      ),
-    ];
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1F6FEB).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: const Color(0xFF1F6FEB).withValues(alpha: 0.3),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.info_outline,
-                    color: Color(0xFF1F6FEB),
-                    size: 16,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Demo Projects - Real data loading...',
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 12,
-                      color: const Color(0xFF1F6FEB),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: SizedBox(
-                height: 600,
-                child: PageView.builder(
-                  itemCount: mockProjects.length,
-                  itemBuilder: (context, index) {
-                    return _buildEnhancedProjectCard(mockProjects[index]);
-                  },
-                ),
-              )
-                  .animate()
-                  .fadeIn(duration: 800.ms)
-                  .scale(begin: const Offset(0.9, 0.9)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildProjectCards(List<ProjectModel> projects) {
     return Center(
       child: Padding(
@@ -430,173 +419,173 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Project Header
-            Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF238636), Color(0xFF2EA043)],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Project Header
+              Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF238636), Color(0xFF2EA043)],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF238636).withValues(alpha: 0.3),
+                          blurRadius: 15,
+                          spreadRadius: 2,
+                        ),
+                      ],
                     ),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF238636).withValues(alpha: 0.3),
-                        blurRadius: 15,
-                        spreadRadius: 2,
-                      ),
-                    ],
+                    child: const Icon(
+                      Icons.folder,
+                      color: Colors.white,
+                      size: 24,
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.folder,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        project.title,
-                        style: GoogleFonts.orbitron(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFFF0F6FC),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          project.title,
+                          style: GoogleFonts.orbitron(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFFF0F6FC),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF238636),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          'OPEN SOURCE',
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                            letterSpacing: 1,
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF238636),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'OPEN SOURCE',
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                              letterSpacing: 1,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const Icon(
-                  Icons.star,
-                  color: Color(0xFFE09800),
-                  size: 20,
-                ),
-              ],
-            ),
-
-              const SizedBox(height: 16),
-
-            // Description
-            Text(
-              project.description,
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                height: 1.6,
-                color: const Color(0xFFC9D1D9),
-              ),
-                maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-            ),
-
-              const SizedBox(height: 16),
-
-            // Skills
-            if (project.skillsRequired.isNotEmpty) ...[
-              Text(
-                'Skills Required',
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF238636),
-                ),
-              ),
-                const SizedBox(height: 8),
-              Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: project.skillsRequired.take(4).map((skill) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF238636).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: const Color(0xFF238636).withValues(alpha: 0.3),
-                      ),
-                    ),
-                    child: Text(
-                      skill,
-                      style: GoogleFonts.jetBrainsMono(
-                          fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: const Color(0xFF238636),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
-
-              const SizedBox(height: 16),
-
-            // Footer
-            Container(
-                padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0D1117).withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: const Color(0xFF30363D),
-                ),
-              ),
-              child: Row(
-                children: [
                   const Icon(
-                    Icons.code_sharp,
-                    color: Color(0xFF7D8590),
-                    size: 16,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Swipe right to join',
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      color: const Color(0xFF7D8590),
-                    ),
-                  ),
-                  const Spacer(),
-                  const Icon(
-                    Icons.favorite,
-                    color: Color(0xFF238636),
-                    size: 18,
+                    Icons.star,
+                    color: Color(0xFFE09800),
+                    size: 20,
                   ),
                 ],
               ),
-            ),
-          ],
+
+              const SizedBox(height: 16),
+
+              // Description
+              Text(
+                project.description,
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  height: 1.6,
+                  color: const Color(0xFFC9D1D9),
+                ),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+
+              const SizedBox(height: 16),
+
+              // Skills
+              if (project.skillsRequired.isNotEmpty) ...[
+                Text(
+                  'Skills Required',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF238636),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: project.skillsRequired.take(4).map((skill) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF238636).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFF238636).withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Text(
+                        skill,
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF238636),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+
+              const SizedBox(height: 16),
+
+              // Footer
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0D1117).withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFF30363D),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.code_sharp,
+                      color: Color(0xFF7D8590),
+                      size: 16,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Swipe right to join',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: const Color(0xFF7D8590),
+                      ),
+                    ),
+                    const Spacer(),
+                    const Icon(
+                      Icons.favorite,
+                      color: Color(0xFF238636),
+                      size: 18,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -605,22 +594,21 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
 
   Widget _buildActionButtons() {
     return Container(
-      padding: const EdgeInsets.all(24),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      padding: ResponsiveUtils.getResponsivePadding(context),
+      child: ResponsiveButtonGroup(
         children: [
-          _buildActionButton(
+          _buildResponsiveActionButton(
             icon: Icons.close,
             color: const Color(0xFFDA3633),
             onTap: () => _programmaticSwipe('left'),
           ),
-          _buildActionButton(
+          _buildResponsiveActionButton(
             icon: Icons.star,
             color: const Color(0xFFE09800),
             onTap: () => _showSuperLike(),
-            size: 56,
+            isLarge: true,
           ),
-          _buildActionButton(
+          _buildResponsiveActionButton(
             icon: Icons.favorite,
             color: const Color(0xFF238636),
             onTap: () => _programmaticSwipe('right'),
@@ -630,42 +618,25 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
     );
   }
 
-  Widget _buildActionButton({
+  Widget _buildResponsiveActionButton({
     required IconData icon,
     required Color color,
     required VoidCallback onTap,
-    double size = 48,
+    bool isLarge = false,
   }) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: const Color(0xFF21262D),
-        borderRadius: BorderRadius.circular(size / 2),
-        border: Border.all(
-          color: color.withValues(alpha: 0.3),
-          width: 2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.2),
-            blurRadius: 20,
-            spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(size / 2),
-          onTap: onTap,
-          child: Icon(
-            icon,
-            color: color,
-            size: size * 0.4,
-          ),
-        ),
-      ),
+    final buttonSize = isLarge
+        ? ResponsiveUtils.getResponsiveIconSize(context) * 2.5
+        : ResponsiveUtils.getResponsiveIconSize(context) * 2;
+    final iconSize = buttonSize * 0.4;
+    final borderRadius = ResponsiveUtils.getResponsiveBorderRadius(context);
+
+    return ResponsiveIconButton(
+      onPressed: onTap,
+      icon: icon,
+      backgroundColor: const Color(0xFF21262D),
+      foregroundColor: color,
+      size: buttonSize,
+      tooltip: isLarge ? 'Super Like' : (icon == Icons.close ? 'Pass' : 'Like'),
     );
   }
 

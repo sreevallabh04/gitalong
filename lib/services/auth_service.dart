@@ -1008,16 +1008,13 @@ class AuthService {
     return await user.linkWithCredential(pendingCredential);
   }
 
-  /// 🚀 GITHUB OAUTH AUTHENTICATION with production-grade error handling
+  /// 🚀 GITHUB OAUTH AUTHENTICATION for mobile using flutter_web_auth_2
   Future<UserCredential> signInWithGitHubMobile() async {
     try {
       AppLogger.logger.auth('🐙 Starting GitHub OAuth authentication...');
-
-      // 1. CHECK ENVIRONMENT VARIABLES
       final clientId = dotenv.env['GITHUB_CLIENT_ID'];
       final clientSecret = dotenv.env['GITHUB_CLIENT_SECRET'];
       final redirectUri = dotenv.env['GITHUB_REDIRECT_URI'];
-
       if (clientId == null || clientSecret == null || redirectUri == null) {
         AppLogger.logger.e('❌ GitHub OAuth credentials not configured');
         throw const AuthException(
@@ -1025,10 +1022,6 @@ class AuthService {
           code: 'github-not-configured',
         );
       }
-
-      AppLogger.logger.auth('✅ GitHub OAuth credentials found');
-
-      // 2. BUILD AUTHORIZATION URL
       final authUrl =
           Uri.parse('https://github.com/login/oauth/authorize').replace(
         queryParameters: {
@@ -1038,30 +1031,12 @@ class AuthService {
           'state': DateTime.now().millisecondsSinceEpoch.toString(),
         },
       );
-
-      AppLogger.logger.auth('🌐 Opening GitHub authorization URL...');
-
-      // 3. OPEN WEB AUTH FLOW
       final result = await FlutterWebAuth2.authenticate(
         url: authUrl.toString(),
         callbackUrlScheme: 'com.gitalong.app',
       );
-
-      if (result.isEmpty) {
-        AppLogger.logger.auth('❌ GitHub OAuth cancelled by user');
-        throw const AuthException(
-          'GitHub sign-in was cancelled',
-          code: 'sign-in-cancelled',
-        );
-      }
-
-      AppLogger.logger.auth('✅ GitHub authorization successful');
-
-      // 4. EXTRACT AUTHORIZATION CODE
       final callbackUrl = Uri.parse(result);
       final code = callbackUrl.queryParameters['code'];
-      final state = callbackUrl.queryParameters['state'];
-
       if (code == null) {
         AppLogger.logger.e('❌ No authorization code received from GitHub');
         throw const AuthException(
@@ -1069,10 +1044,6 @@ class AuthService {
           code: 'no-auth-code',
         );
       }
-
-      AppLogger.logger.auth('🔑 Authorization code received from GitHub');
-
-      // 5. EXCHANGE CODE FOR ACCESS TOKEN
       final tokenResponse = await http.post(
         Uri.parse('https://github.com/login/oauth/access_token'),
         headers: {
@@ -1086,7 +1057,6 @@ class AuthService {
           'redirect_uri': redirectUri,
         }),
       );
-
       if (tokenResponse.statusCode != 200) {
         AppLogger.logger.e(
             '❌ Failed to exchange code for token: ${tokenResponse.statusCode}');
@@ -1095,10 +1065,8 @@ class AuthService {
           code: 'token-exchange-failed',
         );
       }
-
       final tokenData = jsonDecode(tokenResponse.body) as Map<String, dynamic>;
       final accessToken = tokenData['access_token'] as String?;
-
       if (accessToken == null) {
         AppLogger.logger.e('❌ No access token received from GitHub');
         throw const AuthException(
@@ -1106,107 +1074,22 @@ class AuthService {
           code: 'no-access-token',
         );
       }
-
-      AppLogger.logger.auth('✅ GitHub access token received');
-
-      // 6. GET USER INFORMATION
-      final userResponse = await http.get(
-        Uri.parse('https://api.github.com/user'),
-        headers: {
-          'Authorization': 'token $accessToken',
-          'Accept': 'application/vnd.github.v3+json',
-        },
-      );
-
-      if (userResponse.statusCode != 200) {
-        AppLogger.logger
-            .e('❌ Failed to get user info: ${userResponse.statusCode}');
-        throw const AuthException(
-          'Failed to get user information from GitHub. Please try again.',
-          code: 'user-info-failed',
-        );
-      }
-
-      final userData = jsonDecode(userResponse.body) as Map<String, dynamic>;
-      final githubId = userData['id'].toString();
-      final email = userData['email'] as String?;
-      final username = userData['login'] as String?;
-      final name = userData['name'] as String?;
-
-      if (email == null) {
-        AppLogger.logger.e('❌ No email found in GitHub user data');
-        throw const AuthException(
-          'GitHub account must have a public email address. Please update your GitHub settings.',
-          code: 'no-email',
-        );
-      }
-
-      AppLogger.logger.auth('👤 GitHub user info: $email ($username)');
-
-      // 7. CREATE FIREBASE CREDENTIAL
       final credential = GithubAuthProvider.credential(accessToken);
-
-      AppLogger.logger.auth('🔑 Creating Firebase credential...');
-
-      // 8. SIGN IN TO FIREBASE
       final userCredential = await _auth.signInWithCredential(credential);
-
       AppLogger.logger.auth('✅ GitHub sign-in completed successfully!');
-      AppLogger.logger.auth('👤 User: ${userCredential.user?.email}');
-      AppLogger.logger
-          .auth('📧 Email verified: ${userCredential.user?.emailVerified}');
-
       return userCredential;
     } on FirebaseAuthException catch (e) {
-      AppLogger.logger.e(
-        '❌ Firebase Auth Error during GitHub sign-in',
-        error: e,
-        stackTrace: StackTrace.current,
+      AppLogger.logger.e('❌ Firebase Auth Error during GitHub sign-in',
+          error: e, stackTrace: StackTrace.current);
+      throw AuthException(
+        'GitHub sign-in failed: ${e.message ?? 'Please try again or contact support.'}',
+        code: e.code,
       );
-
-      // Provide user-friendly error messages
-      switch (e.code) {
-        case 'account-exists-with-different-credential':
-          throw AuthException(
-            'An account with this email already exists using a different sign-in method. Please try signing in with email/password.',
-            code: e.code,
-          );
-        case 'invalid-credential':
-          throw AuthException(
-            'GitHub sign-in failed due to invalid credentials. Please try again.',
-            code: e.code,
-          );
-        case 'operation-not-allowed':
-          throw AuthException(
-            'GitHub sign-in is not configured properly. Please contact support.',
-            code: e.code,
-          );
-        case 'user-disabled':
-          throw AuthException(
-            'This account has been disabled. Please contact support.',
-            code: e.code,
-          );
-        case 'network-request-failed':
-          throw AuthException(
-            'Network error. Please check your internet connection and try again.',
-            code: e.code,
-          );
-        default:
-          AppLogger.logger
-              .e('❌ Unhandled Firebase Auth error: ${e.code} - ${e.message}');
-          throw AuthException(
-            'GitHub sign-in failed: ${e.message ?? 'Please try again or contact support.'}',
-            code: e.code,
-          );
-      }
     } on AuthException {
       rethrow;
     } catch (e, stackTrace) {
-      AppLogger.logger.e(
-        '❌ Unexpected error during GitHub sign-in',
-        error: e,
-        stackTrace: stackTrace,
-      );
+      AppLogger.logger.e('❌ Unexpected error during GitHub sign-in',
+          error: e, stackTrace: stackTrace);
       throw AuthException(
         'An unexpected error occurred during GitHub sign-in. Please try again.',
         code: 'unknown-error',

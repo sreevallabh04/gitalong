@@ -8,7 +8,11 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/error_handler.dart';
 import 'core/utils/logger.dart';
+import 'core/utils/performance_utils.dart';
+import 'core/utils/error_boundary.dart';
+import 'core/analytics/analytics_service.dart';
 import 'config/firebase_config.dart';
+import 'services/notification_service.dart';
 import 'providers/app_lifecycle_provider.dart';
 import 'core/router/app_router.dart';
 import 'core/widgets/octocat_floating_widget.dart';
@@ -96,6 +100,14 @@ void main() async {
     AppLogger.initialize();
     AppLogger.logger.i('🚀 Starting GitAlong app initialization...');
 
+    // Initialize global error handling
+    GlobalErrorHandler.initialize();
+    AppLogger.logger.i('🛡️ Global error handling initialized');
+
+    // Initialize analytics
+    await AnalyticsService.initialize();
+    AppLogger.logger.i('📊 Analytics service initialized');
+
     // Load environment configuration (optional)
     try {
       await dotenv.load(fileName: ".env");
@@ -157,6 +169,11 @@ void main() async {
     AppLogger.logger.i('🔥 Initializing Firebase...');
     await FirebaseConfig.initialize();
     AppLogger.logger.success('✅ Firebase initialized successfully');
+
+    // Initialize notification service
+    AppLogger.logger.i('🔔 Initializing notification service...');
+    await NotificationService().initialize();
+    AppLogger.logger.success('✅ Notification service initialized successfully');
 
     // Set up error handling
     _setupErrorHandling();
@@ -254,39 +271,41 @@ class GitAlongApp extends ConsumerWidget {
     // Get the router from provider
     final router = ref.watch(routerProvider);
 
-    return MaterialApp.router(
-      title: 'GitAlong',
-      debugShowCheckedModeBanner: false,
+    return ErrorBoundary(
+      child: MaterialApp.router(
+        title: 'GitAlong',
+        debugShowCheckedModeBanner: false,
 
-      // Use the GitHub-inspired theme
-      theme: AppTheme.darkTheme,
+        // Use the GitHub-inspired theme
+        theme: AppTheme.darkTheme,
 
-      // GoRouter configuration - this is the key!
-      routerConfig: router,
+        // GoRouter configuration - this is the key!
+        routerConfig: router,
 
-      // Builder for additional global configuration
-      builder: (context, child) {
-        // Ensure text scaling doesn't break the UI
-        final mediaQuery = MediaQuery.of(context);
-        return Stack(
-          children: [
-            MediaQuery(
-              data: mediaQuery.copyWith(
-                textScaler: TextScaler.linear(
-                  mediaQuery.textScaler.scale(1.0).clamp(0.8, 1.2),
+        // Builder for additional global configuration
+        builder: (context, child) {
+          // Ensure text scaling doesn't break the UI
+          final mediaQuery = MediaQuery.of(context);
+          return Stack(
+            children: [
+              MediaQuery(
+                data: mediaQuery.copyWith(
+                  textScaler: TextScaler.linear(
+                    mediaQuery.textScaler.scale(1.0).clamp(0.8, 1.2),
+                  ),
                 ),
+                child: child ?? const SizedBox.shrink(),
               ),
-              child: child ?? const SizedBox.shrink(),
-            ),
 
-            // Global Octocat floating widget
-            const OctocatFloatingWidget(
-              showPulse: true,
-              size: 50,
-            ),
-          ],
-        );
-      },
+              // Global Octocat floating widget
+              const OctocatFloatingWidget(
+                showPulse: true,
+                size: 50,
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }

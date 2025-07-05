@@ -3,6 +3,184 @@ const admin = require('firebase-admin');
 
 admin.initializeApp();
 
+// ============================================================================
+// 🔔 PUSH NOTIFICATION HANDLERS
+// ============================================================================
+
+// Process push notifications from Firestore queue
+exports.processPushNotifications = functions.firestore
+  .document('push_notifications/{notificationId}')
+  .onCreate(async (snap, context) => {
+    const notificationData = snap.data();
+    const { userId, fcmToken, title, body, data, imageUrl } = notificationData;
+
+    try {
+      // Send push notification via FCM
+      const message = {
+        token: fcmToken,
+        notification: {
+          title: title,
+          body: body,
+          imageUrl: imageUrl,
+        },
+        data: data || {},
+        android: {
+          notification: {
+            channelId: 'general',
+            priority: 'high',
+            defaultSound: true,
+            defaultVibrateTimings: true,
+            icon: '@mipmap/launcher_icon',
+            color: '#238636',
+          },
+        },
+        apns: {
+          payload: {
+            aps: {
+              sound: 'default',
+              badge: 1,
+            },
+          },
+        },
+      };
+
+      const response = await admin.messaging().send(message);
+      
+      // Update notification status
+      await snap.ref.update({
+        status: 'sent',
+        sentAt: admin.firestore.FieldValue.serverTimestamp(),
+        messageId: response,
+      });
+
+      console.log(`✅ Push notification sent successfully to user ${userId}`);
+    } catch (error) {
+      console.error(`❌ Failed to send push notification to user ${userId}:`, error);
+      
+      // Update notification status to failed
+      await snap.ref.update({
+        status: 'failed',
+        error: error.message,
+        failedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+  });
+
+// Send notification when user swipes right on a project
+exports.onSwipeRight = functions.firestore
+  .document('swipes/{swipeId}')
+  .onCreate(async (snap, context) => {
+    const swipeData = snap.data();
+    const { swiper_id, target_id, project_id, direction } = swipeData;
+
+    if (direction === 'right') {
+      try {
+        // Get project details
+        const projectDoc = await admin.firestore().collection('projects').doc(project_id).get();
+        const projectData = projectDoc.data();
+        
+        if (projectData) {
+          // Get swiper details
+          const swiperDoc = await admin.firestore().collection('users').doc(swiper_id).get();
+          const swiperData = swiperDoc.data();
+          
+          if (swiperData && projectData.owner_id !== swiper_id) {
+            // Send notification to project owner
+            await admin.firestore().collection('push_notifications').add({
+              userId: projectData.owner_id,
+              fcmToken: projectData.owner_fcm_token,
+              title: '👋 New Swipe!',
+              body: `${swiperData.name || 'Someone'} swiped right on your project "${projectData.title}"`,
+              data: {
+                type: 'swipe',
+                action: 'open_project',
+                swiperName: swiperData.name || 'Someone',
+                projectTitle: projectData.title,
+                projectId: project_id,
+              },
+              status: 'pending',
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error processing swipe notification:', error);
+      }
+    }
+  });
+
+// Send notification when a match is created
+exports.onMatchCreated = functions.firestore
+  .document('matches/{matchId}')
+  .onCreate(async (snap, context) => {
+    const matchData = snap.data();
+    const { user1_id, user2_id, project_id } = matchData;
+
+    try {
+      // Get project details
+      const projectDoc = await admin.firestore().collection('projects').doc(project_id).get();
+      const projectData = projectDoc.data();
+      
+      if (projectData) {
+        // Get user details
+        const [user1Doc, user2Doc] = await Promise.all([
+          admin.firestore().collection('users').doc(user1_id).get(),
+          admin.firestore().collection('users').doc(user2_id).get(),
+        ]);
+        
+        const user1Data = user1Doc.data();
+        const user2Data = user2Doc.data();
+        
+        if (user1Data && user2Data) {
+          // Send notification to both users
+          const notifications = [
+            {
+              userId: user1_id,
+              fcmToken: user1Data.fcm_token,
+              title: '🎉 New Match!',
+              body: `You matched with ${user2Data.name || 'Someone'} on "${projectData.title}"`,
+              data: {
+                type: 'match',
+                action: 'open_match',
+                matchedUserName: user2Data.name || 'Someone',
+                projectTitle: projectData.title,
+                matchId: snap.id,
+              },
+            },
+            {
+              userId: user2_id,
+              fcmToken: user2Data.fcm_token,
+              title: '🎉 New Match!',
+              body: `You matched with ${user1Data.name || 'Someone'} on "${projectData.title}"`,
+              data: {
+                type: 'match',
+                action: 'open_match',
+                matchedUserName: user1Data.name || 'Someone',
+                projectTitle: projectData.title,
+                matchId: snap.id,
+              },
+            },
+          ];
+          
+          // Add notifications to queue
+          const batch = admin.firestore().batch();
+          notifications.forEach((notification) => {
+            const notificationRef = admin.firestore().collection('push_notifications').doc();
+            batch.set(notificationRef, {
+              ...notification,
+              status: 'pending',
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+          });
+          
+          await batch.commit();
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error processing match notification:', error);
+    }
+  });
+
 // Send welcome email AFTER email verification, not during signup
 exports.sendWelcomeEmailAfterVerification = functions.auth.user().onUpdate(async (change, context) => {
   const beforeData = change.before;
