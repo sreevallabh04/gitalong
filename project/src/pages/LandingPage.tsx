@@ -1,11 +1,28 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { HeroSection } from '../components/HeroSection';
 import { FeaturesSection } from '../components/FeaturesSection';
 import { TestimonialsSection } from '../components/TestimonialsSection';
 import { CTASection } from '../components/CTASection';
 import { Footer } from '../components/Footer';
+import { AuthModal } from '../components/AuthModal';
+import { useAuth } from '../contexts/AuthContext';
 
 export const LandingPage: React.FC = () => {
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup');
+  const { currentUser } = useAuth();
+
+  const handleGetStartedClick = () => {
+    if (currentUser) {
+      // If user is signed in, they can access app features
+      // For now, just show a message or redirect to app download
+      alert('Download the GitAlong app to access all features!');
+    } else {
+      setAuthMode('signup');
+      setShowAuthModal(true);
+    }
+  };
+
   const handleDownloadApp = () => {
     // Mock app store links - in real app, these would link to actual app stores
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -23,11 +40,18 @@ export const LandingPage: React.FC = () => {
 
   return (
     <div className="min-h-screen">
-      <HeroSection onGetStarted={handleDownloadApp} />
+      <HeroSection onGetStarted={handleGetStartedClick} />
       <FeaturesSection />
       <TestimonialsSection />
       <CTASection onDownload={handleDownloadApp} />
       <Footer />
+      
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        initialMode={authMode}
+      />
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Download, ArrowRight, Star, Users, Zap } from 'lucide-react';
+import { Download, ArrowRight, Heart, Users, Zap, Code } from 'lucide-react';
 
 interface CTASectionProps {
   onDownload: () => void;
@@ -12,14 +12,16 @@ export const CTASection: React.FC<CTASectionProps> = ({ onDownload }) => {
       {/* Background Effects */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#2EA043]/5 via-transparent to-[#3FB950]/5"></div>
       
+      {/* Animated Background Elements */}
       <motion.div
         className="absolute top-20 left-20 w-32 h-32 bg-gradient-to-r from-[#2EA043] to-[#3FB950] rounded-full opacity-20 blur-3xl"
         animate={{
           y: [0, -20, 0],
           scale: [1, 1.1, 1],
+          rotate: [0, 180, 360],
         }}
         transition={{
-          duration: 4,
+          duration: 8,
           repeat: Infinity,
           ease: "easeInOut"
         }}
@@ -29,13 +31,44 @@ export const CTASection: React.FC<CTASectionProps> = ({ onDownload }) => {
         animate={{
           y: [0, 20, 0],
           scale: [1, 0.9, 1],
+          rotate: [360, 180, 0],
+        }}
+        transition={{
+          duration: 10,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+      />
+
+      {/* Floating Code Elements */}
+      <motion.div
+        className="absolute top-1/3 right-1/3 text-[#2EA043]/20 text-3xl font-mono"
+        animate={{
+          y: [0, -15, 0],
+          opacity: [0.2, 0.4, 0.2],
         }}
         transition={{
           duration: 5,
           repeat: Infinity,
           ease: "easeInOut"
         }}
-      />
+      >
+        {'</>'}
+      </motion.div>
+      <motion.div
+        className="absolute bottom-1/3 left-1/3 text-[#3FB950]/20 text-2xl font-mono"
+        animate={{
+          y: [0, 15, 0],
+          opacity: [0.2, 0.3, 0.2],
+        }}
+        transition={{
+          duration: 7,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+      >
+        {'{ }'}
+      </motion.div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <motion.div
@@ -45,10 +78,14 @@ export const CTASection: React.FC<CTASectionProps> = ({ onDownload }) => {
           viewport={{ once: true }}
           className="mb-8"
         >
-          <div className="inline-flex items-center px-4 py-2 rounded-full bg-[#2EA043]/10 border border-[#2EA043]/20 text-[#2EA043] text-sm font-medium mb-6">
-            <Zap className="h-4 w-4 mr-2" />
-            Limited Time: Join 10,000+ developers
-          </div>
+          <motion.div 
+            className="inline-flex items-center px-4 py-2 rounded-full bg-[#2EA043]/10 border border-[#2EA043]/20 text-[#2EA043] text-sm font-medium mb-6"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Code className="h-4 w-4 mr-2" />
+            Built by developers, for developers
+          </motion.div>
         </motion.div>
 
         <motion.h2
@@ -58,9 +95,9 @@ export const CTASection: React.FC<CTASectionProps> = ({ onDownload }) => {
           viewport={{ once: true }}
           className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white via-gray-100 to-[#2EA043] bg-clip-text text-transparent"
         >
-          Ready to Find Your
+          Ready to Stop
           <br />
-          <span className="text-[#2EA043]">Perfect Match?</span>
+          <span className="text-[#2EA043]">Coding Alone?</span>
         </motion.h2>
 
         <motion.p
@@ -70,8 +107,8 @@ export const CTASection: React.FC<CTASectionProps> = ({ onDownload }) => {
           viewport={{ once: true }}
           className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed"
         >
-          Download GitAlong today and join thousands of developers who are already building 
-          amazing projects together. Your next collaboration partner is just a swipe away.
+          Join hundreds of developers who are building amazing projects together. 
+          Find your coding partner and start creating something incredible today.
         </motion.p>
 
         <motion.div
@@ -81,18 +118,24 @@ export const CTASection: React.FC<CTASectionProps> = ({ onDownload }) => {
           viewport={{ once: true }}
           className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12"
         >
-          <button
+          <motion.button
             onClick={onDownload}
             className="group relative px-8 py-4 bg-gradient-to-r from-[#2EA043] to-[#3FB950] text-white font-semibold rounded-2xl text-lg shadow-2xl hover:shadow-[#2EA043]/25 transition-all duration-300 hover:scale-105 hover:shadow-xl"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
             <Download className="h-5 w-5 mr-2 inline" />
             Download GitAlong
             <ArrowRight className="h-5 w-5 ml-2 inline group-hover:translate-x-1 transition-transform duration-300" />
-          </button>
+          </motion.button>
           
-          <button className="px-8 py-4 border-2 border-[#30363D] text-gray-300 font-semibold rounded-2xl text-lg hover:border-[#2EA043] hover:text-[#2EA043] transition-all duration-300 hover:scale-105">
+          <motion.button 
+            className="px-8 py-4 border-2 border-[#30363D] text-gray-300 font-semibold rounded-2xl text-lg hover:border-[#2EA043] hover:text-[#2EA043] transition-all duration-300 hover:scale-105"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
             Learn More
-          </button>
+          </motion.button>
         </motion.div>
 
         <motion.div
@@ -102,18 +145,27 @@ export const CTASection: React.FC<CTASectionProps> = ({ onDownload }) => {
           viewport={{ once: true }}
           className="flex flex-col sm:flex-row justify-center items-center gap-8 text-gray-400"
         >
-          <div className="flex items-center">
+          <motion.div 
+            className="flex items-center"
+            whileHover={{ scale: 1.05 }}
+          >
             <Users className="h-5 w-5 mr-2 text-[#2EA043]" />
-            <span>10,000+ Active Users</span>
-          </div>
-          <div className="flex items-center">
-            <Star className="h-5 w-5 mr-2 text-[#2EA043]" />
-            <span>4.9/5 App Store Rating</span>
-          </div>
-          <div className="flex items-center">
+            <span>500+ Active Developers</span>
+          </motion.div>
+          <motion.div 
+            className="flex items-center"
+            whileHover={{ scale: 1.05 }}
+          >
+            <Heart className="h-5 w-5 mr-2 text-[#2EA043]" />
+            <span>100% Free to Use</span>
+          </motion.div>
+          <motion.div 
+            className="flex items-center"
+            whileHover={{ scale: 1.05 }}
+          >
             <Zap className="h-5 w-5 mr-2 text-[#2EA043]" />
-            <span>Free to Download</span>
-          </div>
+            <span>Real GitHub Integration</span>
+          </motion.div>
         </motion.div>
 
         {/* Trust Indicators */}
@@ -124,14 +176,14 @@ export const CTASection: React.FC<CTASectionProps> = ({ onDownload }) => {
           viewport={{ once: true }}
           className="mt-12 pt-8 border-t border-[#30363D]"
         >
-          <p className="text-gray-400 text-sm mb-4">Trusted by developers at</p>
+          <p className="text-gray-400 text-sm mb-4">Trusted by developers from</p>
           <div className="flex flex-wrap justify-center items-center gap-8 opacity-60">
             <div className="text-gray-500 font-semibold">GitHub</div>
-            <div className="text-gray-500 font-semibold">Microsoft</div>
-            <div className="text-gray-500 font-semibold">Google</div>
-            <div className="text-gray-500 font-semibold">Meta</div>
-            <div className="text-gray-500 font-semibold">Netflix</div>
-            <div className="text-gray-500 font-semibold">Spotify</div>
+            <div className="text-gray-500 font-semibold">Open Source</div>
+            <div className="text-gray-500 font-semibold">Student Projects</div>
+            <div className="text-gray-500 font-semibold">Bootcamps</div>
+            <div className="text-gray-500 font-semibold">Freelancers</div>
+            <div className="text-gray-500 font-semibold">Startups</div>
           </div>
         </motion.div>
       </div>

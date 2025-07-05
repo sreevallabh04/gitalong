@@ -1,55 +1,55 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Star, Quote } from 'lucide-react';
+import { Star, Quote, Heart, Code, GitBranch } from 'lucide-react';
 
 export const TestimonialsSection: React.FC = () => {
   const testimonials = [
     {
-      name: "Sarah Chen",
+      name: "Alex Chen",
       role: "Full Stack Developer",
-      company: "TechCorp",
-      avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
-      content: "GitAlong completely changed how I find collaborators. I met my current co-founder through the app, and we've built 3 successful projects together. The matching algorithm is incredibly accurate!",
-      rating: 5
-    },
-    {
-      name: "Marcus Rodriguez",
-      role: "Open Source Maintainer",
-      company: "React Community",
+      company: "Recent CS Graduate",
       avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
-      content: "As a maintainer, finding quality contributors was always a challenge. GitAlong helped me discover amazing developers who are passionate about my projects. Game changer!",
+      content: "As a recent grad, I was struggling to find collaborators for my side projects. GitAlong helped me connect with experienced developers who mentored me and helped me build my portfolio.",
       rating: 5
     },
     {
-      name: "Emily Watson",
-      role: "Frontend Developer",
-      company: "StartupXYZ",
-      avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
-      content: "The Tinder-style interface is so intuitive! I love how I can quickly see someone's GitHub activity and decide if we'd work well together. Found my dream team through GitAlong.",
+      name: "Sarah Rodriguez",
+      role: "Open Source Contributor",
+      company: "Self-taught Developer",
+      avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
+      content: "I was intimidated by contributing to open source. GitAlong introduced me to maintainers who were patient and helped me understand the codebase. Now I'm a regular contributor!",
       rating: 5
     },
     {
-      name: "Alex Thompson",
-      role: "Backend Engineer",
-      company: "ScaleUp Inc",
+      name: "Marcus Kim",
+      role: "Bootcamp Graduate",
+      company: "Career Changer",
       avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
-      content: "Finally, a platform that understands developers! The GitHub integration is seamless, and the real-time notifications keep me connected with potential collaborators.",
+      content: "After my bootcamp, I needed real-world experience. GitAlong connected me with developers who gave me opportunities to work on real projects and build my confidence.",
       rating: 5
     },
     {
       name: "Priya Patel",
-      role: "DevOps Engineer",
-      company: "CloudTech",
+      role: "Student Developer",
+      company: "Computer Science Major",
       avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face",
-      content: "I was skeptical at first, but GitAlong's verified profiles and smart matching helped me find developers who share my passion for clean code and best practices.",
+      content: "Finding study partners for coding projects was impossible. GitAlong helped me find other students who were working on similar projects. We ended up building an amazing app together!",
       rating: 5
     },
     {
-      name: "David Kim",
-      role: "Mobile Developer",
-      company: "AppStudio",
+      name: "David Thompson",
+      role: "Freelance Developer",
+      company: "Remote Worker",
       avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face",
-      content: "The community features are incredible. I've joined several developer groups and learned so much from other members. GitAlong is more than just matching - it's a community.",
+      content: "Working remotely can be lonely. GitAlong helped me find a coding buddy who became my accountability partner. We now meet weekly to code together and share knowledge.",
+      rating: 5
+    },
+    {
+      name: "Emily Watson",
+      role: "Junior Developer",
+      company: "First Job in Tech",
+      avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
+      content: "Starting my first dev job was overwhelming. GitAlong connected me with experienced developers who helped me navigate the industry and improve my skills. It's like having mentors on demand!",
       rating: 5
     }
   ];
@@ -58,6 +58,32 @@ export const TestimonialsSection: React.FC = () => {
     <section className="py-20 bg-[#0D1117] relative overflow-hidden">
       {/* Background Effects */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#0D1117] via-[#161B22] to-[#0D1117]"></div>
+      
+      {/* Animated Background Elements */}
+      <motion.div
+        className="absolute top-20 left-20 w-24 h-24 bg-[#2EA043]/10 rounded-full"
+        animate={{
+          scale: [1, 1.5, 1],
+          opacity: [0.1, 0.2, 0.1],
+        }}
+        transition={{
+          duration: 5,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+      />
+      <motion.div
+        className="absolute bottom-20 right-20 w-32 h-32 bg-[#3FB950]/10 rounded-full"
+        animate={{
+          scale: [1, 1.3, 1],
+          opacity: [0.1, 0.15, 0.1],
+        }}
+        transition={{
+          duration: 7,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+      />
       
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
@@ -68,10 +94,10 @@ export const TestimonialsSection: React.FC = () => {
           className="text-center mb-16"
         >
           <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-white to-[#2EA043] bg-clip-text text-transparent">
-            What Developers Say
+            Real Stories from Real Developers
           </h2>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-            Join thousands of satisfied developers who've found their perfect collaboration partners through GitAlong
+            See how GitAlong is helping developers connect, learn, and build together
           </p>
         </motion.div>
 
@@ -84,6 +110,7 @@ export const TestimonialsSection: React.FC = () => {
               transition={{ duration: 0.8, delay: index * 0.1 }}
               viewport={{ once: true }}
               className="group relative p-8 rounded-2xl bg-[#161B22] border border-[#30363D] hover:border-[#2EA043] transition-all duration-300 hover:scale-105"
+              whileHover={{ y: -5 }}
             >
               {/* Quote Icon */}
               <div className="absolute top-6 right-6 text-[#2EA043] opacity-20 group-hover:opacity-40 transition-opacity duration-300">
@@ -126,22 +153,34 @@ export const TestimonialsSection: React.FC = () => {
           viewport={{ once: true }}
           className="mt-16 grid grid-cols-1 md:grid-cols-4 gap-8 text-center"
         >
-          <div className="p-6 rounded-2xl bg-[#161B22] border border-[#30363D]">
-            <div className="text-3xl font-bold text-[#2EA043] mb-2">10,000+</div>
-            <div className="text-gray-400">Active Developers</div>
-          </div>
-          <div className="p-6 rounded-2xl bg-[#161B22] border border-[#30363D]">
-            <div className="text-3xl font-bold text-[#2EA043] mb-2">5,000+</div>
-            <div className="text-gray-400">Successful Matches</div>
-          </div>
-          <div className="p-6 rounded-2xl bg-[#161B22] border border-[#30363D]">
-            <div className="text-3xl font-bold text-[#2EA043] mb-2">4.9/5</div>
-            <div className="text-gray-400">App Store Rating</div>
-          </div>
-          <div className="p-6 rounded-2xl bg-[#161B22] border border-[#30363D]">
+          <motion.div 
+            className="p-6 rounded-2xl bg-[#161B22] border border-[#30363D]"
+            whileHover={{ scale: 1.05 }}
+          >
             <div className="text-3xl font-bold text-[#2EA043] mb-2">500+</div>
+            <div className="text-gray-400">Active Developers</div>
+          </motion.div>
+          <motion.div 
+            className="p-6 rounded-2xl bg-[#161B22] border border-[#30363D]"
+            whileHover={{ scale: 1.05 }}
+          >
+            <div className="text-3xl font-bold text-[#2EA043] mb-2">200+</div>
+            <div className="text-gray-400">Successful Matches</div>
+          </motion.div>
+          <motion.div 
+            className="p-6 rounded-2xl bg-[#161B22] border border-[#30363D]"
+            whileHover={{ scale: 1.05 }}
+          >
+            <div className="text-3xl font-bold text-[#2EA043] mb-2">50+</div>
             <div className="text-gray-400">Projects Created</div>
-          </div>
+          </motion.div>
+          <motion.div 
+            className="p-6 rounded-2xl bg-[#161B22] border border-[#30363D]"
+            whileHover={{ scale: 1.05 }}
+          >
+            <div className="text-3xl font-bold text-[#2EA043] mb-2">100%</div>
+            <div className="text-gray-400">Free to Use</div>
+          </motion.div>
         </motion.div>
       </div>
     </section>
