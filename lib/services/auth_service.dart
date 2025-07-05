@@ -7,6 +7,10 @@ import '../core/utils/logger.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/utils/safe_query.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 final authServiceProvider = Provider<AuthService>((ref) {
   return AuthService();
@@ -614,15 +618,17 @@ class AuthService {
 
   // Get current user profile
   Future<UserModel> getCurrentUserProfile() async {
-    if (!isAuthenticated)
-      throw AuthException('User not authenticated', code: 'not-authenticated');
+    if (!isAuthenticated) {
+      throw const AuthException('User not authenticated',
+          code: 'not-authenticated');
+    }
 
     final result = await SafeQuery.firestore(
       operation: () async {
         final doc =
             await _firestore.collection('users').doc(currentUser!.uid).get();
         if (!doc.exists) {
-          throw AuthException('User profile not found',
+          throw const AuthException('User profile not found',
               code: 'profile-not-found');
         }
         return UserModel.fromJson(doc.data()!);
@@ -637,7 +643,7 @@ class AuthService {
       },
     );
     if (result == null) {
-      throw AuthException('Unknown error fetching user profile',
+      throw const AuthException('Unknown error fetching user profile',
           code: 'unknown-profile-error');
     }
     return result;
@@ -995,10 +1001,240 @@ class AuthService {
   Future<UserCredential> linkGitHubCredential(
       AuthCredential pendingCredential) async {
     final user = _auth.currentUser;
-    if (user == null)
+    if (user == null) {
       throw const AuthException('No user to link credential to.',
           code: 'no-user');
+    }
     return await user.linkWithCredential(pendingCredential);
+  }
+
+  /// 🚀 GITHUB OAUTH AUTHENTICATION with production-grade error handling
+  Future<UserCredential> signInWithGitHubMobile() async {
+    try {
+      AppLogger.logger.auth('🐙 Starting GitHub OAuth authentication...');
+
+      // 1. CHECK ENVIRONMENT VARIABLES
+      final clientId = dotenv.env['GITHUB_CLIENT_ID'];
+      final clientSecret = dotenv.env['GITHUB_CLIENT_SECRET'];
+      final redirectUri = dotenv.env['GITHUB_REDIRECT_URI'];
+
+      if (clientId == null || clientSecret == null || redirectUri == null) {
+        AppLogger.logger.e('❌ GitHub OAuth credentials not configured');
+        throw const AuthException(
+          'GitHub authentication is not configured. Please contact support.',
+          code: 'github-not-configured',
+        );
+      }
+
+      AppLogger.logger.auth('✅ GitHub OAuth credentials found');
+
+      // 2. BUILD AUTHORIZATION URL
+      final authUrl =
+          Uri.parse('https://github.com/login/oauth/authorize').replace(
+        queryParameters: {
+          'client_id': clientId,
+          'redirect_uri': redirectUri,
+          'scope': 'user:email read:user',
+          'state': DateTime.now().millisecondsSinceEpoch.toString(),
+        },
+      );
+
+      AppLogger.logger.auth('🌐 Opening GitHub authorization URL...');
+
+      // 3. OPEN WEB AUTH FLOW
+      final result = await FlutterWebAuth2.authenticate(
+        url: authUrl.toString(),
+        callbackUrlScheme: 'com.gitalong.app',
+      );
+
+      if (result.isEmpty) {
+        AppLogger.logger.auth('❌ GitHub OAuth cancelled by user');
+        throw const AuthException(
+          'GitHub sign-in was cancelled',
+          code: 'sign-in-cancelled',
+        );
+      }
+
+      AppLogger.logger.auth('✅ GitHub authorization successful');
+
+      // 4. EXTRACT AUTHORIZATION CODE
+      final callbackUrl = Uri.parse(result);
+      final code = callbackUrl.queryParameters['code'];
+      final state = callbackUrl.queryParameters['state'];
+
+      if (code == null) {
+        AppLogger.logger.e('❌ No authorization code received from GitHub');
+        throw const AuthException(
+          'Failed to get authorization code from GitHub. Please try again.',
+          code: 'no-auth-code',
+        );
+      }
+
+      AppLogger.logger.auth('🔑 Authorization code received from GitHub');
+
+      // 5. EXCHANGE CODE FOR ACCESS TOKEN
+      final tokenResponse = await http.post(
+        Uri.parse('https://github.com/login/oauth/access_token'),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'client_id': clientId,
+          'client_secret': clientSecret,
+          'code': code,
+          'redirect_uri': redirectUri,
+        }),
+      );
+
+      if (tokenResponse.statusCode != 200) {
+        AppLogger.logger.e(
+            '❌ Failed to exchange code for token: ${tokenResponse.statusCode}');
+        throw const AuthException(
+          'Failed to complete GitHub authentication. Please try again.',
+          code: 'token-exchange-failed',
+        );
+      }
+
+      final tokenData = jsonDecode(tokenResponse.body) as Map<String, dynamic>;
+      final accessToken = tokenData['access_token'] as String?;
+
+      if (accessToken == null) {
+        AppLogger.logger.e('❌ No access token received from GitHub');
+        throw const AuthException(
+          'Failed to get access token from GitHub. Please try again.',
+          code: 'no-access-token',
+        );
+      }
+
+      AppLogger.logger.auth('✅ GitHub access token received');
+
+      // 6. GET USER INFORMATION
+      final userResponse = await http.get(
+        Uri.parse('https://api.github.com/user'),
+        headers: {
+          'Authorization': 'token $accessToken',
+          'Accept': 'application/vnd.github.v3+json',
+        },
+      );
+
+      if (userResponse.statusCode != 200) {
+        AppLogger.logger
+            .e('❌ Failed to get user info: ${userResponse.statusCode}');
+        throw const AuthException(
+          'Failed to get user information from GitHub. Please try again.',
+          code: 'user-info-failed',
+        );
+      }
+
+      final userData = jsonDecode(userResponse.body) as Map<String, dynamic>;
+      final githubId = userData['id'].toString();
+      final email = userData['email'] as String?;
+      final username = userData['login'] as String?;
+      final name = userData['name'] as String?;
+
+      if (email == null) {
+        AppLogger.logger.e('❌ No email found in GitHub user data');
+        throw const AuthException(
+          'GitHub account must have a public email address. Please update your GitHub settings.',
+          code: 'no-email',
+        );
+      }
+
+      AppLogger.logger.auth('👤 GitHub user info: $email ($username)');
+
+      // 7. CREATE FIREBASE CREDENTIAL
+      final credential = GithubAuthProvider.credential(accessToken);
+
+      AppLogger.logger.auth('🔑 Creating Firebase credential...');
+
+      // 8. SIGN IN TO FIREBASE
+      final userCredential = await _auth.signInWithCredential(credential);
+
+      AppLogger.logger.auth('✅ GitHub sign-in completed successfully!');
+      AppLogger.logger.auth('👤 User: ${userCredential.user?.email}');
+      AppLogger.logger
+          .auth('📧 Email verified: ${userCredential.user?.emailVerified}');
+
+      return userCredential;
+    } on FirebaseAuthException catch (e) {
+      AppLogger.logger.e(
+        '❌ Firebase Auth Error during GitHub sign-in',
+        error: e,
+        stackTrace: StackTrace.current,
+      );
+
+      // Provide user-friendly error messages
+      switch (e.code) {
+        case 'account-exists-with-different-credential':
+          throw AuthException(
+            'An account with this email already exists using a different sign-in method. Please try signing in with email/password.',
+            code: e.code,
+          );
+        case 'invalid-credential':
+          throw AuthException(
+            'GitHub sign-in failed due to invalid credentials. Please try again.',
+            code: e.code,
+          );
+        case 'operation-not-allowed':
+          throw AuthException(
+            'GitHub sign-in is not configured properly. Please contact support.',
+            code: e.code,
+          );
+        case 'user-disabled':
+          throw AuthException(
+            'This account has been disabled. Please contact support.',
+            code: e.code,
+          );
+        case 'network-request-failed':
+          throw AuthException(
+            'Network error. Please check your internet connection and try again.',
+            code: e.code,
+          );
+        default:
+          AppLogger.logger
+              .e('❌ Unhandled Firebase Auth error: ${e.code} - ${e.message}');
+          throw AuthException(
+            'GitHub sign-in failed: ${e.message ?? 'Please try again or contact support.'}',
+            code: e.code,
+          );
+      }
+    } on AuthException {
+      rethrow;
+    } catch (e, stackTrace) {
+      AppLogger.logger.e(
+        '❌ Unexpected error during GitHub sign-in',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      throw AuthException(
+        'An unexpected error occurred during GitHub sign-in. Please try again.',
+        code: 'unknown-error',
+      );
+    }
+  }
+
+  /// Anonymous sign-in for guest users
+  Future<UserCredential> signInAnonymously() async {
+    try {
+      AppLogger.logger.auth('🔓 Signing in anonymously (guest)...');
+      final userCred = await _auth.signInAnonymously();
+      AppLogger.logger
+          .auth('✅ Guest sign-in successful: \\${userCred.user?.uid}');
+      return userCred;
+    } on FirebaseAuthException catch (e) {
+      AppLogger.logger
+          .e('❌ Firebase Auth Error during anonymous sign-in', error: e);
+      throw AuthException(
+        'Guest sign-in failed: ${e.message ?? 'Please try again.'}',
+        code: e.code,
+      );
+    } catch (e, stackTrace) {
+      AppLogger.logger.e('❌ Exception during anonymous sign-in',
+          error: e, stackTrace: stackTrace);
+      throw const AuthException('Guest sign-in failed. Please try again.',
+          code: 'unknown-error');
+    }
   }
 }
 

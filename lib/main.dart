@@ -100,6 +100,20 @@ void main() async {
     try {
       await dotenv.load(fileName: ".env");
       AppLogger.logger.d('✅ Environment configuration loaded from .env file');
+
+      // Verify GitHub OAuth credentials are loaded
+      final githubClientId = dotenv.env['GITHUB_CLIENT_ID'];
+      final githubClientSecret = dotenv.env['GITHUB_CLIENT_SECRET'];
+      final githubRedirectUri = dotenv.env['GITHUB_REDIRECT_URI'];
+
+      if (githubClientId != null &&
+          githubClientSecret != null &&
+          githubRedirectUri != null) {
+        AppLogger.logger.d('✅ GitHub OAuth credentials loaded successfully');
+      } else {
+        AppLogger.logger
+            .w('⚠️ GitHub OAuth credentials missing from .env file');
+      }
     } catch (e) {
       // Initialize dotenv with empty state first
       dotenv.testLoad(fileInput: '');
@@ -110,6 +124,12 @@ void main() async {
       dotenv.env['ENABLE_ANALYTICS'] = 'true';
       dotenv.env['ENABLE_DEBUG_LOGGING'] = 'true';
       dotenv.env['API_TIMEOUT_SECONDS'] = '30';
+
+      // Set GitHub OAuth credentials for development
+      dotenv.env['GITHUB_CLIENT_ID'] = 'Ov23liqdqoZ88pfzPSnY';
+      dotenv.env['GITHUB_CLIENT_SECRET'] =
+          'dc2d8b7eeaef3a6a3a021cc5995de74efb1e2a2c2';
+      dotenv.env['GITHUB_REDIRECT_URI'] = 'com.gitalong.app://oauth/callback';
 
       AppLogger.logger
           .d('✅ Using default environment configuration (no .env file found)');

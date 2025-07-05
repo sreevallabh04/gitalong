@@ -215,10 +215,12 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
               final item = entry.value;
               final isSelected = _currentIndex == index;
 
-              return _buildNavigationItem(
-                item: item,
-                index: index,
-                isSelected: isSelected,
+              return Expanded(
+                child: _buildNavigationItem(
+                  item: item,
+                  index: index,
+                  isSelected: isSelected,
+                ),
               );
             }).toList(),
           ),
@@ -240,7 +242,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           color: isSelected
@@ -259,7 +261,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
             AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOutCubic,
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
                 color: isSelected
@@ -286,7 +288,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                 child: Icon(
                   isSelected ? item.activeIcon : item.icon,
                   key: ValueKey(isSelected),
-                  size: 24,
+                  size: 18,
                   color: isSelected ? item.color : const Color(0xFF7D8590),
                 ),
               ),
@@ -295,12 +297,16 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
             AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 300),
               style: GoogleFonts.jetBrainsMono(
-                fontSize: 11,
+                fontSize: 9,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 color: isSelected ? item.color : const Color(0xFF7D8590),
                 letterSpacing: 0.5,
               ),
-              child: Text(item.label),
+              child: Text(
+                item.label,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
             ),
           ],
         ),

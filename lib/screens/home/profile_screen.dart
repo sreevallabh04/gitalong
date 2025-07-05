@@ -333,7 +333,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                       shape: BoxShape.circle,
                     ),
                     padding: const EdgeInsets.all(8),
-                    child: Icon(
+                    child: const Icon(
                       Icons.camera_alt,
                       color: Colors.white,
                       size: 20,

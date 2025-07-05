@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../models/models.dart';
 import '../../providers/auth_provider.dart';
@@ -269,8 +270,7 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () =>
-                    Navigator.pushNamed(context, '/project/upload'),
+                onPressed: () => context.go('/project/upload'),
                 icon: const Icon(Icons.add, size: 20),
                 label: const Text('Upload Project'),
                 style: ElevatedButton.styleFrom(
@@ -429,6 +429,7 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
       ),
       child: Padding(
         padding: const EdgeInsets.all(24),
+        child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -503,7 +504,7 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
               ],
             ),
 
-            const SizedBox(height: 24),
+              const SizedBox(height: 16),
 
             // Description
             Text(
@@ -513,11 +514,11 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
                 height: 1.6,
                 color: const Color(0xFFC9D1D9),
               ),
-              maxLines: 4,
+                maxLines: 3,
               overflow: TextOverflow.ellipsis,
             ),
 
-            const SizedBox(height: 24),
+              const SizedBox(height: 16),
 
             // Skills
             if (project.skillsRequired.isNotEmpty) ...[
@@ -529,19 +530,19 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
                   color: const Color(0xFF238636),
                 ),
               ),
-              const SizedBox(height: 12),
+                const SizedBox(height: 8),
               Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: project.skillsRequired.take(6).map((skill) {
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: project.skillsRequired.take(4).map((skill) {
                   return Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
+                        horizontal: 10,
+                        vertical: 4,
                     ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF238636).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: const Color(0xFF238636).withValues(alpha: 0.3),
                       ),
@@ -549,7 +550,7 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
                     child: Text(
                       skill,
                       style: GoogleFonts.jetBrainsMono(
-                        fontSize: 12,
+                          fontSize: 11,
                         fontWeight: FontWeight.w500,
                         color: const Color(0xFF238636),
                       ),
@@ -559,11 +560,11 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
               ),
             ],
 
-            const Spacer(),
+              const SizedBox(height: 16),
 
             // Footer
             Container(
-              padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: const Color(0xFF0D1117).withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(12),
@@ -596,6 +597,7 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
               ),
             ),
           ],
+          ),
         ),
       ),
     );

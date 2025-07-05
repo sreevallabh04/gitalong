@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -290,54 +292,61 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     });
 
     try {
-      AppLogger.logger.auth('🔐 Starting GitHub Sign-In process...');
-      final (credential, needsLinking, existingProvider) =
-          await ref.read(authServiceProvider).signInWithGitHubWithLinking();
-      if (credential != null) {
-        AppLogger.logger.auth(
-            '✅ GitHub sign-in successful for: \\${credential.user!.email}');
+      AppLogger.logger.auth('🐙 Starting GitHub Sign-In process...');
+
+      // Use the improved AuthService with comprehensive error handling
+      final credential =
+          await ref.read(authServiceProvider).signInWithGitHubMobile();
+
+      if (credential.user != null) {
+        AppLogger.logger
+            .auth('✅ GitHub sign-in successful for: ${credential.user!.email}');
+
         if (mounted) {
+          // Navigate using GoRouter - this will trigger the auth redirect
           AppLogger.logger
               .navigation('✅ GitHub sign-in successful, navigating to home');
           context.goToHome();
         }
-      } else if (needsLinking && existingProvider != null) {
-        setState(() => _isLoading = false);
-        // Show dialog to guide user to sign in with the existing provider
-        await showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Account Already Exists'),
-            content: Text(
-                'An account already exists with this email using $existingProvider. Please sign in with $existingProvider to link your GitHub account.'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-        // Optionally, you can trigger the other provider's sign-in flow here
-        // and then link the GitHub credential after successful sign-in
       } else {
         throw const auth.AuthException(
           'GitHub sign-in completed but no user was returned.',
-          code: 'no-user',
+          code: 'no-user-returned',
         );
       }
     } on auth.AuthException catch (e) {
       AppLogger.logger.e('❌ Auth error during GitHub sign-in', error: e);
+
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-        if (e.message.toLowerCase().contains('missing initial state')) {
-          _showErrorSnackbar(
-              'Unable to sign in. Please use a normal browser tab (not incognito/private), and ensure cookies are enabled.');
-        } else {
-          _showErrorSnackbar(e.message);
+        String userFriendlyMessage;
+
+        // Provide more specific error messages based on the error code
+        switch (e.code) {
+          case 'sign-in-cancelled':
+            userFriendlyMessage =
+                'GitHub sign-in was cancelled. Please try again.';
+            break;
+          case 'github-not-configured':
+            userFriendlyMessage =
+                'GitHub authentication is not configured. Please contact support.';
+            break;
+          case 'no-email':
+            userFriendlyMessage =
+                'Your GitHub account must have a public email address. Please update your GitHub settings.';
+            break;
+          case 'network-request-failed':
+            userFriendlyMessage =
+                'Network error. Please check your connection and try again.';
+            break;
+          case 'account-exists-with-different-credential':
+            userFriendlyMessage =
+                'An account with this email already exists using a different sign-in method. Please try signing in with email/password.';
+            break;
+          default:
+            userFriendlyMessage = e.message;
         }
+
+        _showErrorSnackbar(userFriendlyMessage);
       }
     } catch (e, stackTrace) {
       AppLogger.logger.e(
@@ -345,11 +354,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         error: e,
         stackTrace: stackTrace,
       );
+
+      if (mounted) {
+        _showErrorSnackbar('An unexpected error occurred. Please try again.');
+      }
+    } finally {
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
-        _showErrorSnackbar('GitHub sign-in failed. Please try again.');
       }
     }
   }
@@ -407,6 +420,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           _isLoading = false;
         });
       }
+    }
+  }
+
+  void _continueAsGuest() async {
+    setState(() => _isLoading = true);
+    try {
+      final userCred = await ref.read(authServiceProvider).signInAnonymously();
+      if (userCred.user != null && mounted) {
+        AppLogger.logger.navigation('✅ Guest sign-in, navigating to home');
+        context.goToHome();
+      } else {
+        _showErrorSnackbar('Guest sign-in failed. Please try again.');
+      }
+    } catch (e) {
+      _showErrorSnackbar('Guest sign-in failed. Please try again.');
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -578,17 +608,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   Widget _buildOAuthButtons() {
     return Column(
       children: [
-        // Google Sign In
         _buildOAuthButton(
           onPressed: _isLoading ? null : _signInWithGoogle,
           icon: Icons.g_mobiledata,
           label: 'Continue with Google',
-          backgroundColor: const Color(0xFF21262D), // GitHub gray
-          borderColor: const Color(0xFF30363D), // GitHub border
-          textColor: const Color(0xFFF0F6FC), // GitHub white
+          backgroundColor: const Color(0xFF21262D),
+          borderColor: const Color(0xFF30363D),
+          textColor: const Color(0xFFF0F6FC),
         ),
         const SizedBox(height: 16),
-        // GitHub Sign In
         _buildOAuthButton(
           onPressed: _isLoading ? null : _signInWithGitHub,
           icon: PhosphorIcons.githubLogo(PhosphorIconsStyle.fill),
@@ -598,16 +626,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           textColor: const Color(0xFFF0F6FC),
         ),
         const SizedBox(height: 16),
-        // Apple Sign In (iOS/macOS only)
         if (Platform.isIOS || Platform.isMacOS)
           _buildOAuthButton(
             onPressed: _isLoading ? null : _signInWithApple,
             icon: Icons.apple,
             label: 'Continue with Apple',
-            backgroundColor: const Color(0xFF21262D), // GitHub gray
-            borderColor: const Color(0xFF30363D), // GitHub border
-            textColor: const Color(0xFFF0F6FC), // GitHub white
+            backgroundColor: const Color(0xFF21262D),
+            borderColor: const Color(0xFF30363D),
+            textColor: const Color(0xFFF0F6FC),
           ),
+        const SizedBox(height: 16),
+        _buildOAuthButton(
+          onPressed: _isLoading ? null : _continueAsGuest,
+          icon: Icons.explore,
+          label: 'Continue as Guest',
+          backgroundColor: const Color(0xFF161B22),
+          borderColor: const Color(0xFF30363D),
+          textColor: const Color(0xFF7D8590),
+        ),
       ],
     );
   }
@@ -817,6 +853,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             onPressed: _isLoading ? null : _signIn,
             label: 'Sign In',
           ),
+
+          const SizedBox(height: 20),
+
+          // Social authentication section
+          _buildSocialAuthSection(),
         ],
       ),
     );
@@ -1041,6 +1082,122 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     ),
                   ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSocialAuthSection() {
+    return Column(
+      children: [
+        // Divider with "or" text
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                height: 1,
+                color: const Color(0xFF30363D),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                'or continue with',
+                style: GoogleFonts.inter(
+                  color: const Color(0xFF7D8590),
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Container(
+                height: 1,
+                color: const Color(0xFF30363D),
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 20),
+
+        // Social auth buttons
+        Row(
+          children: [
+            Expanded(
+              child: _buildSocialAuthButton(
+                onPressed: _isLoading ? null : _signInWithGoogle,
+                icon: PhosphorIcons.googleLogo(PhosphorIconsStyle.bold),
+                label: 'Google',
+                color: const Color(0xFFDB4437),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildSocialAuthButton(
+                onPressed: _isLoading ? null : _signInWithGitHub,
+                icon: PhosphorIcons.githubLogo(PhosphorIconsStyle.bold),
+                label: 'GitHub',
+                color: const Color(0xFF24292E),
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 16),
+
+        // Guest mode button
+        TextButton(
+          onPressed: _isLoading ? null : _continueAsGuest,
+          child: Text(
+            'Continue as Guest',
+            style: GoogleFonts.inter(
+              color: const Color(0xFF7D8590),
+              fontSize: 14,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSocialAuthButton({
+    required VoidCallback? onPressed,
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      height: 48,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFF30363D),
+          width: 1,
+        ),
+      ),
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 20, color: color),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
       ),
     );
