@@ -6,8 +6,9 @@ import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/project_provider.dart';
+import '../../providers/stats_provider.dart';
+import '../../providers/contributions_provider.dart';
 import '../../core/utils/logger.dart';
-import '../../core/utils/responsive_utils.dart';
 import '../../models/models.dart';
 import '../../widgets/profile/role_switch_card.dart';
 import '../../widgets/profile/stats_card.dart';
@@ -279,49 +280,49 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           // Profile Image with Glow Effect
           Stack(
             children: [
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: userProfile.role == UserRole.maintainer
-                    ? [const Color(0xFF8B5CF6), const Color(0xFFEC4899)]
-                    : [const Color(0xFF1F6FEB), const Color(0xFF238636)],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: (userProfile.role == UserRole.maintainer
-                          ? const Color(0xFF8B5CF6)
-                          : const Color(0xFF1F6FEB))
-                      .withValues(alpha: 0.4),
-                  blurRadius: 30,
-                  spreadRadius: 5,
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: userProfile.role == UserRole.maintainer
+                        ? [const Color(0xFF8B5CF6), const Color(0xFFEC4899)]
+                        : [const Color(0xFF1F6FEB), const Color(0xFF238636)],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: (userProfile.role == UserRole.maintainer
+                              ? const Color(0xFF8B5CF6)
+                              : const Color(0xFF1F6FEB))
+                          .withValues(alpha: 0.4),
+                      blurRadius: 30,
+                      spreadRadius: 5,
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: Container(
-              margin: const EdgeInsets.all(3),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                image: userProfile.photoURL != null
-                    ? DecorationImage(
-                        image: NetworkImage(userProfile.photoURL!),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
-                color: userProfile.photoURL == null
-                    ? const Color(0xFF21262D)
-                    : null,
-              ),
-              child: userProfile.photoURL == null
-                  ? Icon(
-                      Icons.person,
-                      size: 48,
-                      color: Colors.white.withValues(alpha: 0.7),
-                    )
-                  : null,
-            ),
+                child: Container(
+                  margin: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    image: userProfile.photoURL != null
+                        ? DecorationImage(
+                            image: NetworkImage(userProfile.photoURL!),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                    color: userProfile.photoURL == null
+                        ? const Color(0xFF21262D)
+                        : null,
+                  ),
+                  child: userProfile.photoURL == null
+                      ? Icon(
+                          Icons.person,
+                          size: 48,
+                          color: Colors.white.withValues(alpha: 0.7),
+                        )
+                      : null,
+                ),
               ),
               // Edit icon overlay
               Positioned(
@@ -468,6 +469,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   }
 
   Widget _buildStatsSection(UserModel userProfile) {
+    final statsAsync = ref.watch(userStatsProvider(userProfile.id));
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -482,35 +485,111 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             ),
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: StatsCard(
-                  title: 'Projects',
-                  value: userProfile.role == UserRole.maintainer ? '12' : '8',
-                  icon: Icons.folder,
-                  color: const Color(0xFF1F6FEB),
+          statsAsync.when(
+            loading: () => _buildStatsSkeleton(),
+            error: (error, stack) => _buildStatsError(),
+            data: (stats) => Row(
+              children: [
+                Expanded(
+                  child: StatsCard(
+                    title: 'Projects',
+                    value: '${stats.projectsCount}',
+                    icon: Icons.folder,
+                    color: const Color(0xFF1F6FEB),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: StatsCard(
-                  title: 'Matches',
-                  value: '24',
-                  icon: Icons.favorite,
-                  color: Color(0xFFE91E63),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: StatsCard(
+                    title: 'Matches',
+                    value: '${stats.matchesCount}',
+                    icon: Icons.favorite,
+                    color: const Color(0xFFE91E63),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: StatsCard(
-                  title: 'Contributions',
-                  value: '156',
-                  icon: Icons.trending_up,
-                  color: Color(0xFF238636),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: StatsCard(
+                    title: 'Contributions',
+                    value: '${stats.contributionsCount}',
+                    icon: Icons.trending_up,
+                    color: const Color(0xFF238636),
+                  ),
                 ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatsSkeleton() {
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            height: 80,
+            decoration: BoxDecoration(
+              color: const Color(0xFF161B22),
+              borderRadius: BorderRadius.circular(12),
+            ),
+          )
+              .animate(onPlay: (controller) => controller.repeat())
+              .shimmer(duration: 1000.ms),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Container(
+            height: 80,
+            decoration: BoxDecoration(
+              color: const Color(0xFF161B22),
+              borderRadius: BorderRadius.circular(12),
+            ),
+          )
+              .animate(onPlay: (controller) => controller.repeat())
+              .shimmer(duration: 1000.ms),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Container(
+            height: 80,
+            decoration: BoxDecoration(
+              color: const Color(0xFF161B22),
+              borderRadius: BorderRadius.circular(12),
+            ),
+          )
+              .animate(onPlay: (controller) => controller.repeat())
+              .shimmer(duration: 1000.ms),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatsError() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF161B22),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFDA3633)),
+      ),
+      child: const Row(
+        children: [
+          Icon(
+            Icons.error_outline,
+            color: Color(0xFFDA3633),
+            size: 20,
+          ),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Failed to load statistics',
+              style: TextStyle(
+                color: Color(0xFF7D8590),
+                fontSize: 14,
               ),
-            ],
+            ),
           ),
         ],
       ),
@@ -538,7 +617,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 onPressed: () => context.go('/project/upload'),
                 icon: Icons.add,
                 label: 'Upload Project',
-                  foregroundColor: const Color(0xFF8B5CF6),
+                foregroundColor: const Color(0xFF8B5CF6),
                 isOutlined: true,
               ),
             ],
@@ -650,11 +729,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           ),
           const SizedBox(height: 16),
           ResponsiveIconLabelButton(
-              onPressed: () => context.go('/project/upload'),
+            onPressed: () => context.go('/project/upload'),
             icon: Icons.add,
             label: 'Upload Project',
-                backgroundColor: const Color(0xFF8B5CF6),
-                foregroundColor: Colors.white,
+            backgroundColor: const Color(0xFF8B5CF6),
+            foregroundColor: Colors.white,
           ),
         ],
       ),
@@ -662,27 +741,119 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   }
 
   Widget _buildContributionsList(String userId) {
+    final contributionsAsync = ref.watch(userContributionsProvider(userId));
+
+    return contributionsAsync.when(
+      loading: () => _buildContributionsSkeleton(),
+      error: (error, stack) => _buildContributionsError(),
+      data: (contributions) {
+        if (contributions.isEmpty) {
+          return _buildEmptyContributionsState();
+        }
+        return Column(
+          children: contributions.take(5).map((contribution) {
+            return _buildContributionItem(
+              contribution.projectName,
+              contribution.projectDescription,
+              contribution.timeAgo,
+              contribution.color,
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  Widget _buildContributionsSkeleton() {
     return Column(
-      children: [
-        _buildContributionItem(
-          'Contributed to React Native CLI',
-          'Added support for custom templates',
-          '2 days ago',
-          const Color(0xFF238636),
-        ),
-        _buildContributionItem(
-          'Fixed bug in Flutter packages',
-          'Resolved connectivity issue',
-          '1 week ago',
-          const Color(0xFF1F6FEB),
-        ),
-        _buildContributionItem(
-          'Updated documentation',
-          'Improved installation guide',
-          '2 weeks ago',
-          const Color(0xFFE09800),
-        ),
-      ],
+      children: List.generate(3, (index) {
+        return Container(
+          height: 80,
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF161B22),
+            borderRadius: BorderRadius.circular(12),
+          ),
+        )
+            .animate(onPlay: (controller) => controller.repeat())
+            .shimmer(duration: 1000.ms);
+      }),
+    );
+  }
+
+  Widget _buildContributionsError() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF161B22),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFDA3633)),
+      ),
+      child: const Row(
+        children: [
+          Icon(
+            Icons.error_outline,
+            color: Color(0xFFDA3633),
+            size: 20,
+          ),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Failed to load contributions',
+              style: TextStyle(
+                color: Color(0xFF7D8590),
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyContributionsState() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: const Color(0xFF161B22),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF30363D)),
+      ),
+      child: Column(
+        children: [
+          const Icon(
+            Icons.trending_up,
+            size: 48,
+            color: Color(0xFF7D8590),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No Contributions Yet',
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFFF0F6FC),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Start exploring projects to make your first contribution',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Color(0xFF7D8590),
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ResponsiveIconLabelButton(
+            onPressed: () => context.go('/home/swipe'),
+            icon: Icons.explore,
+            label: 'Explore Projects',
+            backgroundColor: const Color(0xFF238636),
+            foregroundColor: Colors.white,
+          ),
+        ],
+      ),
     );
   }
 

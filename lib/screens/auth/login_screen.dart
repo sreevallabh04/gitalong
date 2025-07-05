@@ -2,8 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -11,7 +9,6 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../services/auth_service.dart' as auth;
 import '../../providers/auth_provider.dart';
 import '../../core/utils/logger.dart';
-import '../../core/utils/responsive_utils.dart';
 import '../../core/router/app_router.dart';
 import '../../core/widgets/responsive_buttons.dart';
 

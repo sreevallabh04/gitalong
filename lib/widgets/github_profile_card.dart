@@ -299,20 +299,20 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
   }
 
   Widget _buildStatsRow() {
-    return Row(
+    return Wrap(
+      spacing: 20,
+      runSpacing: 8,
       children: [
         _buildStatItem(
           PhosphorIcons.gitBranch(PhosphorIconsStyle.regular),
           '${widget.user.publicRepos}',
           'repos',
         ),
-        const SizedBox(width: 20),
         _buildStatItem(
           PhosphorIcons.star(PhosphorIconsStyle.regular),
           '${widget.user.totalStars}',
           'stars',
         ),
-        const SizedBox(width: 20),
         _buildStatItem(
           PhosphorIcons.gitCommit(PhosphorIconsStyle.regular),
           '${widget.user.totalCommits}',

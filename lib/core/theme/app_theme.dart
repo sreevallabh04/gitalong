@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// 🎨 GitHub-inspired theme for Gitalong
@@ -330,15 +329,15 @@ class AppTheme {
       // Switch theme
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
+            if (states.contains(WidgetState.selected)) {
             return accentColor;
           }
           return textSecondary;
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
+            if (states.contains(WidgetState.selected)) {
             return accentColor.withOpacity(0.3);
-          }
+            }
           return borderColor;
           }),
         ),

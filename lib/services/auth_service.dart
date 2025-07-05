@@ -628,8 +628,10 @@ class AuthService {
         final doc =
             await _firestore.collection('users').doc(currentUser!.uid).get();
         if (!doc.exists) {
-          throw const AuthException('User profile not found',
-              code: 'profile-not-found');
+          // Auto-create profile for new users
+          AppLogger.logger
+              .auth('🆕 User profile not found, creating default profile...');
+          return await createDefaultUserProfile();
         }
         return UserModel.fromJson(doc.data()!);
       },
@@ -727,6 +729,61 @@ class AuthService {
           },
         ) ??
         false; // Return false if safeQuery returns null
+  }
+
+  // Create default user profile for new users
+  Future<UserModel> createDefaultUserProfile() async {
+    if (!isAuthenticated) {
+      throw const AuthException(
+        'User must be authenticated',
+        code: 'not-authenticated',
+      );
+    }
+
+    final user = currentUser!;
+    final displayName = user.displayName ?? user.email?.split('@')[0] ?? 'User';
+
+    final userData = {
+      'id': user.uid,
+      'email': user.email!,
+      'name': displayName,
+      'role': UserRole.contributor.name,
+      'avatar_url': user.photoURL ??
+          'https://ui-avatars.com/api/?name=${Uri.encodeComponent(displayName)}&background=238636&color=FFFFFF',
+      'bio': 'New GitAlong user',
+      'github_url': null,
+      'skills': <String>[],
+      'is_email_verified': user.emailVerified,
+      'is_profile_complete': false,
+      'created_at': FieldValue.serverTimestamp(),
+      'updated_at': FieldValue.serverTimestamp(),
+    };
+
+    final result = await SafeQuery.firestore(
+      operation: () async {
+        await _firestore
+            .collection('users')
+            .doc(user.uid)
+            .set(userData, SetOptions(merge: true));
+        return UserModel.fromJson(userData);
+      },
+      operationName: 'createDefaultUserProfile',
+      onError: (e) {
+        AppLogger.logger.e('❌ Failed to create default user profile', error: e);
+        throw AuthException(
+          'Failed to create user profile: ${e.toString()}',
+          code: 'profile-creation-error',
+        );
+      },
+    );
+
+    if (result == null) {
+      throw const AuthException('Failed to create user profile: Unknown error',
+          code: 'unknown-profile-error');
+    }
+
+    AppLogger.logger.auth('✅ Default user profile created for: ${user.email}');
+    return result;
   }
 
   // Update user profile
@@ -1090,7 +1147,7 @@ class AuthService {
     } catch (e, stackTrace) {
       AppLogger.logger.e('❌ Unexpected error during GitHub sign-in',
           error: e, stackTrace: stackTrace);
-      throw AuthException(
+      throw const AuthException(
         'An unexpected error occurred during GitHub sign-in. Please try again.',
         code: 'unknown-error',
       );

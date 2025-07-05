@@ -8,7 +8,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/error_handler.dart';
 import 'core/utils/logger.dart';
-import 'core/utils/performance_utils.dart';
 import 'core/utils/error_boundary.dart';
 import 'core/analytics/analytics_service.dart';
 import 'config/firebase_config.dart';
@@ -109,7 +108,12 @@ void main() async {
     await AnalyticsService.initialize();
     AppLogger.logger.i('📊 Analytics service initialized');
 
-    // Initialize Firebase web service
+    // Initialize Firebase using the centralized config FIRST
+    AppLogger.logger.i('🔥 Initializing Firebase...');
+    await FirebaseConfig.initialize();
+    AppLogger.logger.success('✅ Firebase initialized successfully');
+
+    // Initialize Firebase web service AFTER Firebase is initialized
     final firebaseWeb = FirebaseWebService();
     await firebaseWeb.initialize();
     AppLogger.logger.i('🔥 Firebase web service initialized');
@@ -170,11 +174,6 @@ void main() async {
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
-
-    // Initialize Firebase using the centralized config
-    AppLogger.logger.i('🔥 Initializing Firebase...');
-    await FirebaseConfig.initialize();
-    AppLogger.logger.success('✅ Firebase initialized successfully');
 
     // Initialize notification service
     AppLogger.logger.i('🔔 Initializing notification service...');

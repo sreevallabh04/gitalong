@@ -76,9 +76,9 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
 
       // Show success feedback
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('💖 Swipe sent! The project owner will be notified.'),
-          backgroundColor: const Color(0xFF238636),
+          backgroundColor: Color(0xFF238636),
         ),
       );
 
@@ -289,7 +289,7 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
         },
         onStackFinished: () {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('No more projects!')),
+            const SnackBar(content: Text('No more projects!')),
           );
         },
         upSwipeAllowed: false,

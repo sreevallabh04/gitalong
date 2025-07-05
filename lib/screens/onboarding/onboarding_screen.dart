@@ -4,7 +4,6 @@ import '../../models/models.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/utils/logger.dart';
-import '../../core/utils/responsive_utils.dart';
 import '../../core/router/app_router.dart';
 import '../../core/utils/firestore_utils.dart';
 import '../../providers/auth_provider.dart';

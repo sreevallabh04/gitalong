@@ -143,20 +143,20 @@ class UserCard extends StatelessWidget {
 
                     // Stats
                     const SizedBox(height: 12),
-                    Row(
+                    Wrap(
+                      spacing: 16,
+                      runSpacing: 8,
                       children: [
                         _buildStatItem(
                           Icons.people,
                           '${user.followers ?? 0}',
                           'Followers',
                         ),
-                        const SizedBox(width: 16),
                         _buildStatItem(
                           Icons.folder,
                           '${user.repositories ?? 0}',
                           'Repos',
                         ),
-                        const SizedBox(width: 16),
                         _buildStatItem(
                           Icons.location_on,
                           user.location ?? 'Unknown',
@@ -185,42 +185,39 @@ class UserCard extends StatelessWidget {
 
   /// Build stat item
   Widget _buildStatItem(IconData icon, String value, String label) {
-    return Expanded(
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            size: 14,
-            color: Colors.grey[600],
-          ),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: Colors.grey[600],
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          icon,
+          size: 14,
+          color: Colors.grey[600],
+        ),
+        const SizedBox(width: 4),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-          ),
-        ],
-      ),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.grey[600],
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

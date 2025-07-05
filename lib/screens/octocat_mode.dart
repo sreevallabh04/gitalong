@@ -20,7 +20,6 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
   late AnimationController _colorController;
   late AnimationController _floatController;
   late AnimationController _pulseController;
-
   late Animation<Color?> _backgroundAnimation;
   late Animation<double> _floatAnimation;
   late Animation<double> _pulseAnimation;
@@ -125,11 +124,11 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
                               onPressed: () => Navigator.of(context).pop(),
                               icon: Icon(
                                 PhosphorIcons.x(PhosphorIconsStyle.regular),
-                                color: AppTheme.ghostWhite,
+                                color: AppTheme.textPrimary,
                               ),
                               style: IconButton.styleFrom(
-                                backgroundColor: AppTheme.surfaceGray
-                                    .withValues(alpha: 0.8),
+                                backgroundColor:
+                                    AppTheme.surfaceGray.withValues(alpha: 0.8),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
@@ -210,7 +209,7 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
                             Text(
                               'This level of polish is why GitHub would acquire us.\nEvery pixel crafted with developer obsession.',
                               style: AppTheme.bodyStyle.copyWith(
-                                color: AppTheme.codeSilver,
+                                color: AppTheme.textSecondary,
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -218,8 +217,8 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: AppTheme.carbonBlack
-                                    .withValues(alpha: 0.8),
+                                color:
+                                    AppTheme.carbonBlack.withValues(alpha: 0.8),
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
                                   color: _backgroundAnimation.value!
@@ -239,7 +238,7 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
                                   Text(
                                     'git commit -m "Octocat mode discovered"',
                                     style: AppTheme.codeStyle.copyWith(
-                                      color: AppTheme.codeSilver,
+                                      color: AppTheme.textSecondary,
                                     ),
                                   ),
                                 ],
