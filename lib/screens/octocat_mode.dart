@@ -50,7 +50,7 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
     );
 
     _backgroundAnimation = ColorTween(
-      begin: GitAlongTheme.neonGreen,
+      begin: AppTheme.neonGreen,
       end: const Color(0xFF8B5CF6), // Purple
     ).animate(CurvedAnimation(
       parent: _colorController,
@@ -101,8 +101,8 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
                 radius: 1.5,
                 colors: [
                   _backgroundAnimation.value!.withValues(alpha: 0.2),
-                  GitAlongTheme.carbonBlack,
-                  GitAlongTheme.carbonBlack,
+                  AppTheme.carbonBlack,
+                  AppTheme.carbonBlack,
                 ],
                 stops: const [0.0, 0.6, 1.0],
               ),
@@ -125,10 +125,10 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
                               onPressed: () => Navigator.of(context).pop(),
                               icon: Icon(
                                 PhosphorIcons.x(PhosphorIconsStyle.regular),
-                                color: GitAlongTheme.ghostWhite,
+                                color: AppTheme.ghostWhite,
                               ),
                               style: IconButton.styleFrom(
-                                backgroundColor: GitAlongTheme.surfaceGray
+                                backgroundColor: AppTheme.surfaceGray
                                     .withValues(alpha: 0.8),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
@@ -201,7 +201,7 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
                           children: [
                             Text(
                               'You\'ve discovered the secret!',
-                              style: GitAlongTheme.titleStyle.copyWith(
+                              style: AppTheme.titleStyle.copyWith(
                                 color: _backgroundAnimation.value,
                               ),
                               textAlign: TextAlign.center,
@@ -209,8 +209,8 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
                             const SizedBox(height: 12),
                             Text(
                               'This level of polish is why GitHub would acquire us.\nEvery pixel crafted with developer obsession.',
-                              style: GitAlongTheme.bodyStyle.copyWith(
-                                color: GitAlongTheme.codeSilver,
+                              style: AppTheme.bodyStyle.copyWith(
+                                color: AppTheme.codeSilver,
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -218,7 +218,7 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: GitAlongTheme.carbonBlack
+                                color: AppTheme.carbonBlack
                                     .withValues(alpha: 0.8),
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
@@ -232,14 +232,14 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
                                 children: [
                                   Text(
                                     '\$ ',
-                                    style: GitAlongTheme.codeStyle.copyWith(
+                                    style: AppTheme.codeStyle.copyWith(
                                       color: _backgroundAnimation.value,
                                     ),
                                   ),
                                   Text(
                                     'git commit -m "Octocat mode discovered"',
-                                    style: GitAlongTheme.codeStyle.copyWith(
-                                      color: GitAlongTheme.codeSilver,
+                                    style: AppTheme.codeStyle.copyWith(
+                                      color: AppTheme.codeSilver,
                                     ),
                                   ),
                                 ],

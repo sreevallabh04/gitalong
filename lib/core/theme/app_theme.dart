@@ -21,6 +21,13 @@ class AppTheme {
   static const Color successColor = Color(0xFF238636);
   static const Color infoColor = Color(0xFF58A6FF);
 
+  // Additional colors for GitHub profile card
+  static const Color surfaceGray = surfaceColor;
+  static const Color borderGray = borderColor;
+  static const Color devGray = textSecondary;
+  static const Color neonGreen = accentColor;
+  static const Color carbonBlack = backgroundColor;
+
   // Custom gradients
   static const LinearGradient accentGradient = LinearGradient(
     colors: [accentColor, accentHoverColor],
@@ -370,6 +377,30 @@ class AppTheme {
         fontSize: 14,
         color: textPrimary,
         backgroundColor: cardColor,
+      );
+
+  static TextStyle get titleStyle => GoogleFonts.inter(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: textPrimary,
+      );
+
+  static TextStyle get terminalStyle => GoogleFonts.jetBrainsMono(
+        fontSize: 12,
+        color: textPrimary,
+        fontWeight: FontWeight.w500,
+      );
+
+  static TextStyle get bodyStyle => GoogleFonts.inter(
+        fontSize: 14,
+        color: textPrimary,
+        fontWeight: FontWeight.normal,
+      );
+
+  static TextStyle get mutedStyle => GoogleFonts.inter(
+        fontSize: 12,
+        color: textSecondary,
+        fontWeight: FontWeight.normal,
       );
 
   static TextStyle get successText => GoogleFonts.inter(

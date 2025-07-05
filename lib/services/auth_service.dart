@@ -2,7 +2,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
-import '../config/firebase_config.dart';
 import '../models/models.dart';
 import '../core/utils/logger.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -718,7 +717,6 @@ class AuthService {
           onError: (e) {
             AppLogger.logger
                 .e('❌ Failed to check user profile existence', error: e);
-            return false;
           },
         ) ??
         false; // Return false if safeQuery returns null
@@ -749,23 +747,28 @@ class AuthService {
     if (skills != null) updateData['skills'] = skills;
     if (avatarUrl != null) updateData['avatar_url'] = avatarUrl;
 
-    final result = await safeQuery(() async {
-      await _firestore
-          .collection('users')
-          .doc(currentUser!.uid)
-          .update(updateData);
+    final result = await SafeQuery.generic(
+      operation: () async {
+        await _firestore
+            .collection('users')
+            .doc(currentUser!.uid)
+            .update(updateData);
 
-      final doc =
-          await _firestore.collection('users').doc(currentUser!.uid).get();
+        final doc =
+            await _firestore.collection('users').doc(currentUser!.uid).get();
 
-      return UserModel.fromJson(doc.data()!);
-    }, onError: (e) {
-      AppLogger.logger.e('❌ Failed to update user profile', error: e);
-      throw AuthException(
-        'Failed to update user profile: ${e.toString()}',
-        code: 'profile-update-error',
-      );
-    });
+        return UserModel.fromJson(doc.data()!);
+      },
+      operationName: 'updateUserProfile',
+      fallbackValue: null,
+      onError: (e) {
+        AppLogger.logger.e('❌ Failed to update user profile', error: e);
+        throw AuthException(
+          'Failed to update user profile: ${e.toString()}',
+          code: 'profile-update-error',
+        );
+      },
+    );
     if (result == null) {
       throw const AuthException('Failed to update user profile: Unknown error',
           code: 'unknown-profile-error');
@@ -782,22 +785,26 @@ class AuthService {
       );
     }
 
-    await safeQuery(() async {
-      // Delete user data from Firestore
-      await _firestore.collection('users').doc(currentUser!.uid).delete();
+    await SafeQuery.generic(
+      operation: () async {
+        // Delete user data from Firestore
+        await _firestore.collection('users').doc(currentUser!.uid).delete();
 
-      // Sign out from all providers
-      await signOut();
+        // Sign out from all providers
+        await signOut();
 
-      // Delete the user account
-      await currentUser!.delete();
-    }, onError: (e) {
-      AppLogger.logger.e('❌ Failed to delete account', error: e);
-      throw AuthException(
-        'Failed to delete account: ${e.toString()}',
-        code: 'account-deletion-error',
-      );
-    });
+        // Delete the user account
+        await currentUser!.delete();
+      },
+      operationName: 'deleteAccount',
+      onError: (e) {
+        AppLogger.logger.e('❌ Failed to delete account', error: e);
+        throw AuthException(
+          'Failed to delete account: ${e.toString()}',
+          code: 'account-deletion-error',
+        );
+      },
+    );
   }
 
   /// Send email verification to current user
@@ -817,36 +824,40 @@ class AuthService {
       );
     }
 
-    await safeQuery(() async {
-      await user.sendEmailVerification();
-      AppLogger.logger.auth('📧 Email verification sent to: ${user.email}');
-    }, onError: (e) {
-      AppLogger.logger.e('❌ Error sending email verification', error: e);
-      if (e is FirebaseAuthException) {
-        switch (e.code) {
-          case 'too-many-requests':
-            throw const AuthException(
-              'Too many verification emails sent. Please wait before requesting another.',
-              code: 'too-many-requests',
-            );
-          case 'invalid-email':
-            throw const AuthException(
-              'Invalid email address.',
-              code: 'invalid-email',
-            );
-          default:
-            throw AuthException(
-              'Failed to send verification email: ${e.message ?? 'Unknown error'}',
-              code: e.code,
-            );
+    await SafeQuery.generic(
+      operation: () async {
+        await user.sendEmailVerification();
+        AppLogger.logger.auth('📧 Email verification sent to: ${user.email}');
+      },
+      operationName: 'sendEmailVerification',
+      onError: (e) {
+        AppLogger.logger.e('❌ Error sending email verification', error: e);
+        if (e is FirebaseAuthException) {
+          switch (e.code) {
+            case 'too-many-requests':
+              throw const AuthException(
+                'Too many verification emails sent. Please wait before requesting another.',
+                code: 'too-many-requests',
+              );
+            case 'invalid-email':
+              throw const AuthException(
+                'Invalid email address.',
+                code: 'invalid-email',
+              );
+            default:
+              throw AuthException(
+                'Failed to send verification email: ${e.message ?? 'Unknown error'}',
+                code: e.code,
+              );
+          }
+        } else {
+          throw const AuthException(
+            'Failed to send verification email. Please try again.',
+            code: 'unknown-error',
+          );
         }
-      } else {
-        throw const AuthException(
-          'Failed to send verification email. Please try again.',
-          code: 'unknown-error',
-        );
-      }
-    });
+      },
+    );
   }
 
   /// Reload current user to check latest email verification status
@@ -859,16 +870,20 @@ class AuthService {
       );
     }
 
-    await safeQuery(() async {
-      await user.reload();
-      AppLogger.logger.auth('🔄 User data reloaded for: ${user.email}');
-    }, onError: (e) {
-      AppLogger.logger.e('❌ Error reloading user', error: e);
-      throw const AuthException(
-        'Failed to refresh user data. Please try again.',
-        code: 'reload-error',
-      );
-    });
+    await SafeQuery.generic(
+      operation: () async {
+        await user.reload();
+        AppLogger.logger.auth('🔄 User data reloaded for: ${user.email}');
+      },
+      operationName: 'reloadUser',
+      onError: (e) {
+        AppLogger.logger.e('❌ Error reloading user', error: e);
+        throw const AuthException(
+          'Failed to refresh user data. Please try again.',
+          code: 'reload-error',
+        );
+      },
+    );
   }
 
   /// Send verification email to a specific user by email (for existing users)
@@ -888,40 +903,44 @@ class AuthService {
       );
     }
 
-    await safeQuery(() async {
-      // Check if user exists in Firestore
-      final userQuery = await _firestore
-          .collection('users')
-          .where('email', isEqualTo: cleanEmail)
-          .limit(1)
-          .get();
+    await SafeQuery.generic(
+      operation: () async {
+        // Check if user exists in Firestore
+        final userQuery = await _firestore
+            .collection('users')
+            .where('email', isEqualTo: cleanEmail)
+            .limit(1)
+            .get();
 
-      if (userQuery.docs.isEmpty) {
-        throw const AuthException(
-          'User not found with this email.',
-          code: 'user-not-found',
+        if (userQuery.docs.isEmpty) {
+          throw const AuthException(
+            'User not found with this email.',
+            code: 'user-not-found',
+          );
+        }
+
+        // For existing users, we can't directly send verification emails through Admin SDK in client
+        // We'll create a notification in Firestore that triggers a Cloud Function
+        await _firestore.collection('email_notifications').add({
+          'email': cleanEmail,
+          'type': 'verification_reminder',
+          'message': 'Please sign in to verify your email address.',
+          'created_at': DateTime.now().toIso8601String(),
+          'processed': false,
+        });
+
+        AppLogger.logger
+            .auth('📧 Verification reminder created for: $cleanEmail');
+      },
+      operationName: 'sendVerificationToUser',
+      onError: (e) {
+        AppLogger.logger.e('❌ Error sending verification reminder', error: e);
+        throw AuthException(
+          'Failed to send verification reminder: ${e.toString()}',
+          code: 'verification-reminder-error',
         );
-      }
-
-      // For existing users, we can't directly send verification emails through Admin SDK in client
-      // We'll create a notification in Firestore that triggers a Cloud Function
-      await _firestore.collection('email_notifications').add({
-        'email': cleanEmail,
-        'type': 'verification_reminder',
-        'message': 'Please sign in to verify your email address.',
-        'created_at': DateTime.now().toIso8601String(),
-        'processed': false,
-      });
-
-      AppLogger.logger
-          .auth('📧 Verification reminder created for: $cleanEmail');
-    }, onError: (e) {
-      AppLogger.logger.e('❌ Error sending verification reminder', error: e);
-      throw AuthException(
-        'Failed to send verification reminder: ${e.toString()}',
-        code: 'verification-reminder-error',
-      );
-    });
+      },
+    );
   }
 }
 

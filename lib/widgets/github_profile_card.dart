@@ -90,24 +90,28 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: GitAlongTheme.surfaceGray,
+                  color: AppTheme.surfaceGray,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: _isHovered
-                        ? GitAlongTheme.neonGreen.withValues(alpha: 0.5)
-                        : GitAlongTheme.borderGray,
-                    width: 1,
+                                      color: _isHovered
+                      ? AppTheme.accentColor.withValues(alpha: 0.5)
+                      : AppTheme.borderColor,
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.backgroundColor.withValues(alpha: 0.1),
+                    blurRadius: 10,
+                    spreadRadius: 0,
                   ),
-                  boxShadow: [
-                    GitAlongTheme.cardShadow,
-                    if (_isHovered)
-                      BoxShadow(
-                        color: GitAlongTheme.neonGreen
-                            .withValues(alpha: 0.2 * _glowAnimation.value),
-                        blurRadius: 20 * _glowAnimation.value,
-                        spreadRadius: 5 * _glowAnimation.value,
-                      ),
-                  ],
+                  if (_isHovered)
+                    BoxShadow(
+                      color: AppTheme.accentColor
+                          .withValues(alpha: 0.2 * _glowAnimation.value),
+                      blurRadius: 20 * _glowAnimation.value,
+                      spreadRadius: 5 * _glowAnimation.value,
+                    ),
+                ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -164,7 +168,7 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
             boxShadow: _isHovered
                 ? [
                     BoxShadow(
-                      color: GitAlongTheme.neonGreen
+                      color: AppTheme.accentColor
                           .withValues(alpha: 0.3 * _glowAnimation.value),
                       blurRadius: 15 * _glowAnimation.value,
                       spreadRadius: 3 * _glowAnimation.value,
@@ -183,24 +187,24 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  color: GitAlongTheme.borderGray,
+                  color: AppTheme.borderGray,
                   borderRadius: BorderRadius.circular(30),
                 ),
                 child: Icon(
                   PhosphorIcons.user(PhosphorIconsStyle.regular),
-                  color: GitAlongTheme.devGray,
+                  color: AppTheme.devGray,
                 ),
               ),
               errorWidget: (context, url, error) => Container(
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  color: GitAlongTheme.borderGray,
+                  color: AppTheme.borderGray,
                   borderRadius: BorderRadius.circular(30),
                 ),
                 child: Icon(
                   PhosphorIcons.user(PhosphorIconsStyle.regular),
-                  color: GitAlongTheme.devGray,
+                  color: AppTheme.devGray,
                 ),
               ),
             ),
@@ -219,7 +223,7 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
                   Flexible(
                     child: Text(
                       widget.user.name ?? widget.user.login,
-                      style: GitAlongTheme.titleStyle.copyWith(fontSize: 18),
+                      style: AppTheme.titleStyle.copyWith(fontSize: 18),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -228,7 +232,7 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
                     Icon(
                       PhosphorIcons.checkCircle(PhosphorIconsStyle.fill),
                       size: 16,
-                      color: GitAlongTheme.neonGreen,
+                      color: AppTheme.neonGreen,
                     ),
                   ],
                 ],
@@ -238,23 +242,23 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
                 children: [
                   Text(
                     '@${widget.user.login}',
-                    style: GitAlongTheme.codeStyle.copyWith(fontSize: 14),
+                    style: AppTheme.codeStyle.copyWith(fontSize: 14),
                   ),
                   const SizedBox(width: 8),
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: GitAlongTheme.neonGreen.withValues(alpha: 0.1),
+                      color: AppTheme.neonGreen.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(4),
                       border: Border.all(
-                        color: GitAlongTheme.neonGreen.withValues(alpha: 0.3),
+                        color: AppTheme.neonGreen.withValues(alpha: 0.3),
                         width: 0.5,
                       ),
                     ),
                     child: Text(
                       '${widget.user.followers} followers',
-                      style: GitAlongTheme.terminalStyle.copyWith(fontSize: 10),
+                      style: AppTheme.terminalStyle.copyWith(fontSize: 10),
                     ),
                   ),
                 ],
@@ -266,7 +270,7 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
         // GitHub icon
         Icon(
           PhosphorIcons.githubLogo(PhosphorIconsStyle.fill),
-          color: GitAlongTheme.devGray,
+          color: AppTheme.devGray,
           size: 24,
         ),
       ],
@@ -277,16 +281,16 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: GitAlongTheme.carbonBlack.withValues(alpha: 0.5),
+        color: AppTheme.carbonBlack.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: GitAlongTheme.borderGray.withValues(alpha: 0.5),
+          color: AppTheme.borderGray.withValues(alpha: 0.5),
           width: 1,
         ),
       ),
       child: Text(
         widget.user.bio!,
-        style: GitAlongTheme.bodyStyle.copyWith(
+        style: AppTheme.bodyStyle.copyWith(
           fontStyle: FontStyle.italic,
           height: 1.4,
         ),
@@ -324,12 +328,12 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
         Icon(
           icon,
           size: 16,
-          color: GitAlongTheme.devGray,
+          color: AppTheme.devGray,
         ),
         const SizedBox(width: 6),
         Text(
           value,
-          style: GitAlongTheme.codeStyle.copyWith(
+          style: AppTheme.codeStyle.copyWith(
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -337,7 +341,7 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
         const SizedBox(width: 4),
         Text(
           label,
-          style: GitAlongTheme.mutedStyle,
+          style: AppTheme.mutedStyle,
         ),
       ],
     );
@@ -349,7 +353,7 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
       children: [
         Text(
           'Languages & Skills',
-          style: GitAlongTheme.terminalStyle.copyWith(
+          style: AppTheme.terminalStyle.copyWith(
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -361,16 +365,16 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: GitAlongTheme.borderGray.withValues(alpha: 0.3),
+                color: AppTheme.borderGray.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: GitAlongTheme.borderGray,
+                  color: AppTheme.borderGray,
                   width: 0.5,
                 ),
               ),
               child: Text(
                 language,
-                style: GitAlongTheme.terminalStyle.copyWith(fontSize: 12),
+                style: AppTheme.terminalStyle.copyWith(fontSize: 12),
               ),
             );
           }).toList(),
@@ -383,10 +387,10 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: GitAlongTheme.carbonBlack.withValues(alpha: 0.3),
+        color: AppTheme.carbonBlack.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: GitAlongTheme.borderGray.withValues(alpha: 0.5),
+          color: AppTheme.borderGray.withValues(alpha: 0.5),
           width: 1,
         ),
       ),
@@ -398,12 +402,12 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
               Icon(
                 PhosphorIcons.clock(PhosphorIconsStyle.regular),
                 size: 14,
-                color: GitAlongTheme.devGray,
+                color: AppTheme.devGray,
               ),
               const SizedBox(width: 6),
               Text(
                 'Latest Activity',
-                style: GitAlongTheme.terminalStyle.copyWith(
+                style: AppTheme.terminalStyle.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -412,7 +416,7 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
           const SizedBox(height: 8),
           Text(
             widget.user.latestCommitMessage ?? 'No recent activity',
-            style: GitAlongTheme.codeStyle.copyWith(
+            style: AppTheme.codeStyle.copyWith(
               fontSize: 12,
               fontStyle: FontStyle.italic,
             ),
@@ -432,12 +436,12 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
           Icon(
             PhosphorIcons.mapPin(PhosphorIconsStyle.regular),
             size: 14,
-            color: GitAlongTheme.devGray,
+            color: AppTheme.devGray,
           ),
           const SizedBox(width: 4),
           Text(
             widget.user.location!,
-            style: GitAlongTheme.mutedStyle,
+            style: AppTheme.mutedStyle,
           ),
           const Spacer(),
         ] else
@@ -453,11 +457,11 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
               icon: Icon(
                 PhosphorIcons.arrowSquareOut(PhosphorIconsStyle.regular),
                 size: 18,
-                color: GitAlongTheme.devGray,
+                color: AppTheme.devGray,
               ),
               style: IconButton.styleFrom(
                 backgroundColor:
-                    GitAlongTheme.borderGray.withValues(alpha: 0.2),
+                    AppTheme.borderGray.withValues(alpha: 0.2),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6),
                 ),
@@ -472,10 +476,10 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
               icon: Icon(
                 PhosphorIcons.chatCircle(PhosphorIconsStyle.regular),
                 size: 18,
-                color: GitAlongTheme.neonGreen,
+                color: AppTheme.neonGreen,
               ),
               style: IconButton.styleFrom(
-                backgroundColor: GitAlongTheme.neonGreen.withValues(alpha: 0.1),
+                backgroundColor: AppTheme.neonGreen.withValues(alpha: 0.1),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(6),
                 ),
