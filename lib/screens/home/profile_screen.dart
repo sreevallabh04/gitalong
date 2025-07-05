@@ -11,6 +11,8 @@ import '../../models/models.dart';
 import '../../widgets/profile/role_switch_card.dart';
 import '../../widgets/profile/stats_card.dart';
 import '../../widgets/profile/project_preview_card.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -273,49 +275,73 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       child: Column(
         children: [
           // Profile Image with Glow Effect
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: userProfile.role == UserRole.maintainer
-                    ? [const Color(0xFF8B5CF6), const Color(0xFFEC4899)]
-                    : [const Color(0xFF1F6FEB), const Color(0xFF238636)],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: (userProfile.role == UserRole.maintainer
-                          ? const Color(0xFF8B5CF6)
-                          : const Color(0xFF1F6FEB))
-                      .withValues(alpha: 0.4),
-                  blurRadius: 30,
-                  spreadRadius: 5,
+          Stack(
+            children: [
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: userProfile.role == UserRole.maintainer
+                        ? [const Color(0xFF8B5CF6), const Color(0xFFEC4899)]
+                        : [const Color(0xFF1F6FEB), const Color(0xFF238636)],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: (userProfile.role == UserRole.maintainer
+                              ? const Color(0xFF8B5CF6)
+                              : const Color(0xFF1F6FEB))
+                          .withValues(alpha: 0.4),
+                      blurRadius: 30,
+                      spreadRadius: 5,
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: Container(
-              margin: const EdgeInsets.all(3),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                image: userProfile.photoURL != null
-                    ? DecorationImage(
-                        image: NetworkImage(userProfile.photoURL!),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
-                color: userProfile.photoURL == null
-                    ? const Color(0xFF21262D)
-                    : null,
+                child: Container(
+                  margin: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    image: userProfile.photoURL != null
+                        ? DecorationImage(
+                            image: NetworkImage(userProfile.photoURL!),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                    color: userProfile.photoURL == null
+                        ? const Color(0xFF21262D)
+                        : null,
+                  ),
+                  child: userProfile.photoURL == null
+                      ? Icon(
+                          Icons.person,
+                          size: 48,
+                          color: Colors.white.withValues(alpha: 0.7),
+                        )
+                      : null,
+                ),
               ),
-              child: userProfile.photoURL == null
-                  ? Icon(
-                      Icons.person,
-                      size: 48,
-                      color: Colors.white.withValues(alpha: 0.7),
-                    )
-                  : null,
-            ),
+              // Edit icon overlay
+              Positioned(
+                bottom: 8,
+                right: 8,
+                child: GestureDetector(
+                  onTap: _isLoading ? null : () => _pickAndUploadProfileImage(userProfile),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.7),
+                      shape: BoxShape.circle,
+                    ),
+                    padding: const EdgeInsets.all(8),
+                    child: Icon(
+                      Icons.camera_alt,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
 
           const SizedBox(height: 20),
@@ -911,6 +937,36 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           ),
         );
       }
+    }
+  }
+
+  Future<void> _pickAndUploadProfileImage(UserModel userProfile) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    if (pickedFile == null) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('profile_pictures')
+          .child('${userProfile.id}.jpg');
+      await storageRef.putData(await pickedFile.readAsBytes());
+      final downloadUrl = await storageRef.getDownloadURL();
+      // Update user profile with new photoURL
+      await ref.read(userProfileProvider.notifier).updateProfile(
+        userProfile.copyWith(photoURL: downloadUrl),
+      );
+      AppLogger.logger.success('✅ Profile picture updated');
+    } catch (e) {
+      AppLogger.logger.e('❌ Failed to upload profile picture', error: e);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to upload profile picture: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 }
