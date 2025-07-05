@@ -1,14 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, Lock, Github, Eye, EyeOff } from 'lucide-react';
-import { auth } from '../lib/firebase';
-import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword,
-  signInWithPopup,
-  GithubAuthProvider,
-  GoogleAuthProvider
-} from 'firebase/auth';
+import { useAuth } from '../contexts/AuthContext';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -17,6 +10,7 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMode }) => {
+  const { login, signup, loginWithGoogle, loginWithGitHub, isFirebaseAvailable } = useAuth();
   const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,14 +20,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isFirebaseAvailable) {
+      setError('Authentication is not available. Please try again later.');
+      return;
+    }
+    
     setLoading(true);
     setError('');
 
     try {
       if (mode === 'login') {
-        await signInWithEmailAndPassword(auth, email, password);
+        await login(email, password);
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        await signup(email, password);
       }
       onClose();
     } catch (error: any) {
@@ -44,12 +43,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
   };
 
   const handleGoogleSignIn = async () => {
+    if (!isFirebaseAvailable) {
+      setError('Authentication is not available. Please try again later.');
+      return;
+    }
+    
     setLoading(true);
     setError('');
     
     try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      await loginWithGoogle();
       onClose();
     } catch (error: any) {
       setError(error.message);
@@ -59,12 +62,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
   };
 
   const handleGithubSignIn = async () => {
+    if (!isFirebaseAvailable) {
+      setError('Authentication is not available. Please try again later.');
+      return;
+    }
+    
     setLoading(true);
     setError('');
     
     try {
-      const provider = new GithubAuthProvider();
-      await signInWithPopup(auth, provider);
+      await loginWithGitHub();
       onClose();
     } catch (error: any) {
       setError(error.message);
@@ -123,11 +130,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
                 </motion.div>
               )}
 
+              {/* Firebase Not Available Warning */}
+              {!isFirebaseAvailable && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-yellow-400 text-sm"
+                >
+                  Authentication service is currently unavailable. Please try again later.
+                </motion.div>
+              )}
+
               {/* Social Sign In */}
               <div className="space-y-3 mb-6">
                 <button
                   onClick={handleGoogleSignIn}
-                  disabled={loading}
+                  disabled={loading || !isFirebaseAvailable}
                   className="w-full flex items-center justify-center px-4 py-3 bg-[#0D1117] border border-[#30363D] rounded-xl text-white hover:border-[#2EA043] transition-all duration-300 disabled:opacity-50"
                 >
                   <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
@@ -141,7 +159,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
                 
                 <button
                   onClick={handleGithubSignIn}
-                  disabled={loading}
+                  disabled={loading || !isFirebaseAvailable}
                   className="w-full flex items-center justify-center px-4 py-3 bg-[#0D1117] border border-[#30363D] rounded-xl text-white hover:border-[#2EA043] transition-all duration-300 disabled:opacity-50"
                 >
                   <Github className="w-5 h-5 mr-3" />
@@ -173,7 +191,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
-                      className="w-full pl-10 pr-4 py-3 bg-[#0D1117] border border-[#30363D] rounded-xl text-white placeholder-gray-400 focus:border-[#2EA043] focus:outline-none transition-colors duration-300"
+                      disabled={!isFirebaseAvailable}
+                      className="w-full pl-10 pr-4 py-3 bg-[#0D1117] border border-[#30363D] rounded-xl text-white placeholder-gray-400 focus:border-[#2EA043] focus:outline-none transition-colors duration-300 disabled:opacity-50"
                       placeholder="your.email@example.com"
                     />
                   </div>
@@ -191,7 +210,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
-                      className="w-full pl-10 pr-12 py-3 bg-[#0D1117] border border-[#30363D] rounded-xl text-white placeholder-gray-400 focus:border-[#2EA043] focus:outline-none transition-colors duration-300"
+                      disabled={!isFirebaseAvailable}
+                      className="w-full pl-10 pr-12 py-3 bg-[#0D1117] border border-[#30363D] rounded-xl text-white placeholder-gray-400 focus:border-[#2EA043] focus:outline-none transition-colors duration-300 disabled:opacity-50"
                       placeholder="Enter your password"
                     />
                     <button
@@ -206,10 +226,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
 
                 <button
                   type="submit"
-                  disabled={loading}
-                  className="w-full px-4 py-3 bg-gradient-to-r from-[#2EA043] to-[#3FB950] text-white font-semibold rounded-xl hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={loading || !isFirebaseAvailable}
+                  className="w-full py-3 bg-gradient-to-r from-[#2EA043] to-[#3FB950] text-white font-semibold rounded-xl hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-[#2EA043]/25 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? 'Loading...' : mode === 'login' ? 'Sign In' : 'Create Account'}
+                  {loading ? (
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                      {mode === 'login' ? 'Signing In...' : 'Creating Account...'}
+                    </div>
+                  ) : (
+                    mode === 'login' ? 'Sign In' : 'Create Account'
+                  )}
                 </button>
               </form>
 
@@ -219,7 +246,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialMo
                   {mode === 'login' ? "Don't have an account?" : "Already have an account?"}
                   <button
                     onClick={handleModeSwitch}
-                    className="ml-1 text-[#2EA043] hover:underline font-medium"
+                    className="ml-2 text-[#2EA043] hover:text-[#3FB950] transition-colors duration-200"
                   >
                     {mode === 'login' ? 'Sign up' : 'Sign in'}
                   </button>

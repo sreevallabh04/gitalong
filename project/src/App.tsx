@@ -13,7 +13,11 @@ function App() {
   useEffect(() => {
     // Firebase Analytics is automatically initialized
     // You can add custom analytics events here if needed
-    console.log('Firebase Analytics initialized');
+    if (analytics) {
+      console.log('Firebase Analytics initialized');
+    } else {
+      console.log('Firebase Analytics not available');
+    }
   }, []);
 
   return (

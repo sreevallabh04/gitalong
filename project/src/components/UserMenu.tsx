@@ -1,14 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Settings, LogOut, ChevronDown } from 'lucide-react';
-import { auth } from '../lib/firebase';
-import { signOut } from 'firebase/auth';
 import { useAuth } from '../contexts/AuthContext';
 
 export const UserMenu: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const { currentUser } = useAuth();
+  const { currentUser, logout, isFirebaseAvailable } = useAuth();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -23,14 +21,14 @@ export const UserMenu: React.FC = () => {
 
   const handleSignOut = async () => {
     try {
-      await signOut(auth);
+      await logout();
       setIsOpen(false);
     } catch (error) {
       console.error('Error signing out:', error);
     }
   };
 
-  if (!currentUser) return null;
+  if (!currentUser || !isFirebaseAvailable) return null;
 
   return (
     <div className="relative" ref={menuRef}>

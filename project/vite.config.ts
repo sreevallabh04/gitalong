@@ -20,7 +20,6 @@ export default defineConfig({
           router: ['react-router-dom'],
           animations: ['framer-motion'],
           icons: ['lucide-react'],
-          firebase: ['firebase']
         },
       },
     },
@@ -36,5 +35,8 @@ export default defineConfig({
   },
   define: {
     'process.env': {},
+  },
+  optimizeDeps: {
+    include: ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/analytics'],
   },
 });

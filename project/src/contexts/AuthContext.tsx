@@ -9,7 +9,8 @@ import {
   signOut,
   onAuthStateChanged,
   sendPasswordResetEmail,
-  updateProfile
+  updateProfile,
+  Auth
 } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 
@@ -23,6 +24,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updateUserProfile: (displayName: string) => Promise<void>;
+  isFirebaseAvailable: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -34,7 +36,8 @@ const AuthContext = createContext<AuthContextType>({
   loginWithGoogle: async () => {},
   logout: async () => {},
   resetPassword: async () => {},
-  updateUserProfile: async () => {}
+  updateUserProfile: async () => {},
+  isFirebaseAvailable: false
 });
 
 export const useAuth = () => {
@@ -52,45 +55,17 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const signup = async (email: string, password: string, displayName?: string) => {
-    const result = await createUserWithEmailAndPassword(auth, email, password);
-    if (displayName && result.user) {
-      await updateProfile(result.user, { displayName });
-    }
-  };
-
-  const login = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
-  };
-
-  const loginWithGitHub = async () => {
-    const provider = new GithubAuthProvider();
-    provider.addScope('read:user');
-    provider.addScope('user:email');
-    await signInWithPopup(auth, provider);
-  };
-
-  const loginWithGoogle = async () => {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
-  };
-
-  const logout = async () => {
-    await signOut(auth);
-  };
-
-  const resetPassword = async (email: string) => {
-    await sendPasswordResetEmail(auth, email);
-  };
-
-  const updateUserProfile = async (displayName: string) => {
-    if (currentUser) {
-      await updateProfile(currentUser, { displayName });
-    }
-  };
+  const [isFirebaseAvailable, setIsFirebaseAvailable] = useState(false);
 
   useEffect(() => {
+    // Check if Firebase is available
+    setIsFirebaseAvailable(!!auth);
+    
+    if (!auth) {
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
       setLoading(false);
@@ -98,6 +73,50 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     return unsubscribe;
   }, []);
+
+  const signup = async (email: string, password: string, displayName?: string) => {
+    if (!auth) throw new Error('Firebase is not available');
+    const result = await createUserWithEmailAndPassword(auth, email, password);
+    if (displayName && result.user) {
+      await updateProfile(result.user, { displayName });
+    }
+  };
+
+  const login = async (email: string, password: string) => {
+    if (!auth) throw new Error('Firebase is not available');
+    await signInWithEmailAndPassword(auth, email, password);
+  };
+
+  const loginWithGitHub = async () => {
+    if (!auth) throw new Error('Firebase is not available');
+    const provider = new GithubAuthProvider();
+    provider.addScope('read:user');
+    provider.addScope('user:email');
+    await signInWithPopup(auth, provider);
+  };
+
+  const loginWithGoogle = async () => {
+    if (!auth) throw new Error('Firebase is not available');
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
+  };
+
+  const logout = async () => {
+    if (!auth) throw new Error('Firebase is not available');
+    await signOut(auth);
+  };
+
+  const resetPassword = async (email: string) => {
+    if (!auth) throw new Error('Firebase is not available');
+    await sendPasswordResetEmail(auth, email);
+  };
+
+  const updateUserProfile = async (displayName: string) => {
+    if (!auth) throw new Error('Firebase is not available');
+    if (currentUser) {
+      await updateProfile(currentUser, { displayName });
+    }
+  };
 
   const value = {
     currentUser,
@@ -108,7 +127,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     loginWithGoogle,
     logout,
     resetPassword,
-    updateUserProfile
+    updateUserProfile,
+    isFirebaseAvailable
   };
 
   return (
