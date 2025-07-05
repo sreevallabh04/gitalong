@@ -6,6 +6,7 @@ import '../models/models.dart';
 import '../core/utils/logger.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/utils/safe_query.dart';
+import 'package:flutter/foundation.dart';
 
 final authServiceProvider = Provider<AuthService>((ref) {
   return AuthService();
@@ -941,6 +942,63 @@ class AuthService {
         );
       },
     );
+  }
+
+  /// 🚀 GITHUB SIGN-IN (Firebase Auth)
+  /// Returns a tuple: (UserCredential?, needsLinking: bool, existingProvider: String?)
+  Future<(UserCredential?, bool, String?)> signInWithGitHubWithLinking() async {
+    try {
+      AppLogger.logger.auth('🔐 Starting GitHub sign-in process...');
+      if (kIsWeb) {
+        GithubAuthProvider githubProvider = GithubAuthProvider();
+        githubProvider.addScope('read:user');
+        githubProvider.setCustomParameters({'allow_signup': 'true'});
+        final userCredential = await _auth.signInWithPopup(githubProvider);
+        AppLogger.logger.auth('✅ GitHub sign-in completed (web)');
+        return (userCredential, false, null);
+      } else {
+        GithubAuthProvider githubProvider = GithubAuthProvider();
+        githubProvider.addScope('read:user');
+        githubProvider.setCustomParameters({'allow_signup': 'true'});
+        final userCredential = await _auth.signInWithProvider(githubProvider);
+        AppLogger.logger.auth('✅ GitHub sign-in completed (mobile)');
+        return (userCredential, false, null);
+      }
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'account-exists-with-different-credential') {
+        final email = e.email;
+        final pendingCredential = e.credential;
+        if (email != null && pendingCredential != null) {
+          final methods = await _auth.fetchSignInMethodsForEmail(email);
+          final existingProvider = methods.isNotEmpty ? methods.first : null;
+          // Return null user, needsLinking true, and the existing provider
+          return (null, true, existingProvider);
+        }
+      }
+      AppLogger.logger
+          .e('❌ Firebase Auth Error during GitHub sign-in', error: e);
+      throw AuthException(
+        'GitHub sign-in failed: ${e.message ?? 'Please try again or contact support.'}',
+        code: e.code,
+      );
+    } catch (e, stackTrace) {
+      AppLogger.logger.e('❌ General exception during GitHub sign-in',
+          error: e, stackTrace: stackTrace);
+      throw const AuthException(
+        'An unexpected error occurred during GitHub sign-in. Please try again.',
+        code: 'unknown-error',
+      );
+    }
+  }
+
+  /// Link a pending GitHub credential to the currently signed-in user
+  Future<UserCredential> linkGitHubCredential(
+      AuthCredential pendingCredential) async {
+    final user = _auth.currentUser;
+    if (user == null)
+      throw const AuthException('No user to link credential to.',
+          code: 'no-user');
+    return await user.linkWithCredential(pendingCredential);
   }
 }
 

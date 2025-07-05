@@ -73,7 +73,7 @@ Future<void> sendVerificationToUser(String email) async {
 ```dart
 final GoogleSignIn _googleSignIn = GoogleSignIn(
   scopes: ['email', 'profile'],
-  // 🆕 Added client ID for better compatibility
+  // 🆕 Added  for better compatibility
   serverClientId: '267802124592-tv5mnvog8sblshvnarf0c78ujf4pjbq7.apps.googleusercontent.com',
 );
 ```

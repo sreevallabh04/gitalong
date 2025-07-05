@@ -284,6 +284,76 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     }
   }
 
+  void _signInWithGitHub() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      AppLogger.logger.auth('🔐 Starting GitHub Sign-In process...');
+      final (credential, needsLinking, existingProvider) =
+          await ref.read(authServiceProvider).signInWithGitHubWithLinking();
+      if (credential != null) {
+        AppLogger.logger.auth(
+            '✅ GitHub sign-in successful for: \\${credential.user!.email}');
+        if (mounted) {
+          AppLogger.logger
+              .navigation('✅ GitHub sign-in successful, navigating to home');
+          context.goToHome();
+        }
+      } else if (needsLinking && existingProvider != null) {
+        setState(() => _isLoading = false);
+        // Show dialog to guide user to sign in with the existing provider
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Account Already Exists'),
+            content: Text(
+                'An account already exists with this email using $existingProvider. Please sign in with $existingProvider to link your GitHub account.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+        // Optionally, you can trigger the other provider's sign-in flow here
+        // and then link the GitHub credential after successful sign-in
+      } else {
+        throw const auth.AuthException(
+          'GitHub sign-in completed but no user was returned.',
+          code: 'no-user',
+        );
+      }
+    } on auth.AuthException catch (e) {
+      AppLogger.logger.e('❌ Auth error during GitHub sign-in', error: e);
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        if (e.message.toLowerCase().contains('missing initial state')) {
+          _showErrorSnackbar(
+              'Unable to sign in. Please use a normal browser tab (not incognito/private), and ensure cookies are enabled.');
+        } else {
+          _showErrorSnackbar(e.message);
+        }
+      }
+    } catch (e, stackTrace) {
+      AppLogger.logger.e(
+        '❌ Unexpected error during GitHub sign-in',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        _showErrorSnackbar('GitHub sign-in failed. Please try again.');
+      }
+    }
+  }
+
   void _forgotPassword() async {
     if (_emailController.text.trim().isEmpty) {
       setState(() {
@@ -517,9 +587,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           borderColor: const Color(0xFF30363D), // GitHub border
           textColor: const Color(0xFFF0F6FC), // GitHub white
         ),
-
         const SizedBox(height: 16),
-
+        // GitHub Sign In
+        _buildOAuthButton(
+          onPressed: _isLoading ? null : _signInWithGitHub,
+          icon: PhosphorIcons.githubLogo(PhosphorIconsStyle.fill),
+          label: 'Continue with GitHub',
+          backgroundColor: const Color(0xFF21262D),
+          borderColor: const Color(0xFF30363D),
+          textColor: const Color(0xFFF0F6FC),
+        ),
+        const SizedBox(height: 16),
         // Apple Sign In (iOS/macOS only)
         if (Platform.isIOS || Platform.isMacOS)
           _buildOAuthButton(

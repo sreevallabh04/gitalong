@@ -67,8 +67,8 @@ class AppTheme {
           color: textPrimary,
         ),
         displayMedium: GoogleFonts.inter(
-          fontSize: 28,
-          fontWeight: FontWeight.bold,
+        fontSize: 28,
+        fontWeight: FontWeight.bold,
           color: textPrimary,
         ),
         displaySmall: GoogleFonts.inter(
@@ -82,8 +82,8 @@ class AppTheme {
           color: textPrimary,
         ),
         headlineMedium: GoogleFonts.inter(
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
           color: textPrimary,
         ),
         headlineSmall: GoogleFonts.inter(
@@ -92,17 +92,17 @@ class AppTheme {
           color: textPrimary,
         ),
         titleLarge: GoogleFonts.inter(
-          fontSize: 16,
+        fontSize: 16,
           fontWeight: FontWeight.w600,
           color: textPrimary,
         ),
         titleMedium: GoogleFonts.inter(
           fontSize: 14,
-          fontWeight: FontWeight.w500,
+        fontWeight: FontWeight.w500,
           color: textPrimary,
         ),
         titleSmall: GoogleFonts.inter(
-          fontSize: 12,
+        fontSize: 12,
           fontWeight: FontWeight.w500,
           color: textSecondary,
         ),
@@ -205,10 +205,10 @@ class AppTheme {
         style: TextButton.styleFrom(
           foregroundColor: accentColor,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          textStyle: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
+        textStyle: GoogleFonts.inter(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
         ),
       ),
 
@@ -303,7 +303,7 @@ class AppTheme {
           fontSize: 12,
           color: textPrimary,
         ),
-        shape: RoundedRectangleBorder(
+          shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: const BorderSide(color: borderColor, width: 1),
         ),
@@ -342,8 +342,8 @@ class AppTheme {
             return accentColor.withOpacity(0.3);
           }
           return borderColor;
-        }),
-      ),
+          }),
+        ),
 
       // Checkbox theme
       checkboxTheme: CheckboxThemeData(
@@ -355,7 +355,7 @@ class AppTheme {
         }),
         checkColor: MaterialStateProperty.all(Colors.white),
         side: const BorderSide(color: borderColor, width: 2),
-        shape: RoundedRectangleBorder(
+          shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(4),
         ),
       ),
@@ -430,7 +430,7 @@ class AppTheme {
   /// 🎨 Custom decoration styles
   static BoxDecoration get cardDecoration => BoxDecoration(
         color: cardColor,
-        borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(12),
         border: Border.all(color: borderColor, width: 1),
         boxShadow: [
           BoxShadow(
