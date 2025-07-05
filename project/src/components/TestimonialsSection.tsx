@@ -144,44 +144,6 @@ export const TestimonialsSection: React.FC = () => {
             </motion.div>
           ))}
         </div>
-
-        {/* Stats Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.6 }}
-          viewport={{ once: true }}
-          className="mt-16 grid grid-cols-1 md:grid-cols-4 gap-8 text-center"
-        >
-          <motion.div 
-            className="p-6 rounded-2xl bg-[#161B22] border border-[#30363D]"
-            whileHover={{ scale: 1.05 }}
-          >
-            <div className="text-3xl font-bold text-[#2EA043] mb-2">500+</div>
-            <div className="text-gray-400">Active Developers</div>
-          </motion.div>
-          <motion.div 
-            className="p-6 rounded-2xl bg-[#161B22] border border-[#30363D]"
-            whileHover={{ scale: 1.05 }}
-          >
-            <div className="text-3xl font-bold text-[#2EA043] mb-2">200+</div>
-            <div className="text-gray-400">Successful Matches</div>
-          </motion.div>
-          <motion.div 
-            className="p-6 rounded-2xl bg-[#161B22] border border-[#30363D]"
-            whileHover={{ scale: 1.05 }}
-          >
-            <div className="text-3xl font-bold text-[#2EA043] mb-2">50+</div>
-            <div className="text-gray-400">Projects Created</div>
-          </motion.div>
-          <motion.div 
-            className="p-6 rounded-2xl bg-[#161B22] border border-[#30363D]"
-            whileHover={{ scale: 1.05 }}
-          >
-            <div className="text-3xl font-bold text-[#2EA043] mb-2">100%</div>
-            <div className="text-gray-400">Free to Use</div>
-          </motion.div>
-        </motion.div>
       </div>
     </section>
   );

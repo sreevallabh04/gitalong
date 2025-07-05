@@ -42,7 +42,7 @@ export const TeamPage: React.FC = () => {
     {
       name: "Lisa Thompson",
       role: "Data Scientist",
-      bio: "PhD in Machine Learning. Optimizing our matching algorithms for better developer connections.",
+      bio: "PhD in Machine Learning. Optimizing my matching algorithms for better developer connections.",
       github: "lisathompson",
       avatar: "https://images.pexels.com/photos/3756679/pexels-photo-3756679.jpeg?auto=compress&cs=tinysrgb&w=300&h=300&dpr=1"
     }
@@ -62,7 +62,7 @@ export const TeamPage: React.FC = () => {
             Meet the Team
           </h1>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-            We're a passionate team of developers, designers, and open source enthusiasts 
+            I'm a passionate team of developers, designers, and open source enthusiasts 
             building the future of collaborative software development.
           </p>
         </motion.div>
@@ -133,7 +133,7 @@ export const TeamPage: React.FC = () => {
               </div>
               <h3 className="text-xl font-bold text-white mb-2">Collaboration</h3>
               <p className="text-gray-300">
-                We believe in the power of working together to create something greater than the sum of its parts.
+                I believe in the power of working together to create something greater than the sum of its parts.
               </p>
             </div>
             <div className="text-center">
@@ -142,7 +142,7 @@ export const TeamPage: React.FC = () => {
               </div>
               <h3 className="text-xl font-bold text-white mb-2">Innovation</h3>
               <p className="text-gray-300">
-                We're constantly pushing the boundaries of what's possible in developer tooling and collaboration.
+                I'm constantly pushing the boundaries of what's possible in developer tooling and collaboration.
               </p>
             </div>
             <div className="text-center">
@@ -151,7 +151,7 @@ export const TeamPage: React.FC = () => {
               </div>
               <h3 className="text-xl font-bold text-white mb-2">Open Source</h3>
               <p className="text-gray-300">
-                We're committed to supporting and growing the open source community that made our careers possible.
+                I'm committed to supporting and growing the open source community that made my career possible.
               </p>
             </div>
           </div>
@@ -166,7 +166,7 @@ export const TeamPage: React.FC = () => {
         >
           <h2 className="text-3xl font-bold text-white mb-4">Join Our Team</h2>
           <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-            We're always looking for talented individuals who share our passion for open source 
+            I'm always looking for talented individuals who share my passion for open source 
             and developer collaboration. Let's build the future together.
           </p>
           <a
@@ -176,6 +176,9 @@ export const TeamPage: React.FC = () => {
             View Open Positions
           </a>
         </motion.div>
+      </div>
+      <div className="text-center mt-20">
+        <p className="text-gray-300">Built entirely by Sreevallabh Kakarala.</p>
       </div>
     </div>
   );

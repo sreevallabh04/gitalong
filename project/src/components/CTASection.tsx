@@ -149,13 +149,6 @@ export const CTASection: React.FC<CTASectionProps> = ({ onDownload }) => {
             className="flex items-center"
             whileHover={{ scale: 1.05 }}
           >
-            <Users className="h-5 w-5 mr-2 text-[#2EA043]" />
-            <span>500+ Active Developers</span>
-          </motion.div>
-          <motion.div 
-            className="flex items-center"
-            whileHover={{ scale: 1.05 }}
-          >
             <Heart className="h-5 w-5 mr-2 text-[#2EA043]" />
             <span>100% Free to Use</span>
           </motion.div>

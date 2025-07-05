@@ -1,27 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { Mail, MessageSquare, Download, ArrowRight } from 'lucide-react';
+import { useForm, ValidationError } from '@formspree/react';
 
 export const ContactPage: React.FC = () => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    message: ''
-  });
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Mock form submission - in real app, this would send to backend
-    alert('Thank you for your message! We\'ll get back to you soon.');
-    setFormData({ name: '', email: '', message: '' });
-  };
+  const [state, handleSubmit] = useForm("xwpbjove");
 
   const handleDownloadApp = () => {
     // Mock app store links - in real app, these would link to actual app stores
@@ -37,6 +20,32 @@ export const ContactPage: React.FC = () => {
       window.open('https://apps.apple.com/app/gitalong', '_blank');
     }
   };
+
+  if (state.succeeded) {
+    return (
+      <div className="min-h-screen bg-[#0D1117] flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center"
+        >
+          <div className="w-16 h-16 bg-gradient-to-r from-[#2EA043] to-[#3FB950] rounded-full flex items-center justify-center mx-auto mb-6">
+            <MessageSquare className="h-8 w-8 text-white" />
+          </div>
+          <h1 className="text-3xl font-bold text-white mb-4">Message Sent!</h1>
+          <p className="text-gray-300 text-lg mb-8">
+            Thank you for your message! We'll get back to you as soon as possible.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-gradient-to-r from-[#2EA043] to-[#3FB950] text-white font-semibold rounded-xl hover:scale-105 transition-all duration-300"
+          >
+            Send Another Message
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0D1117]">
@@ -83,8 +92,6 @@ export const ContactPage: React.FC = () => {
                     type="text"
                     id="name"
                     name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
                     required
                     className="w-full px-4 py-3 bg-[#0D1117] border border-[#30363D] rounded-xl text-white placeholder-gray-400 focus:border-[#2EA043] focus:outline-none transition-colors duration-300"
                     placeholder="Your name"
@@ -99,11 +106,15 @@ export const ContactPage: React.FC = () => {
                     type="email"
                     id="email"
                     name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
                     required
                     className="w-full px-4 py-3 bg-[#0D1117] border border-[#30363D] rounded-xl text-white placeholder-gray-400 focus:border-[#2EA043] focus:outline-none transition-colors duration-300"
                     placeholder="your.email@example.com"
+                  />
+                  <ValidationError 
+                    prefix="Email" 
+                    field="email"
+                    errors={state.errors}
+                    className="text-red-400 text-sm mt-1"
                   />
                 </div>
                 
@@ -114,21 +125,26 @@ export const ContactPage: React.FC = () => {
                   <textarea
                     id="message"
                     name="message"
-                    value={formData.message}
-                    onChange={handleInputChange}
                     required
                     rows={5}
                     className="w-full px-4 py-3 bg-[#0D1117] border border-[#30363D] rounded-xl text-white placeholder-gray-400 focus:border-[#2EA043] focus:outline-none transition-colors duration-300 resize-none"
                     placeholder="Tell us about your question or feedback..."
                   />
+                  <ValidationError 
+                    prefix="Message" 
+                    field="message"
+                    errors={state.errors}
+                    className="text-red-400 text-sm mt-1"
+                  />
                 </div>
                 
                 <button
                   type="submit"
-                  className="w-full px-8 py-4 bg-gradient-to-r from-[#2EA043] to-[#3FB950] text-white font-semibold rounded-xl hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-[#2EA043]/25"
+                  disabled={state.submitting}
+                  className="w-full px-8 py-4 bg-gradient-to-r from-[#2EA043] to-[#3FB950] text-white font-semibold rounded-xl hover:scale-105 transition-all duration-300 hover:shadow-xl hover:shadow-[#2EA043]/25 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <MessageSquare className="h-5 w-5 mr-2 inline" />
-                  Send Message
+                  {state.submitting ? 'Sending...' : 'Send Message'}
                 </button>
               </form>
             </motion.div>
@@ -149,7 +165,7 @@ export const ContactPage: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-white mb-2">Email</h3>
-                    <p className="text-gray-300">hello@gitalong.app</p>
+                    <p className="text-gray-300">srivallabhkakarala@gmail.com</p>
                     <p className="text-gray-400 text-sm">We typically respond within 24 hours</p>
                   </div>
                 </div>

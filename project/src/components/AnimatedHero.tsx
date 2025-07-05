@@ -116,27 +116,6 @@ export const AnimatedHero: React.FC = () => {
           Swipe through projects, match with maintainers, and build the future together.
         </motion.p>
 
-        {/* Stats */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.6 }}
-          className="flex flex-wrap justify-center gap-8 mb-12"
-        >
-          <div className="text-center">
-            <div className="text-3xl font-bold text-[#2EA043]">10K+</div>
-            <div className="text-gray-400 text-sm">Active Contributors</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-[#2EA043]">500+</div>
-            <div className="text-gray-400 text-sm">Projects Matched</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-[#2EA043]">95%</div>
-            <div className="text-gray-400 text-sm">Match Accuracy</div>
-          </div>
-        </motion.div>
-
         {/* CTA Buttons */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -158,22 +137,6 @@ export const AnimatedHero: React.FC = () => {
             <Smartphone className="w-5 h-5 mr-2" />
             Download App
           </button>
-        </motion.div>
-
-        {/* Trust indicators */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1, delay: 1.2 }}
-          className="mt-16 text-center"
-        >
-          <p className="text-gray-400 text-sm mb-4">Trusted by developers at</p>
-          <div className="flex justify-center items-center gap-8 opacity-60">
-            <div className="text-white font-bold">GitHub</div>
-            <div className="text-white font-bold">Microsoft</div>
-            <div className="text-white font-bold">Google</div>
-            <div className="text-white font-bold">Meta</div>
-          </div>
         </motion.div>
       </div>
 
