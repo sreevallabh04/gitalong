@@ -6,8 +6,6 @@ import { LandingPage } from './pages/LandingPage';
 import { AboutPage } from './pages/AboutPage';
 import { ContactPage } from './pages/ContactPage';
 import { PrivacyPage } from './pages/PrivacyPage';
-import { MaintainerLogin } from './pages/MaintainerLogin';
-import { UserSearch } from './components/UserSearch';
 import { AuthProvider } from './contexts/AuthContext';
 import { analytics } from './lib/firebase';
 
@@ -28,8 +26,6 @@ function App() {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
-            <Route path="/login" element={<MaintainerLogin />} />
-            <Route path="/search" element={<UserSearch />} />
           </Routes>
           <FloatingOctocat />
         </div>

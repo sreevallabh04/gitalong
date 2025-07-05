@@ -18,10 +18,8 @@ export const Navigation: React.FC = () => {
 
   const navItems = [
     { path: '/', label: 'Home' },
-    { path: '/search', label: 'Search' },
     { path: '/about', label: 'About' },
     { path: '/contact', label: 'Contact' },
-    { path: '/login', label: 'Maintainer Login' },
   ];
 
   const handleAuthClick = (mode: 'login' | 'signup') => {
@@ -30,11 +28,7 @@ export const Navigation: React.FC = () => {
   };
 
   const handleGetStartedClick = () => {
-    if (currentUser) {
-      navigate('/search');
-    } else {
-      handleAuthClick('signup');
-    }
+    handleDownloadAppClick();
   };
 
   const handleDownloadAppClick = () => {
@@ -86,27 +80,14 @@ export const Navigation: React.FC = () => {
               </div>
             </div>
 
-            {/* Auth Section */}
+            {/* Download App Button */}
             <div className="hidden md:flex items-center space-x-4">
-              {currentUser ? (
-                <UserMenu />
-              ) : (
-                <>
-                  <button
-                    onClick={() => handleAuthClick('login')}
-                    className="flex items-center px-4 py-2 text-gray-300 hover:text-white transition-all duration-300 hover:scale-105"
-                  >
-                    <LogIn className="h-4 w-4 mr-2" />
-                    Sign In
-                  </button>
-                  <button
-                    onClick={() => handleAuthClick('signup')}
-                    className="btn-primary"
-                  >
-                    Sign Up
-                  </button>
-                </>
-              )}
+              <button
+                onClick={handleDownloadAppClick}
+                className="btn-primary"
+              >
+                Download App
+              </button>
             </div>
 
             {/* Mobile menu button */}
@@ -140,34 +121,17 @@ export const Navigation: React.FC = () => {
                 </Link>
               ))}
               
-              {/* Mobile Auth */}
+              {/* Mobile Download App */}
               <div className="border-t border-[#30363D] pt-4 mt-4">
-                {currentUser ? (
-                  <div className="px-4 py-2">
-                    <UserMenu />
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <button
-                      onClick={() => {
-                        handleAuthClick('login');
-                        setIsOpen(false);
-                      }}
-                      className="block w-full text-left px-4 py-3 text-gray-300 hover:text-white hover:bg-[#30363D] rounded-xl transition-all duration-300"
-                    >
-                      Sign In
-                    </button>
-                    <button
-                      onClick={() => {
-                        handleAuthClick('signup');
-                        setIsOpen(false);
-                      }}
-                      className="block w-full text-left px-4 py-3 btn-primary"
-                    >
-                      Sign Up
-                    </button>
-                  </div>
-                )}
+                <button
+                  onClick={() => {
+                    handleDownloadAppClick();
+                    setIsOpen(false);
+                  }}
+                  className="block w-full text-left px-4 py-3 btn-primary"
+                >
+                  Download App
+                </button>
               </div>
             </div>
           </div>
