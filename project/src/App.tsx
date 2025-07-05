@@ -7,19 +7,14 @@ import { AboutPage } from './pages/AboutPage';
 import { ContactPage } from './pages/ContactPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { AuthProvider } from './contexts/AuthContext';
-import type { Analytics } from 'firebase/analytics';
-import { getAnalytics } from 'firebase/analytics';
-import app from './lib/firebase';
-
-// If you need to initialize analytics here, use a different variable name to avoid conflicts
-// const appAnalytics: Analytics | undefined = typeof window !== 'undefined' ? getAnalytics(app) : undefined;
-
-export const analytics: Analytics | undefined = typeof window !== 'undefined' && app !== null ? getAnalytics(app) : undefined;
+// @ts-ignore
+import { analytics } from './lib/firebase';
 
 function App() {
   useEffect(() => {
     // Firebase Analytics is automatically initialized
     // You can add custom analytics events here if needed
+    // @ts-ignore
     if (analytics && typeof analytics !== 'undefined') {
       console.log('Firebase Analytics initialized');
     } else {
