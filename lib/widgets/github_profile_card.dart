@@ -240,25 +240,31 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
               const SizedBox(height: 4),
               Row(
                 children: [
-                  Text(
-                    '@${widget.user.login}',
-                    style: AppTheme.codeStyle.copyWith(fontSize: 14),
+                  Flexible(
+                    child: Text(
+                      '@${widget.user.login}',
+                      style: AppTheme.codeStyle.copyWith(fontSize: 14),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                   const SizedBox(width: 8),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: AppTheme.neonGreen.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(
-                        color: AppTheme.neonGreen.withValues(alpha: 0.3),
-                        width: 0.5,
+                  Flexible(
+                    child: Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppTheme.neonGreen.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: AppTheme.neonGreen.withValues(alpha: 0.3),
+                          width: 0.5,
+                        ),
                       ),
-                    ),
-                    child: Text(
-                      '${widget.user.followers} followers',
-                      style: AppTheme.terminalStyle.copyWith(fontSize: 10),
+                      child: Text(
+                        '${widget.user.followers} followers',
+                        style: AppTheme.terminalStyle.copyWith(fontSize: 10),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ),
                 ],
@@ -268,10 +274,13 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
         ),
 
         // GitHub icon
-        Icon(
-          PhosphorIcons.githubLogo(PhosphorIconsStyle.fill),
-          color: AppTheme.devGray,
-          size: 24,
+        Container(
+          padding: const EdgeInsets.all(4),
+          child: Icon(
+            PhosphorIcons.githubLogo(PhosphorIconsStyle.fill),
+            color: AppTheme.devGray,
+            size: 20,
+          ),
         ),
       ],
     );
