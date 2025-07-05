@@ -6,7 +6,7 @@ import '../config/firebase_config.dart';
 import '../models/models.dart';
 import '../core/utils/logger.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../core/utils/firestore_utils.dart'; // Import safeQuery
+import '../core/utils/safe_query.dart';
 
 final authServiceProvider = Provider<AuthService>((ref) {
   return AuthService();
@@ -14,8 +14,8 @@ final authServiceProvider = Provider<AuthService>((ref) {
 
 class AuthService {
   // Lazy-loaded Firebase instances to prevent early initialization
-  FirebaseAuth get _auth => FirebaseConfig.auth;
-  FirebaseFirestore get _firestore => FirebaseConfig.firestore;
+  FirebaseAuth get _auth => FirebaseAuth.instance;
+  FirebaseFirestore get _firestore => FirebaseFirestore.instance;
 
   /// 🔥 PRODUCTION-GRADE GOOGLE SIGN-IN CONFIGURATION
   /// Fixed to work with multiple environments and proper error handling
@@ -617,21 +617,25 @@ class AuthService {
     if (!isAuthenticated)
       throw AuthException('User not authenticated', code: 'not-authenticated');
 
-    final result = await safeQuery(() async {
-      final doc =
-          await _firestore.collection('users').doc(currentUser!.uid).get();
-      if (!doc.exists) {
-        throw AuthException('User profile not found',
-            code: 'profile-not-found');
-      }
-      return UserModel.fromJson(doc.data()!);
-    }, onError: (e) {
-      AppLogger.logger.e('❌ Failed to get user profile', error: e);
-      throw AuthException(
-        'Failed to get user profile: ${e.toString()}',
-        code: 'profile-fetch-error',
-      );
-    });
+    final result = await SafeQuery.firestore(
+      operation: () async {
+        final doc =
+            await _firestore.collection('users').doc(currentUser!.uid).get();
+        if (!doc.exists) {
+          throw AuthException('User profile not found',
+              code: 'profile-not-found');
+        }
+        return UserModel.fromJson(doc.data()!);
+      },
+      operationName: 'getCurrentUserProfile',
+      onError: (e) {
+        AppLogger.logger.e('❌ Failed to get user profile', error: e);
+        throw AuthException(
+          'Failed to get user profile: ${e.toString()}',
+          code: 'profile-fetch-error',
+        );
+      },
+    );
     if (result == null) {
       throw AuthException('Unknown error fetching user profile',
           code: 'unknown-profile-error');
@@ -672,19 +676,23 @@ class AuthService {
       'updated_at': FieldValue.serverTimestamp(),
     };
 
-    final result = await safeQuery(() async {
-      await _firestore
-          .collection('users')
-          .doc(user.uid)
-          .set(userData, SetOptions(merge: true));
-      return UserModel.fromJson(userData);
-    }, onError: (e) {
-      AppLogger.logger.e('❌ Failed to upsert user profile', error: e);
-      throw AuthException(
-        'Failed to update user profile: ${e.toString()}',
-        code: 'profile-update-error',
-      );
-    });
+    final result = await SafeQuery.firestore(
+      operation: () async {
+        await _firestore
+            .collection('users')
+            .doc(user.uid)
+            .set(userData, SetOptions(merge: true));
+        return UserModel.fromJson(userData);
+      },
+      operationName: 'upsertUserProfile',
+      onError: (e) {
+        AppLogger.logger.e('❌ Failed to upsert user profile', error: e);
+        throw AuthException(
+          'Failed to update user profile: ${e.toString()}',
+          code: 'profile-update-error',
+        );
+      },
+    );
     if (result == null) {
       throw const AuthException(
           'Failed to create/update user profile: Unknown error',
@@ -697,15 +705,22 @@ class AuthService {
   Future<bool> hasUserProfile() async {
     if (!isAuthenticated) return false;
 
-    return await safeQuery(() async {
-          final doc =
-              await _firestore.collection('users').doc(currentUser!.uid).get();
-          return doc.exists;
-        }, onError: (e) {
-          AppLogger.logger
-              .e('❌ Failed to check user profile existence', error: e);
-          return false;
-        }) ??
+    return await SafeQuery.firestore(
+          operation: () async {
+            final doc = await _firestore
+                .collection('users')
+                .doc(currentUser!.uid)
+                .get();
+            return doc.exists;
+          },
+          operationName: 'hasUserProfile',
+          fallbackValue: false,
+          onError: (e) {
+            AppLogger.logger
+                .e('❌ Failed to check user profile existence', error: e);
+            return false;
+          },
+        ) ??
         false; // Return false if safeQuery returns null
   }
 

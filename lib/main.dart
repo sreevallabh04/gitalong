@@ -10,6 +10,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/error_handler.dart';
 import 'core/utils/logger.dart';
+import 'config/firebase_config.dart';
 import 'providers/app_lifecycle_provider.dart';
 import 'core/router/app_router.dart';
 import 'core/widgets/octocat_floating_widget.dart';
@@ -135,11 +136,9 @@ void main() async {
       DeviceOrientation.portraitDown,
     ]);
 
-    // Initialize Firebase
+    // Initialize Firebase using the centralized config
     AppLogger.logger.i('🔥 Initializing Firebase...');
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
+    await FirebaseConfig.initialize();
     AppLogger.logger.success('✅ Firebase initialized successfully');
 
     // Set up error handling
