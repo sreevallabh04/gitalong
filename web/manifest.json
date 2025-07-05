@@ -1,17 +1,113 @@
 {
-    "name": "gitalong",
-    "short_name": "gitalong",
-    "start_url": ".",
+    "name": "GitAlong - Developer Networking Platform",
+    "short_name": "GitAlong",
+    "description": "Connect, Collaborate, and Build Amazing Projects Together. Find your perfect open source match with AI-powered recommendations.",
+    "start_url": "/",
     "display": "standalone",
     "background_color": "#0D1117",
     "theme_color": "#238636",
-    "description": "A new Flutter project.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
+    "scope": "/",
+    "lang": "en",
+    "categories": ["productivity", "social", "utilities"],
+    "shortcuts": [
+        {
+            "name": "Find Matches",
+            "short_name": "Matches",
+            "description": "Find new developer matches",
+            "url": "/matches",
+            "icons": [
+                {
+                    "src": "icons/Icon-96.png",
+                    "sizes": "96x96"
+                }
+            ]
+        },
+        {
+            "name": "My Profile",
+            "short_name": "Profile",
+            "description": "View and edit your profile",
+            "url": "/profile",
+            "icons": [
+                {
+                    "src": "icons/Icon-96.png",
+                    "sizes": "96x96"
+                }
+            ]
+        },
+        {
+            "name": "Messages",
+            "short_name": "Chat",
+            "description": "View your messages",
+            "url": "/messages",
+            "icons": [
+                {
+                    "src": "icons/Icon-96.png",
+                    "sizes": "96x96"
+                }
+            ]
+        }
+    ],
     "icons": [
+        {
+            "src": "icons/Icon-16.png",
+            "sizes": "16x16",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-32.png",
+            "sizes": "32x32",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-48.png",
+            "sizes": "48x48",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-72.png",
+            "sizes": "72x72",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-96.png",
+            "sizes": "96x96",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-128.png",
+            "sizes": "128x128",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-144.png",
+            "sizes": "144x144",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-152.png",
+            "sizes": "152x152",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-167.png",
+            "sizes": "167x167",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-180.png",
+            "sizes": "180x180",
+            "type": "image/png"
+        },
         {
             "src": "icons/Icon-192.png",
             "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-384.png",
+            "sizes": "384x384",
             "type": "image/png"
         },
         {

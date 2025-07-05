@@ -279,49 +279,49 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           // Profile Image with Glow Effect
           Stack(
             children: [
-              Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: userProfile.role == UserRole.maintainer
-                        ? [const Color(0xFF8B5CF6), const Color(0xFFEC4899)]
-                        : [const Color(0xFF1F6FEB), const Color(0xFF238636)],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: (userProfile.role == UserRole.maintainer
-                              ? const Color(0xFF8B5CF6)
-                              : const Color(0xFF1F6FEB))
-                          .withValues(alpha: 0.4),
-                      blurRadius: 30,
-                      spreadRadius: 5,
-                    ),
-                  ],
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: userProfile.role == UserRole.maintainer
+                    ? [const Color(0xFF8B5CF6), const Color(0xFFEC4899)]
+                    : [const Color(0xFF1F6FEB), const Color(0xFF238636)],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: (userProfile.role == UserRole.maintainer
+                          ? const Color(0xFF8B5CF6)
+                          : const Color(0xFF1F6FEB))
+                      .withValues(alpha: 0.4),
+                  blurRadius: 30,
+                  spreadRadius: 5,
                 ),
-                child: Container(
-                  margin: const EdgeInsets.all(3),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    image: userProfile.photoURL != null
-                        ? DecorationImage(
-                            image: NetworkImage(userProfile.photoURL!),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
-                    color: userProfile.photoURL == null
-                        ? const Color(0xFF21262D)
-                        : null,
-                  ),
-                  child: userProfile.photoURL == null
-                      ? Icon(
-                          Icons.person,
-                          size: 48,
-                          color: Colors.white.withValues(alpha: 0.7),
-                        )
-                      : null,
-                ),
+              ],
+            ),
+            child: Container(
+              margin: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                image: userProfile.photoURL != null
+                    ? DecorationImage(
+                        image: NetworkImage(userProfile.photoURL!),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+                color: userProfile.photoURL == null
+                    ? const Color(0xFF21262D)
+                    : null,
+              ),
+              child: userProfile.photoURL == null
+                  ? Icon(
+                      Icons.person,
+                      size: 48,
+                      color: Colors.white.withValues(alpha: 0.7),
+                    )
+                  : null,
+            ),
               ),
               // Edit icon overlay
               Positioned(
@@ -538,7 +538,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 onPressed: () => context.go('/project/upload'),
                 icon: Icons.add,
                 label: 'Upload Project',
-                foregroundColor: const Color(0xFF8B5CF6),
+                  foregroundColor: const Color(0xFF8B5CF6),
                 isOutlined: true,
               ),
             ],
@@ -650,11 +650,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           ),
           const SizedBox(height: 16),
           ResponsiveIconLabelButton(
-            onPressed: () => context.go('/project/upload'),
+              onPressed: () => context.go('/project/upload'),
             icon: Icons.add,
             label: 'Upload Project',
-            backgroundColor: const Color(0xFF8B5CF6),
-            foregroundColor: Colors.white,
+                backgroundColor: const Color(0xFF8B5CF6),
+                foregroundColor: Colors.white,
           ),
         ],
       ),

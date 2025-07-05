@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <!--
     If you are serving your web app in a path other than the root, change the
@@ -18,21 +18,153 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="GitAlong - Connect, Collaborate, and Build Amazing Projects Together. Find your perfect open source match with AI-powered recommendations.">
+  <meta name="keywords" content="open source, collaboration, developers, GitHub, projects, matching, AI, machine learning">
+  <meta name="author" content="GitAlong Team">
+  <meta name="robots" content="index, follow">
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://gitalong.app/">
+  <meta property="og:title" content="GitAlong - Developer Networking Platform">
+  <meta property="og:description" content="Connect, Collaborate, and Build Amazing Projects Together">
+  <meta property="og:image" content="https://gitalong.app/icons/Icon-512.png">
 
-  <!-- iOS meta tags & icons -->
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://gitalong.app/">
+  <meta property="twitter:title" content="GitAlong - Developer Networking Platform">
+  <meta property="twitter:description" content="Connect, Collaborate, and Build Amazing Projects Together">
+  <meta property="twitter:image" content="https://gitalong.app/icons/Icon-512.png">
+
+  <!-- PWA Meta Tags -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="gitalong">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="GitAlong">
+  <meta name="application-name" content="GitAlong">
+  <meta name="msapplication-TileColor" content="#238636">
+  <meta name="msapplication-tap-highlight" content="no">
+  <meta name="theme-color" content="#238636">
+
+  <!-- iOS Icons -->
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="icons/Icon-152.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/Icon-180.png">
+  <link rel="apple-touch-icon" sizes="167x167" href="icons/Icon-167.png">
 
   <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/Icon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="icons/Icon-16.png">
+  <link rel="shortcut icon" href="favicon.png">
 
-  <title>gitalong</title>
+  <!-- Manifest -->
   <link rel="manifest" href="manifest.json">
+
+  <!-- Preconnect to external domains -->
+  <link rel="preconnect" href="https://api.gitalong.app">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- Security Headers -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-Frame-Options" content="DENY">
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+
+  <title>GitAlong - Developer Networking Platform</title>
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "GitAlong",
+    "description": "Connect, Collaborate, and Build Amazing Projects Together",
+    "url": "https://gitalong.app",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Web Browser",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    }
+  }
+  </script>
+
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/sw.js')
+          .then(function(registration) {
+            console.log('SW registered: ', registration);
+          })
+          .catch(function(registrationError) {
+            console.log('SW registration failed: ', registrationError);
+          });
+      });
+    }
+  </script>
+
+  <!-- Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'GA_MEASUREMENT_ID');
+  </script>
 </head>
 <body>
+  <!-- Loading Screen -->
+  <div id="loading">
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background: #0D1117;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        color: #F0F6FC;
+      }
+      .loading-container {
+        text-align: center;
+      }
+      .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 3px solid #30363D;
+        border-top: 3px solid #238636;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      .loading-text {
+        font-size: 18px;
+        font-weight: 500;
+      }
+    </style>
+    <div class="loading-container">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Loading GitAlong...</div>
+    </div>
+  </div>
+
   <script src="flutter_bootstrap.js" async></script>
+  
+  <script>
+    // Hide loading screen when Flutter is ready
+    window.addEventListener('flutter-first-frame', function() {
+      document.getElementById('loading').style.display = 'none';
+    });
+  </script>
 </body>
 </html>

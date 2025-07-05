@@ -14,6 +14,7 @@ import 'core/analytics/analytics_service.dart';
 import 'config/firebase_config.dart';
 import 'services/notification_service.dart';
 import 'providers/app_lifecycle_provider.dart';
+import 'providers/web_backend_provider.dart';
 import 'core/router/app_router.dart';
 import 'core/widgets/octocat_floating_widget.dart';
 
@@ -107,6 +108,11 @@ void main() async {
     // Initialize analytics
     await AnalyticsService.initialize();
     AppLogger.logger.i('📊 Analytics service initialized');
+
+    // Initialize Firebase web service
+    final firebaseWeb = FirebaseWebService();
+    await firebaseWeb.initialize();
+    AppLogger.logger.i('🔥 Firebase web service initialized');
 
     // Load environment configuration (optional)
     try {
@@ -273,28 +279,28 @@ class GitAlongApp extends ConsumerWidget {
 
     return ErrorBoundary(
       child: MaterialApp.router(
-        title: 'GitAlong',
-        debugShowCheckedModeBanner: false,
+      title: 'GitAlong',
+      debugShowCheckedModeBanner: false,
 
         // Use the GitHub-inspired theme
         theme: AppTheme.darkTheme,
 
-        // GoRouter configuration - this is the key!
-        routerConfig: router,
+      // GoRouter configuration - this is the key!
+      routerConfig: router,
 
-        // Builder for additional global configuration
-        builder: (context, child) {
-          // Ensure text scaling doesn't break the UI
-          final mediaQuery = MediaQuery.of(context);
+      // Builder for additional global configuration
+      builder: (context, child) {
+        // Ensure text scaling doesn't break the UI
+        final mediaQuery = MediaQuery.of(context);
           return Stack(
             children: [
               MediaQuery(
-                data: mediaQuery.copyWith(
-                  textScaler: TextScaler.linear(
-                    mediaQuery.textScaler.scale(1.0).clamp(0.8, 1.2),
-                  ),
-                ),
-                child: child ?? const SizedBox.shrink(),
+          data: mediaQuery.copyWith(
+            textScaler: TextScaler.linear(
+              mediaQuery.textScaler.scale(1.0).clamp(0.8, 1.2),
+            ),
+          ),
+          child: child ?? const SizedBox.shrink(),
               ),
 
               // Global Octocat floating widget
@@ -303,8 +309,8 @@ class GitAlongApp extends ConsumerWidget {
                 size: 50,
               ),
             ],
-          );
-        },
+        );
+      },
       ),
     );
   }

@@ -333,14 +333,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               children: [
                 if (_currentPage > 0)
                   ResponsiveOutlinedButton(
-                    onPressed: _isLoading ? null : _previousPage,
+                      onPressed: _isLoading ? null : _previousPage,
                     child: const Text('Back'),
-                  ),
+                      ),
                 ResponsiveElevatedButton(
-                  onPressed: _isLoading ? null : _nextPage,
+                    onPressed: _isLoading ? null : _nextPage,
                   isLoading: _isLoading,
                   child: Text(
-                    _currentPage == 2 ? 'Complete Profile' : 'Next',
+                            _currentPage == 2 ? 'Complete Profile' : 'Next',
                   ),
                 ),
               ],
