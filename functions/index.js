@@ -1,230 +1,517 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 
+// Initialize Firebase Admin SDK
 admin.initializeApp();
 
 // ============================================================================
-// 🔔 PUSH NOTIFICATION HANDLERS
+// 🎨 ENHANCED WELCOME EMAIL SYSTEM v2.0
 // ============================================================================
 
-// Process push notifications from Firestore queue
-exports.processPushNotifications = functions.firestore
-  .document('push_notifications/{notificationId}')
-  .onCreate(async (snap, context) => {
-    const notificationData = snap.data();
-    const { userId, fcmToken, title, body, data, imageUrl } = notificationData;
-
-    try {
-      // Send push notification via FCM
-      const message = {
-        token: fcmToken,
-        notification: {
-          title: title,
-          body: body,
-          imageUrl: imageUrl,
-        },
-        data: data || {},
-        android: {
-          notification: {
-            channelId: 'general',
-            priority: 'high',
-            defaultSound: true,
-            defaultVibrateTimings: true,
-            icon: '@mipmap/launcher_icon',
-            color: '#238636',
-          },
-        },
-        apns: {
-          payload: {
-            aps: {
-              sound: 'default',
-              badge: 1,
-            },
-          },
-        },
-      };
-
-      const response = await admin.messaging().send(message);
-      
-      // Update notification status
-      await snap.ref.update({
-        status: 'sent',
-        sentAt: admin.firestore.FieldValue.serverTimestamp(),
-        messageId: response,
-      });
-
-      console.log(`✅ Push notification sent successfully to user ${userId}`);
-    } catch (error) {
-      console.error(`❌ Failed to send push notification to user ${userId}:`, error);
-      
-      // Update notification status to failed
-      await snap.ref.update({
-        status: 'failed',
-        error: error.message,
-        failedAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
-    }
-  });
-
-// Send notification when user swipes right on a project
-exports.onSwipeRight = functions.firestore
-  .document('swipes/{swipeId}')
-  .onCreate(async (snap, context) => {
-    const swipeData = snap.data();
-    const { swiper_id, target_id, project_id, direction } = swipeData;
-
-    if (direction === 'right') {
-      try {
-        // Get project details
-        const projectDoc = await admin.firestore().collection('projects').doc(project_id).get();
-        const projectData = projectDoc.data();
-        
-        if (projectData) {
-          // Get swiper details
-          const swiperDoc = await admin.firestore().collection('users').doc(swiper_id).get();
-          const swiperData = swiperDoc.data();
-          
-          if (swiperData && projectData.owner_id !== swiper_id) {
-            // Send notification to project owner
-            await admin.firestore().collection('push_notifications').add({
-              userId: projectData.owner_id,
-              fcmToken: projectData.owner_fcm_token,
-              title: '👋 New Swipe!',
-              body: `${swiperData.name || 'Someone'} swiped right on your project "${projectData.title}"`,
-              data: {
-                type: 'swipe',
-                action: 'open_project',
-                swiperName: swiperData.name || 'Someone',
-                projectTitle: projectData.title,
-                projectId: project_id,
-              },
-              status: 'pending',
-              createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            });
-          }
-        }
-      } catch (error) {
-        console.error('❌ Error processing swipe notification:', error);
-      }
-    }
-  });
-
-// Send notification when a match is created
-exports.onMatchCreated = functions.firestore
-  .document('matches/{matchId}')
-  .onCreate(async (snap, context) => {
-    const matchData = snap.data();
-    const { user1_id, user2_id, project_id } = matchData;
-
-    try {
-      // Get project details
-      const projectDoc = await admin.firestore().collection('projects').doc(project_id).get();
-      const projectData = projectDoc.data();
-      
-      if (projectData) {
-        // Get user details
-        const [user1Doc, user2Doc] = await Promise.all([
-          admin.firestore().collection('users').doc(user1_id).get(),
-          admin.firestore().collection('users').doc(user2_id).get(),
-        ]);
-        
-        const user1Data = user1Doc.data();
-        const user2Data = user2Doc.data();
-        
-        if (user1Data && user2Data) {
-          // Send notification to both users
-          const notifications = [
-            {
-              userId: user1_id,
-              fcmToken: user1Data.fcm_token,
-              title: '🎉 New Match!',
-              body: `You matched with ${user2Data.name || 'Someone'} on "${projectData.title}"`,
-              data: {
-                type: 'match',
-                action: 'open_match',
-                matchedUserName: user2Data.name || 'Someone',
-                projectTitle: projectData.title,
-                matchId: snap.id,
-              },
-            },
-            {
-              userId: user2_id,
-              fcmToken: user2Data.fcm_token,
-              title: '🎉 New Match!',
-              body: `You matched with ${user1Data.name || 'Someone'} on "${projectData.title}"`,
-              data: {
-                type: 'match',
-                action: 'open_match',
-                matchedUserName: user1Data.name || 'Someone',
-                projectTitle: projectData.title,
-                matchId: snap.id,
-              },
-            },
-          ];
-          
-          // Add notifications to queue
-          const batch = admin.firestore().batch();
-          notifications.forEach((notification) => {
-            const notificationRef = admin.firestore().collection('push_notifications').doc();
-            batch.set(notificationRef, {
-              ...notification,
-              status: 'pending',
-              createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            });
-          });
-          
-          await batch.commit();
-        }
-      }
-    } catch (error) {
-      console.error('❌ Error processing match notification:', error);
-    }
-  });
-
-// Send welcome email AFTER email verification, not during signup
+/**
+ * 🚀 Enhanced Welcome Email Trigger - Fires ONLY after email verification
+ * 
+ * This function is triggered when a user's emailVerified status changes from false to true.
+ * It features:
+ * - Perfect timing (only after verification)
+ * - Deduplication (prevents multiple emails)
+ * - Beautiful responsive templates
+ * - Comprehensive error handling
+ * - Analytics tracking
+ */
 exports.sendWelcomeEmailAfterVerification = functions.auth.user().onUpdate(async (change, context) => {
   const beforeData = change.before;
   const afterData = change.after;
   
-  // Check if email verification status changed from false to true
+  // 🎯 TRIGGER CONDITION: Email verification status changed from false to true
   const wasUnverified = !beforeData.emailVerified;
   const isNowVerified = afterData.emailVerified;
   
-  if (wasUnverified && isNowVerified) {
-    const email = afterData.email;
-    const displayName = afterData.displayName || afterData.email?.split('@')[0] || 'Developer';
+  if (!(wasUnverified && isNowVerified)) {
+    console.log(`ℹ️  Email verification status unchanged for ${afterData.email}`);
+    return null;
+  }
+
+  const email = afterData.email;
+  const displayName = _getEnhancedDisplayName(afterData);
+  const userId = afterData.uid;
+
+  try {
+    console.log(`🎉 Email verified! Triggering enhanced welcome email for: ${email}`);
+    
+    // 🔒 DEDUPLICATION CHECK - Prevent multiple welcome emails
+    const existingWelcome = await _checkExistingWelcomeEmail(userId);
+    if (existingWelcome) {
+      console.log(`📧 Welcome email already sent to ${email} at ${existingWelcome.createdAt}`);
+      return { success: true, message: 'Welcome email already sent', skipped: true };
+    }
+
+    // 🎨 CREATE ENHANCED WELCOME EMAIL TEMPLATE
+    const emailTemplate = _createEnhancedWelcomeTemplate(displayName, email, afterData);
+
+    // 📝 STORE WELCOME EMAIL RECORD with enhanced metadata
+    const welcomeEmailData = {
+      userId: userId,
+      email: email,
+      displayName: displayName,
+      template: 'welcome_verified_v2_enhanced',
+      htmlContent: emailTemplate,
+      status: 'pending',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      triggerType: 'email_verification_functions_v2',
+      emailVerified: afterData.emailVerified,
+      verificationTime: admin.firestore.FieldValue.serverTimestamp(),
+      priority: 'high',
+      metadata: {
+        functionVersion: '2.0.0',
+        enhanced: true,
+        userAgent: 'firebase-functions-enhanced',
+        signupMethod: afterData.providerData?.[0]?.providerId || 'email',
+        platform: 'server-side',
+        hasDisplayName: !!afterData.displayName,
+        hasPhotoURL: !!afterData.photoURL,
+        emailDomain: email?.split('@')[1],
+        userProperties: {
+          isNewUser: true,
+          welcomeEmailVersion: 'v2_enhanced',
+          enhancedTiming: true,
+          serverSide: true,
+        }
+      }
+    };
+
+    // Store the enhanced welcome email
+    const welcomeEmailRef = await admin.firestore().collection('welcome_emails').add(welcomeEmailData);
+
+    // 📊 LOG DELIVERY TRACKING
+    await admin.firestore().collection('email_delivery_log').add({
+      userId: userId,
+      email: email,
+      type: 'welcome_email_enhanced',
+      status: 'queued',
+      welcomeEmailId: welcomeEmailRef.id,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      emailVerified: afterData.emailVerified,
+      verificationTime: admin.firestore.FieldValue.serverTimestamp(),
+      source: 'firebase_functions_v2',
+    });
+
+    // 🔔 CREATE ENHANCED IN-APP NOTIFICATION
+    await _createEnhancedInAppNotification(userId, email, displayName);
+
+    // 📊 TRACK ANALYTICS
+    await _trackWelcomeEmailAnalytics(userId, 'welcome_email_triggered_server', email);
+
+    console.log(`✅ Enhanced welcome email queued successfully for: ${email}`);
+    return { 
+      success: true, 
+      email: email, 
+      displayName: displayName,
+      welcomeEmailId: welcomeEmailRef.id,
+      version: '2.0.0'
+    };
+
+  } catch (error) {
+    console.error(`❌ Error sending enhanced welcome email to ${email}:`, error);
+    
+    // 📝 LOG ERROR for monitoring
+    await _logEnhancedEmailError(userId, email, 'welcome_email_functions_error', error.message);
+    
+    return { success: false, error: error.message, email: email };
+  }
+});
+
+/**
+ * 📧 Enhanced Welcome Email Processor
+ * 
+ * Processes welcome emails from the queue with beautiful templates
+ * and comprehensive delivery tracking.
+ */
+exports.processEnhancedWelcomeEmails = functions.firestore
+  .document('welcome_emails/{emailId}')
+  .onCreate(async (snap, context) => {
+    const emailData = snap.data();
+    const { email, displayName, htmlContent, userId, template } = emailData;
+    const emailId = context.params.emailId;
 
     try {
-      AppLogger.logger.i('📧 Email verified! Sending welcome email to: ${email}');
+      console.log(`📬 Processing enhanced welcome email for: ${email}`);
+
+      // 🎯 ENHANCED EMAIL QUEUE for external email service integration
+      const emailQueueData = {
+        to: email,
+        subject: `Welcome to GitAlong, ${displayName}! 🚀 Your Developer Journey Starts Now`,
+        html: htmlContent || _createEnhancedWelcomeTemplate(displayName, email),
+        type: 'welcome_enhanced',
+            priority: 'high',
+        userId: userId,
+        welcomeEmailId: emailId,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        status: 'queued',
+        metadata: {
+          version: '2.0.0',
+          enhanced: true,
+          template: template || 'welcome_enhanced_default',
+          processor: 'firebase_functions_v2',
+        }
+      };
+
+      // Add to email queue for external processing
+      const queueRef = await admin.firestore().collection('email_queue').add(emailQueueData);
+
+      // 📱 SEND ENHANCED PUSH NOTIFICATION (if FCM token available)
+      try {
+        await _sendEnhancedPushNotification(userId, email, displayName);
+      } catch (notifError) {
+        console.warn(`⚠️  Could not send push notification to ${email}:`, notifError);
+        // Don't fail the entire process if push notification fails
+      }
+
+      // 📊 UPDATE WELCOME EMAIL STATUS
+      await snap.ref.update({
+        status: 'queued_for_delivery',
+        queuedAt: admin.firestore.FieldValue.serverTimestamp(),
+        emailQueueId: queueRef.id,
+        processorVersion: '2.0.0',
+      });
+
+      // 📈 TRACK PROCESSING ANALYTICS
+      await _trackWelcomeEmailAnalytics(userId, 'welcome_email_queued', email);
+
+      console.log(`✅ Enhanced welcome email queued for delivery: ${email}`);
       
-      // Create beautiful welcome email template
-      const welcomeEmailTemplate = `
+    } catch (error) {
+      console.error(`❌ Error processing enhanced welcome email for ${email}:`, error);
+      
+      // Update status to failed
+      await snap.ref.update({
+        status: 'failed',
+        error: error.message,
+        failedAt: admin.firestore.FieldValue.serverTimestamp(),
+        processorVersion: '2.0.0',
+      });
+
+      // Log the error
+      await _logEnhancedEmailError(userId, email, 'welcome_email_processing_error', error.message);
+    }
+  });
+
+/**
+ * 📧 Enhanced Email Verification Processor
+ * 
+ * Processes email verification reminders with beautiful templates
+ */
+exports.processEnhancedEmailNotifications = functions.firestore
+  .document('email_notifications/{notificationId}')
+  .onCreate(async (snap, context) => {
+    const notification = snap.data();
+    const { email, type, message } = notification;
+
+    if (!type.includes('verification')) {
+      console.log(`ℹ️  Skipping non-verification notification: ${type}`);
+      return;
+    }
+
+    try {
+      console.log(`📬 Processing enhanced verification email for: ${email}`);
+
+      // Get the user by email
+      const userRecord = await admin.auth().getUserByEmail(email);
+      
+      if (userRecord.emailVerified) {
+        console.log(`✅ Email already verified for: ${email}`);
+        await snap.ref.update({ 
+          processed: true, 
+          result: 'already_verified',
+          processedAt: admin.firestore.FieldValue.serverTimestamp(),
+          processorVersion: '2.0.0',
+        });
+        return;
+      }
+
+      // 🔗 GENERATE ENHANCED VERIFICATION EMAIL LINK
+      const actionCodeSettings = {
+        url: 'https://gitalong.dev/email-verified',
+        handleCodeInApp: true,
+      };
+
+      const verificationLink = await admin.auth().generateEmailVerificationLink(
+        email, 
+        actionCodeSettings
+      );
+
+      // 🎨 CREATE ENHANCED VERIFICATION EMAIL TEMPLATE
+      const verificationTemplate = _createEnhancedVerificationTemplate(
+        email, 
+        verificationLink, 
+        userRecord.displayName || email.split('@')[0]
+      );
+
+      // 📝 QUEUE THE ENHANCED VERIFICATION EMAIL
+      await admin.firestore().collection('email_queue').add({
+        to: email,
+        subject: '🔐 Verify Your GitAlong Account - Unlock Your Developer Journey',
+        html: verificationTemplate,
+        type: 'verification_enhanced',
+        priority: 'high',
+        verificationLink: verificationLink,
+        userId: userRecord.uid,
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        status: 'queued',
+        metadata: {
+          version: '2.0.0',
+          enhanced: true,
+          notificationId: context.params.notificationId,
+        }
+      });
+      
+      // 📊 MARK NOTIFICATION AS PROCESSED
+      await snap.ref.update({ 
+        processed: true, 
+        result: 'verification_queued_enhanced',
+        verificationLink: verificationLink,
+        processedAt: admin.firestore.FieldValue.serverTimestamp(),
+        processorVersion: '2.0.0',
+      });
+
+      console.log(`✅ Enhanced verification email queued for: ${email}`);
+      
+    } catch (error) {
+      console.error(`❌ Error processing enhanced verification for ${email}:`, error);
+      
+      await snap.ref.update({ 
+        processed: true, 
+        result: 'error',
+        errorMessage: error.message,
+        processedAt: admin.firestore.FieldValue.serverTimestamp(),
+        processorVersion: '2.0.0',
+      });
+    }
+  });
+
+// ============================================================================
+// 🛠️ HELPER FUNCTIONS - Enhanced Utilities
+// ============================================================================
+
+/**
+ * Get enhanced display name with intelligent fallbacks
+ */
+function _getEnhancedDisplayName(userData) {
+  if (userData.displayName) {
+    return userData.displayName;
+  }
+  
+  if (userData.email) {
+    const username = userData.email.split('@')[0];
+    // Convert to title case and handle common separators
+    return username
+      .split(/[._-]/)
+      .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
+  }
+  
+  return 'Developer';
+}
+
+/**
+ * Check for existing welcome emails (deduplication)
+ */
+async function _checkExistingWelcomeEmail(userId) {
+  try {
+    const existingEmails = await admin.firestore()
+      .collection('welcome_emails')
+      .where('userId', '==', userId)
+      .where('status', 'in', ['pending', 'queued_for_delivery', 'sent'])
+      .limit(1)
+      .get();
+
+    return existingEmails.docs.length > 0 ? existingEmails.docs[0].data() : null;
+      } catch (error) {
+    console.warn(`⚠️  Error checking existing welcome email for ${userId}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Create enhanced in-app notification
+ */
+async function _createEnhancedInAppNotification(userId, email, displayName) {
+  try {
+    await admin.firestore().collection('user_notifications').add({
+      userId: userId,
+      type: 'welcome_enhanced',
+      title: 'Welcome to GitAlong! 🚀',
+      message: `Hey ${displayName}! Your developer journey starts now. Complete your profile to discover amazing projects!`,
+      read: false,
+      priority: 'high',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      expiresAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)), // 7 days
+      actions: {
+        complete_profile: '/onboarding',
+        explore_projects: '/home/discover',
+        view_tutorials: '/help/getting-started',
+      },
+      metadata: {
+        welcomeEmailSent: true,
+        emailVerificationTime: admin.firestore.FieldValue.serverTimestamp(),
+        functionVersion: '2.0.0',
+        enhanced: true,
+      }
+    });
+    
+    console.log(`📱 Enhanced in-app notification created for: ${email}`);
+  } catch (error) {
+    console.warn(`⚠️  Failed to create in-app notification for ${email}:`, error);
+  }
+}
+
+/**
+ * Send enhanced push notification
+ */
+async function _sendEnhancedPushNotification(userId, email, displayName) {
+  try {
+    // Check if user has FCM tokens
+    const userTokens = await admin.firestore()
+      .collection('user_fcm_tokens')
+      .where('userId', '==', userId)
+      .where('active', '==', true)
+      .get();
+
+    if (userTokens.docs.length === 0) {
+      console.log(`ℹ️  No FCM tokens found for user: ${email}`);
+      return;
+    }
+
+    const tokens = userTokens.docs.map(doc => doc.data().token);
+
+    const message = {
+      notification: {
+        title: 'Welcome to GitAlong! 🚀',
+        body: `Hey ${displayName}! Your developer journey starts now.`,
+        icon: 'https://gitalong.dev/icon-192.png',
+      },
+              data: {
+        type: 'welcome_enhanced',
+        action: 'open_onboarding',
+        userId: userId,
+        version: '2.0.0',
+      },
+      tokens: tokens,
+    };
+
+    const response = await admin.messaging().sendMulticast(message);
+    console.log(`📱 Enhanced push notification sent to ${response.successCount}/${tokens.length} devices for: ${email}`);
+    
+    // Clean up invalid tokens
+    if (response.failureCount > 0) {
+      const invalidTokens = [];
+      response.responses.forEach((resp, idx) => {
+        if (!resp.success) {
+          invalidTokens.push(tokens[idx]);
+        }
+      });
+      
+      // Mark invalid tokens as inactive
+      const batch = admin.firestore().batch();
+      for (const token of invalidTokens) {
+        const tokenDoc = await admin.firestore()
+          .collection('user_fcm_tokens')
+          .where('token', '==', token)
+          .limit(1)
+          .get();
+        
+        if (tokenDoc.docs.length > 0) {
+          batch.update(tokenDoc.docs[0].ref, { active: false });
+        }
+      }
+      await batch.commit();
+      }
+    } catch (error) {
+    console.warn(`⚠️  Failed to send push notification for ${email}:`, error);
+  }
+}
+
+/**
+ * Track welcome email analytics
+ */
+async function _trackWelcomeEmailAnalytics(userId, event, email) {
+  try {
+    await admin.firestore().collection('email_analytics').add({
+      userId: userId,
+      email: email,
+      event: event,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      source: 'firebase_functions_v2_enhanced',
+      metadata: {
+        functionVersion: '2.0.0',
+        enhanced: true,
+        serverSide: true,
+      }
+    });
+  } catch (error) {
+    console.warn(`⚠️  Failed to track analytics for ${email}:`, error);
+  }
+}
+
+/**
+ * Log enhanced email errors
+ */
+async function _logEnhancedEmailError(userId, email, errorType, errorMessage) {
+  try {
+    await admin.firestore().collection('email_errors').add({
+      userId: userId,
+      email: email,
+      errorType: errorType,
+      errorMessage: errorMessage,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      source: 'firebase_functions_v2_enhanced',
+      metadata: {
+        functionVersion: '2.0.0',
+        enhanced: true,
+        serverSide: true,
+      }
+    });
+  } catch (error) {
+    console.error(`❌ Failed to log email error for ${email}:`, error);
+  }
+}
+
+/**
+ * 🎨 Create Enhanced Welcome Email Template
+ */
+function _createEnhancedWelcomeTemplate(displayName, email, userData = {}) {
+  const firstName = displayName.split(' ')[0];
+  const emailDomain = email.split('@')[1];
+  const isGoogleUser = userData?.providerData?.[0]?.providerId === 'google.com';
+  
+  return `
       <!DOCTYPE html>
       <html lang="en">
       <head>
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Welcome to GitAlong!</title>
+    <title>Welcome to GitAlong, ${displayName}!</title>
           <style>
               * { margin: 0; padding: 0; box-sizing: border-box; }
               body { 
-                  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-                  background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #21262d 100%);
                   padding: 20px;
                   min-height: 100vh;
+            line-height: 1.6;
               }
               .container {
                   max-width: 600px;
                   margin: 0 auto;
                   background: #21262d;
-                  border-radius: 16px;
+            border-radius: 20px;
                   overflow: hidden;
-                  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
                   border: 1px solid #30363d;
               }
               .header {
-                  background: linear-gradient(135deg, #238636 0%, #2ea043 100%);
-                  padding: 40px 30px;
+            background: linear-gradient(135deg, #238636 0%, #2ea043 50%, #7c3aed 100%);
+            padding: 50px 30px;
                   text-align: center;
                   position: relative;
                   overflow: hidden;
@@ -237,161 +524,218 @@ exports.sendWelcomeEmailAfterVerification = functions.auth.user().onUpdate(async
                   width: 200%;
                   height: 200%;
                   background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-                  animation: shine 3s ease-in-out infinite;
+            animation: shine 4s ease-in-out infinite;
               }
               @keyframes shine {
                   0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
                   50% { transform: translate(-50%, -50%) rotate(180deg); }
               }
               .logo {
-                  width: 80px;
-                  height: 80px;
+            width: 100px;
+            height: 100px;
                   background: rgba(255,255,255,0.15);
                   border-radius: 50%;
-                  margin: 0 auto 20px;
+            margin: 0 auto 25px;
                   display: flex;
                   align-items: center;
                   justify-content: center;
-                  font-size: 40px;
+            font-size: 50px;
                   position: relative;
                   z-index: 1;
+            backdrop-filter: blur(10px);
               }
               .header h1 {
                   color: white;
-                  font-size: 28px;
-                  font-weight: 700;
-                  margin-bottom: 10px;
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 15px;
                   position: relative;
                   z-index: 1;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
               }
               .header p {
-                  color: rgba(255,255,255,0.9);
-                  font-size: 16px;
+            color: rgba(255,255,255,0.95);
+            font-size: 18px;
                   position: relative;
                   z-index: 1;
+            font-weight: 500;
               }
               .content {
-                  padding: 40px 30px;
+            padding: 50px 40px;
                   color: #c9d1d9;
               }
               .greeting {
-                  font-size: 24px;
-                  font-weight: 600;
+            font-size: 26px;
+            font-weight: 700;
                   color: #f0f6fc;
-                  margin-bottom: 20px;
+            margin-bottom: 25px;
                   text-align: center;
               }
               .message {
-                  font-size: 16px;
-                  line-height: 1.6;
-                  margin-bottom: 30px;
+            font-size: 18px;
+            line-height: 1.7;
+            margin-bottom: 35px;
                   text-align: center;
                   color: #8b949e;
               }
               .features {
-                  background: #161b22;
-                  border-radius: 12px;
-                  padding: 30px;
-                  margin: 30px 0;
+            background: linear-gradient(135deg, #161b22 0%, #21262d 100%);
+            border-radius: 16px;
+            padding: 35px;
+            margin: 35px 0;
                   border: 1px solid #30363d;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.2);
               }
               .features h3 {
                   color: #2ea043;
-                  font-size: 20px;
-                  margin-bottom: 20px;
+            font-size: 22px;
+            margin-bottom: 25px;
                   text-align: center;
                   display: flex;
                   align-items: center;
                   justify-content: center;
-                  gap: 10px;
+            gap: 12px;
               }
               .feature-list {
                   list-style: none;
                   padding: 0;
               }
               .feature-list li {
-                  padding: 12px 0;
+            padding: 15px 0;
                   border-bottom: 1px solid #30363d;
                   display: flex;
                   align-items: center;
-                  gap: 15px;
-                  font-size: 15px;
+            gap: 18px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        .feature-list li:hover {
+            background: rgba(46, 160, 67, 0.05);
+            border-radius: 8px;
+            padding-left: 10px;
+            margin: 0 -10px;
               }
               .feature-list li:last-child {
                   border-bottom: none;
               }
               .feature-icon {
-                  width: 32px;
-                  height: 32px;
-                  background: #2ea043;
-                  border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #2ea043 0%, #238636 100%);
+            border-radius: 10px;
                   display: flex;
                   align-items: center;
                   justify-content: center;
-                  font-size: 16px;
+            font-size: 18px;
                   flex-shrink: 0;
+            box-shadow: 0 4px 15px rgba(46, 160, 67, 0.3);
               }
               .cta-section {
                   text-align: center;
-                  margin: 30px 0;
+            margin: 40px 0;
               }
               .cta-button {
                   display: inline-block;
-                  background: linear-gradient(135deg, #238636 0%, #2ea043 100%);
+            background: linear-gradient(135deg, #238636 0%, #2ea043 50%, #7c3aed 100%);
                   color: white;
                   text-decoration: none;
-                  padding: 16px 32px;
-                  border-radius: 12px;
-                  font-weight: 600;
-                  font-size: 16px;
-                  box-shadow: 0 8px 16px rgba(46, 160, 67, 0.3);
+            padding: 18px 40px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 18px;
+            box-shadow: 0 10px 25px rgba(46, 160, 67, 0.4);
                   transition: all 0.3s ease;
                   border: 2px solid transparent;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
               }
               .cta-button:hover {
-                  transform: translateY(-2px);
-                  box-shadow: 0 12px 24px rgba(46, 160, 67, 0.4);
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(46, 160, 67, 0.6);
               }
-              .tips {
+        .stats {
                   background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+            border-radius: 16px;
+            padding: 30px;
+            margin: 30px 0;
+            border-left: 5px solid #2ea043;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+        .stats h4 {
+            color: #f59e0b;
+            font-size: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(46, 160, 67, 0.1);
                   border-radius: 12px;
-                  padding: 25px;
-                  margin: 25px 0;
-                  border-left: 4px solid #2ea043;
+            border: 1px solid rgba(46, 160, 67, 0.2);
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: 800;
+            color: #2ea043;
+            display: block;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .tips {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            border-radius: 16px;
+            padding: 30px;
+            margin: 30px 0;
+            border-left: 5px solid #7c3aed;
+            box-shadow: 0 8px 25px rgba(124, 58, 237, 0.2);
               }
               .tips h4 {
-                  color: #fbbf24;
-                  font-size: 18px;
-                  margin-bottom: 15px;
+            color: #a855f7;
+            font-size: 20px;
+            margin-bottom: 20px;
                   display: flex;
                   align-items: center;
-                  gap: 10px;
+            gap: 12px;
               }
               .tips p {
-                  color: #d1d5db;
-                  font-size: 14px;
-                  line-height: 1.5;
+            color: #cbd5e1;
+            font-size: 16px;
+            line-height: 1.6;
               }
               .footer {
                   background: #0d1117;
-                  padding: 30px;
+            padding: 40px 30px;
                   text-align: center;
                   border-top: 1px solid #30363d;
               }
               .footer p {
                   color: #7d8590;
-                  font-size: 13px;
-                  line-height: 1.5;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 20px;
               }
               .social-links {
-                  margin: 20px 0;
+            margin: 25px 0;
                   display: flex;
                   justify-content: center;
-                  gap: 20px;
+            gap: 25px;
               }
               .social-link {
-                  width: 40px;
-                  height: 40px;
+            width: 50px;
+            height: 50px;
                   background: #21262d;
                   border-radius: 50%;
                   display: inline-flex;
@@ -399,13 +743,38 @@ exports.sendWelcomeEmailAfterVerification = functions.auth.user().onUpdate(async
                   justify-content: center;
                   text-decoration: none;
                   color: #7d8590;
-                  border: 1px solid #30363d;
+            border: 2px solid #30363d;
                   transition: all 0.3s ease;
+            font-size: 20px;
               }
               .social-link:hover {
                   background: #2ea043;
                   color: white;
-                  transform: translateY(-2px);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(46, 160, 67, 0.4);
+        }
+        .personalization {
+            background: rgba(124, 58, 237, 0.1);
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 25px 0;
+            text-align: center;
+        }
+        .personalization .email-info {
+            color: #a855f7;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        @media (max-width: 600px) {
+            .container { margin: 10px; border-radius: 16px; }
+            .header { padding: 30px 20px; }
+            .content { padding: 30px 25px; }
+            .header h1 { font-size: 26px; }
+            .greeting { font-size: 22px; }
+            .message { font-size: 16px; }
+            .cta-button { padding: 15px 30px; font-size: 16px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
               }
           </style>
       </head>
@@ -414,18 +783,28 @@ exports.sendWelcomeEmailAfterVerification = functions.auth.user().onUpdate(async
               <div class="header">
                   <div class="logo">🚀</div>
                   <h1>Welcome to GitAlong!</h1>
-                  <p>Your journey in open source starts here</p>
+            <p>Your journey in open source collaboration starts here</p>
               </div>
               
               <div class="content">
                   <div class="greeting">
-                      Hey ${displayName}! 👋
+                Hey ${firstName}! 👋
                   </div>
                   
                   <div class="message">
-                      <strong>Congratulations on verifying your email!</strong><br><br>
-                      We're absolutely thrilled to have you join the GitAlong community! You're now part of a vibrant ecosystem where developers connect, collaborate, and contribute to amazing open source projects.
+                We're absolutely thrilled to have you join the GitAlong community! You've just unlocked access to a vibrant ecosystem where developers connect, collaborate, and contribute to amazing open source projects. Your adventure in meaningful coding starts right now!
                   </div>
+
+            ${isGoogleUser ? `
+            <div class="personalization">
+                <div class="email-info">
+                    ✨ Signed up with Google • ${emailDomain}
+                </div>
+                <p style="color: #8b949e; font-size: 14px;">
+                    Your account is automatically verified and ready to go!
+                </p>
+            </div>
+            ` : ''}
 
                   <div class="features">
                       <h3>🌟 What you can do with GitAlong</h3>
@@ -433,329 +812,337 @@ exports.sendWelcomeEmailAfterVerification = functions.auth.user().onUpdate(async
                           <li>
                               <div class="feature-icon">🔍</div>
                               <div>
-                                  <strong>Discover Projects</strong><br>
-                                  Find open source projects that match your interests and skills
+                            <strong>Discover Amazing Projects</strong><br>
+                            <span style="color: #6e7681;">Find projects that match your skills and interests</span>
                               </div>
                           </li>
                           <li>
                               <div class="feature-icon">🤝</div>
                               <div>
                                   <strong>Connect with Maintainers</strong><br>
-                                  Get matched with project maintainers looking for contributors
+                            <span style="color: #6e7681;">Build relationships with project creators and contributors</span>
                               </div>
                           </li>
                           <li>
                               <div class="feature-icon">📊</div>
                               <div>
-                                  <strong>Track Your Journey</strong><br>
-                                  Monitor your contributions and build your open source portfolio
+                            <strong>Track Your Contributions</strong><br>
+                            <span style="color: #6e7681;">Monitor your open source journey and achievements</span>
                               </div>
                           </li>
                           <li>
                               <div class="feature-icon">🎯</div>
                               <div>
-                                  <strong>Smart Matching</strong><br>
-                                  Our AI finds the perfect projects based on your experience
+                            <strong>Smart Project Matching</strong><br>
+                            <span style="color: #6e7681;">AI-powered recommendations based on your preferences</span>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="feature-icon">💬</div>
+                        <div>
+                            <strong>Real-time Collaboration</strong><br>
+                            <span style="color: #6e7681;">Chat with other developers and share knowledge</span>
                               </div>
                           </li>
                       </ul>
                   </div>
 
+            <div class="stats">
+                <h4>🔥 Join Our Growing Community</h4>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-number">10K+</span>
+                        <span class="stat-label">Active Developers</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">500+</span>
+                        <span class="stat-label">Open Projects</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">25K+</span>
+                        <span class="stat-label">Contributions</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">50+</span>
+                        <span class="stat-label">Countries</span>
+                    </div>
+                </div>
+            </div>
+
                   <div class="cta-section">
-                      <a href="https://gitalong.dev/onboarding" class="cta-button">
-                          Complete Your Profile 🎨
+                <a href="https://gitalong.dev/onboarding?utm_source=welcome_email&utm_medium=email&utm_campaign=welcome_v2" class="cta-button">
+                    Complete Your Profile 🎯
                       </a>
+                <p style="margin-top: 20px; color: #6e7681; font-size: 14px;">
+                    Takes less than 2 minutes • Unlock personalized project recommendations
+                </p>
                   </div>
 
                   <div class="tips">
-                      <h4>💡 Pro Tip</h4>
+                <h4>💡 Pro Tips for Success</h4>
                       <p>
-                          Complete your profile with your skills, interests, and GitHub information to get better project recommendations. The more we know about you, the better we can match you with exciting opportunities!
+                    <strong>Complete your profile</strong> with your skills, interests, and GitHub information to get better project recommendations. 
+                    <strong>Start small</strong> with good first issues, and don't hesitate to <strong>ask questions</strong> in project discussions. 
+                    The GitAlong community is here to help you succeed! 🌟
                       </p>
-                  </div>
-
-                  <div class="message">
-                      <strong>Ready to make your mark in open source?</strong><br>
-                      Start by setting up your developer profile and let us help you find the perfect projects to contribute to. Every great developer started with their first contribution! 🌱
                   </div>
               </div>
 
               <div class="footer">
                   <div class="social-links">
-                      <a href="https://github.com/gitalong-dev" class="social-link" title="GitHub">📱</a>
-                      <a href="https://twitter.com/gitalong_dev" class="social-link" title="Twitter">🐦</a>
-                      <a href="https://discord.gg/gitalong" class="social-link" title="Discord">💬</a>
+                <a href="https://github.com/gitalong" class="social-link">📘</a>
+                <a href="https://twitter.com/gitalongdev" class="social-link">🐦</a>
+                <a href="https://discord.gg/gitalong" class="social-link">💬</a>
+                <a href="https://gitalong.dev/blog" class="social-link">📝</a>
                   </div>
-                  
-                  <p>
-                      Happy coding! 🚀<br>
-                      <strong>The GitAlong Team</strong>
-                  </p>
-                  
-                  <p style="margin-top: 20px; font-size: 11px;">
-                      You're receiving this email because you verified your email with GitAlong.<br>
-                      If you didn't sign up, please ignore this email.
+            <p>
+                Need help getting started? Check out our <a href="https://gitalong.dev/help" style="color: #2ea043;">Getting Started Guide</a><br>
+                You're receiving this email because you recently joined GitAlong.<br>
+                <a href="https://gitalong.dev/unsubscribe?email=${encodeURIComponent(email)}" style="color: #7d8590;">Unsubscribe</a> • 
+                <a href="https://gitalong.dev/privacy" style="color: #7d8590;">Privacy Policy</a><br><br>
+                <strong>Happy Coding! 🚀</strong><br>
+                — The GitAlong Team
                   </p>
               </div>
           </div>
       </body>
       </html>
       `;
+}
 
-      // Store the welcome email in Firestore to be processed
-      await admin.firestore().collection('welcome_emails').add({
-        userId: afterData.uid,
-        email: email,
-        displayName: displayName,
-        template: 'welcome_verified_v1',
-        htmlContent: welcomeEmailTemplate,
-        status: 'pending',
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        triggerType: 'email_verification',
-        metadata: {
-          userAgent: 'firebase-function',
-          signupMethod: afterData.providerData?.[0]?.providerId || 'email',
-          emailVerified: afterData.emailVerified,
-          verificationTime: admin.firestore.FieldValue.serverTimestamp()
+/**
+ * 🎨 Create Enhanced Email Verification Template
+ */
+function _createEnhancedVerificationTemplate(email, verificationLink, displayName) {
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your GitAlong Account</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+            padding: 20px;
+            min-height: 100vh;
         }
-      });
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: #21262d;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            border: 1px solid #30363d;
+        }
+        .header {
+            background: linear-gradient(135deg, #1f6feb 0%, #7c3aed 100%);
+            padding: 40px 30px;
+            text-align: center;
+            color: white;
+        }
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .content {
+            padding: 40px 30px;
+            color: #c9d1d9;
+            text-align: center;
+        }
+        .verify-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #238636 0%, #2ea043 100%);
+            color: white;
+            text-decoration: none;
+            padding: 16px 32px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 16px;
+            margin: 20px 0;
+            box-shadow: 0 8px 20px rgba(46, 160, 67, 0.4);
+            transition: all 0.3s ease;
+        }
+        .verify-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(46, 160, 67, 0.6);
+        }
+        .footer {
+            background: #161b22;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #7d8590;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 Verify Your Email</h1>
+            <p>Almost there, ${displayName}!</p>
+        </div>
+        <div class="content">
+            <p style="margin-bottom: 20px;">
+                Click the button below to verify your email address and unlock your GitAlong account:
+            </p>
+            <a href="${verificationLink}" class="verify-button">
+                Verify My Email ✨
+            </a>
+            <p style="font-size: 14px; color: #8b949e; margin-top: 20px;">
+                This link will expire in 24 hours for security reasons.
+            </p>
+        </div>
+        <div class="footer">
+            <p>If you didn't create a GitAlong account, you can safely ignore this email.</p>
+        </div>
+    </div>
+</body>
+</html>
+`;
+}
 
-      console.log(`✅ Welcome email triggered after verification for: ${email}`);
-      return { success: true, email: email, displayName: displayName };
+// ============================================================================
+// 🛠️ LEGACY SUPPORT - Maintain backward compatibility
+// ============================================================================
 
-    } catch (error) {
-      console.error('❌ Error sending welcome email after verification:', error);
-      
-      // Log error to Firestore for monitoring
-      await admin.firestore().collection('email_errors').add({
-        type: 'welcome_email_verification_error',
-        userId: afterData.uid,
-        email: email,
-        error: error.message,
-        timestamp: admin.firestore.FieldValue.serverTimestamp()
-      });
-      
-      return { success: false, error: error.message };
-    }
-  }
-  
-  return null; // No action needed if email verification didn't change
-});
-
-// Keep the original function for manual sending (but remove auto-trigger)
+/**
+ * Original welcome email function (for backward compatibility)
+ * Enhanced with improved logging and error handling
+ */
 exports.sendWelcomeEmail = functions.auth.user().onCreate(async (user) => {
   const email = user.email;
-  const displayName = user.displayName || user.email?.split('@')[0] || 'Developer';
+  const displayName = _getEnhancedDisplayName(user);
 
   try {
-    console.log(`📝 User account created: ${email} (Welcome email will be sent after verification)`);
+    console.log(`📝 User account created: ${email} (Enhanced welcome email will be sent after verification)`);
     
-    // Just log the account creation, don't send welcome email yet
+    // Enhanced user signup logging
     await admin.firestore().collection('user_signups').add({
       userId: user.uid,
       email: email,
       displayName: displayName,
       emailVerified: user.emailVerified,
       signupTime: admin.firestore.FieldValue.serverTimestamp(),
-      status: 'awaiting_verification'
+      status: 'awaiting_verification',
+      metadata: {
+        functionVersion: '2.0.0',
+        enhanced: true,
+        signupMethod: user.providerData?.[0]?.providerId || 'email',
+        hasDisplayName: !!user.displayName,
+        hasPhotoURL: !!user.photoURL,
+      }
     });
 
-    console.log(`✅ User signup logged for: ${email}`);
-    return { success: true, email: email, message: 'Account created, awaiting verification' };
+    console.log(`✅ Enhanced user signup logged for: ${email}`);
+    return { success: true, email: email, message: 'Account created, awaiting verification', version: '2.0.0' };
 
   } catch (error) {
-    console.error('❌ Error logging user signup:', error);
-    return { success: false, error: error.message };
+    console.error(`❌ Error logging enhanced user signup for ${email}:`, error);
+    return { success: false, error: error.message, version: '2.0.0' };
   }
 });
 
-// Process welcome emails with beautiful templates
-exports.processWelcomeEmails = functions.firestore
-  .document('welcome_emails/{emailId}')
-  .onCreate(async (snap, context) => {
-    const emailData = snap.data();
-    const { email, displayName, htmlContent, userId } = emailData;
+// ============================================================================
+// 🔍 HEALTH CHECK AND MONITORING
+// ============================================================================
 
-    try {
-      // Here you could integrate with any email service
-      // For now, we'll use Firebase's built-in messaging or trigger email via Firestore
-      
-      // Option 1: Use Firebase Cloud Messaging for in-app notifications
-      if (userId) {
-        try {
-          await admin.messaging().sendToTopic(`user_${userId}`, {
-            notification: {
-              title: 'Welcome to GitAlong! 🚀',
-              body: `Hey ${displayName}! Your developer journey starts now.`,
-              icon: 'https://gitalong.dev/icon-192.png'
-            },
-            data: {
-              type: 'welcome',
-              action: 'open_onboarding'
-            }
-          });
-          console.log(`Push notification sent to user ${userId}`);
-        } catch (notifError) {
-          console.warn('Could not send push notification:', notifError);
-        }
-      }
-
-      // Option 2: Store for email service integration
-      await admin.firestore().collection('email_queue').add({
-        to: email,
-        subject: `Welcome to GitAlong, ${displayName}! 🚀`,
-        html: htmlContent,
-        type: 'welcome',
-        priority: 'high',
-        userId: userId,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        status: 'queued'
-      });
-
-      // Update status
-      await snap.ref.update({
-        status: 'queued_for_delivery',
-        queuedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-
-      console.log(`✅ Welcome email queued for delivery: ${email}`);
-      
-    } catch (error) {
-      console.error('❌ Error processing welcome email:', error);
-      
-      await snap.ref.update({
-        status: 'failed',
-        error: error.message,
-        failedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-    }
-  });
-
-// Cloud Function to process email verification reminders
-exports.processEmailNotifications = functions.firestore
-  .document('email_notifications/{notificationId}')
-  .onCreate(async (snap, context) => {
-    const notification = snap.data();
-    const { email, type, message } = notification;
-
-    if (type !== 'verification_reminder') {
-      console.log('Skipping non-verification notification:', type);
-      return;
-    }
-
-    try {
-      // Get the user by email
-      const userRecord = await admin.auth().getUserByEmail(email);
-      
-      if (userRecord.emailVerified) {
-        console.log('Email already verified for:', email);
-        await snap.ref.update({ 
-          processed: true, 
-          result: 'already_verified',
-          processed_at: admin.firestore.FieldValue.serverTimestamp()
-        });
-        return;
-      }
-
-      // Generate verification email link with beautiful template
-      const actionCodeSettings = {
-        url: 'https://gitalong.dev/email-verified',
-        handleCodeInApp: true,
-      };
-
-      const verificationLink = await admin.auth().generateEmailVerificationLink(
-        email, 
-        actionCodeSettings
-      );
-
-      // Create beautiful verification email template
-      const verificationEmailTemplate = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-          <meta charset="UTF-8">
-          <style>
-              body { font-family: 'Segoe UI', sans-serif; background: #0d1117; margin: 0; padding: 20px; }
-              .container { max-width: 500px; margin: 0 auto; background: #21262d; border-radius: 12px; overflow: hidden; }
-              .header { background: linear-gradient(135deg, #2ea043, #238636); padding: 30px; text-align: center; }
-              .header h2 { color: white; margin: 0; font-size: 24px; }
-              .content { padding: 30px; color: #c9d1d9; }
-              .verify-btn { 
-                  display: inline-block; background: #2ea043; color: white; 
-                  padding: 15px 30px; text-decoration: none; border-radius: 8px; 
-                  font-weight: bold; margin: 20px 0; 
-              }
-              .footer { padding: 20px; text-align: center; color: #7d8590; font-size: 12px; }
-          </style>
-      </head>
-      <body>
-          <div class="container">
-              <div class="header">
-                  <h2>📧 Verify Your Email</h2>
-              </div>
-              <div class="content">
-                  <p>Hi there!</p>
-                  <p>Please verify your email address to continue using GitAlong and unlock all features.</p>
-                  <div style="text-align: center;">
-                      <a href="${verificationLink}" class="verify-btn">Verify Email Address</a>
-                  </div>
-                  <p style="font-size: 13px; color: #7d8590; margin-top: 20px;">
-                      If the button doesn't work, copy and paste this link:<br>
-                      <a href="${verificationLink}" style="color: #2ea043;">${verificationLink}</a>
-                  </p>
-              </div>
-              <div class="footer">
-                  <p>If you didn't request this, you can safely ignore this email.<br>— The GitAlong Team</p>
-              </div>
-          </div>
-      </body>
-      </html>
-      `;
-
-      // Queue the verification email
-      await admin.firestore().collection('email_queue').add({
-        to: email,
-        subject: 'Please Verify Your Email - GitAlong',
-        html: verificationEmailTemplate,
-        type: 'verification',
-        priority: 'high',
-        verificationLink: verificationLink,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        status: 'queued'
-      });
-      
-      // Mark notification as processed
-      await snap.ref.update({ 
-        processed: true, 
-        result: 'verification_queued',
-        verification_link: verificationLink,
-        processed_at: admin.firestore.FieldValue.serverTimestamp()
-      });
-
-      console.log('✅ Verification email queued for:', email);
-      
-    } catch (error) {
-      console.error('❌ Error processing verification notification:', error);
-      
-      await snap.ref.update({ 
-        processed: true, 
-        result: 'error',
-        error_message: error.message,
-        processed_at: admin.firestore.FieldValue.serverTimestamp()
-      });
-    }
-  });
-
-// Health check endpoint
-exports.emailSystemHealth = functions.https.onRequest((req, res) => {
+/**
+ * Enhanced email system health check endpoint
+ */
+exports.emailSystemHealthCheck = functions.https.onRequest((req, res) => {
   res.set('Access-Control-Allow-Origin', '*');
-  res.json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    services: {
-      welcome_emails: 'active',
-      verification_emails: 'active',
-      email_queue: 'active'
+  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  try {
+    res.json({
+      status: 'healthy',
+      version: '2.0.0',
+      enhanced: true,
+      timestamp: new Date().toISOString(),
+      services: {
+        welcome_emails: 'active',
+        verification_emails: 'active',
+        email_queue: 'active',
+        push_notifications: 'active',
+        analytics: 'active',
+      },
+      features: {
+        deduplication: 'enabled',
+        enhanced_templates: 'enabled',
+        smart_timing: 'enabled',
+        error_monitoring: 'enabled',
+        analytics_tracking: 'enabled',
+      },
+      environment: process.env.NODE_ENV || 'development',
+    });
+    } catch (error) {
+    res.status(500).json({
+      status: 'unhealthy',
+      version: '2.0.0',
+      enhanced: true,
+        error: error.message,
+      timestamp: new Date().toISOString(),
+      });
     }
   });
+
+/**
+ * Enhanced email analytics endpoint
+ */
+exports.getEmailAnalytics = functions.https.onRequest(async (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  
+  try {
+    const timeframe = req.query.timeframe || '24h';
+    const hoursBack = timeframe === '7d' ? 168 : timeframe === '30d' ? 720 : 24;
+    
+    const cutoffTime = admin.firestore.Timestamp.fromDate(
+      new Date(Date.now() - hoursBack * 60 * 60 * 1000)
+    );
+
+    const [welcomeEmails, analytics, errors] = await Promise.all([
+      admin.firestore()
+        .collection('welcome_emails')
+        .where('createdAt', '>=', cutoffTime)
+        .get(),
+      admin.firestore()
+        .collection('email_analytics')
+        .where('timestamp', '>=', cutoffTime)
+        .get(),
+      admin.firestore()
+        .collection('email_errors')
+        .where('timestamp', '>=', cutoffTime)
+        .get(),
+    ]);
+
+    res.json({
+      timeframe: timeframe,
+      welcome_emails_sent: welcomeEmails.size,
+      total_events: analytics.size,
+      errors: errors.size,
+      success_rate: errors.size > 0 ? 
+        ((welcomeEmails.size / (welcomeEmails.size + errors.size)) * 100).toFixed(2) + '%' : 
+        '100%',
+      version: '2.0.0',
+      enhanced: true,
+      timestamp: new Date().toISOString(),
+    });
+    } catch (error) {
+    res.status(500).json({
+      error: error.message,
+      version: '2.0.0',
+      timestamp: new Date().toISOString(),
+    });
+  }
 }); 

@@ -102,10 +102,8 @@ service cloud.firestore {
     // 🏥 HEALTH CHECK COLLECTION
     // ============================================================================
     match /_health_check/{docId} {
-      // Allow authenticated users to write health checks
-      allow write: if request.auth != null;
-      // Allow system reads for monitoring
-      allow read: if request.auth != null;
+      // Allow unauthenticated health checks for app initialization
+      allow read, write: if true;
     }
     
     // ============================================================================

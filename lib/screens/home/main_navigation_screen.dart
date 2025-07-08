@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../core/router/app_router.dart';
 import '../../core/utils/logger.dart';
 import '../../core/monitoring/analytics_service.dart';
 import 'swipe_screen.dart';
@@ -109,22 +108,6 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
 
     AppLogger.logger.navigation('🔄 Navigation tab changed to index: $index');
     AnalyticsService.trackScreenView(_getScreenName(index));
-
-    // Optional: Update the URL for deep linking
-    switch (index) {
-      case 0:
-        context.goToSwipe();
-        break;
-      case 1:
-        context.goToMessages();
-        break;
-      case 2:
-        context.goToSaved();
-        break;
-      case 3:
-        context.goToProfile();
-        break;
-    }
   }
 
   String _getScreenName(int index) {

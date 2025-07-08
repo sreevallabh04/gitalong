@@ -9,6 +9,7 @@ import 'core/theme/app_theme.dart';
 import 'core/utils/error_handler.dart';
 import 'core/utils/logger.dart';
 import 'core/utils/error_boundary.dart';
+import 'core/utils/production_config.dart';
 import 'core/analytics/analytics_service.dart';
 import 'config/firebase_config.dart';
 import 'services/notification_service.dart';
@@ -16,6 +17,7 @@ import 'providers/app_lifecycle_provider.dart';
 import 'providers/web_backend_provider.dart';
 import 'core/router/app_router.dart';
 import 'core/widgets/octocat_floating_widget.dart';
+import 'core/responsive/responsive_app_integration.dart';
 
 final githubDarkTheme = ThemeData(
   brightness: Brightness.dark,
@@ -107,6 +109,12 @@ void main() async {
     // Initialize analytics
     await AnalyticsService.initialize();
     AppLogger.logger.i('📊 Analytics service initialized');
+
+    // Initialize production configuration
+    AppLogger.logger.i('🔧 Initializing production configuration...');
+    await ProductionConfig.initialize();
+    ProductionErrorHandler.initialize();
+    AppLogger.logger.i('✅ Production configuration initialized');
 
     // Initialize Firebase using the centralized config FIRST
     AppLogger.logger.i('🔥 Initializing Firebase...');
@@ -278,38 +286,30 @@ class GitAlongApp extends ConsumerWidget {
 
     return ErrorBoundary(
       child: MaterialApp.router(
-      title: 'GitAlong',
-      debugShowCheckedModeBanner: false,
+        title: 'GitAlong',
+        debugShowCheckedModeBanner: false,
 
         // Use the GitHub-inspired theme
         theme: AppTheme.darkTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: ThemeMode.dark,
 
-      // GoRouter configuration - this is the key!
-      routerConfig: router,
+        // GoRouter configuration - this is the key!
+        routerConfig: router,
 
-      // Builder for additional global configuration
-      builder: (context, child) {
-        // Ensure text scaling doesn't break the UI
-        final mediaQuery = MediaQuery.of(context);
-          return Stack(
-            children: [
-              MediaQuery(
-          data: mediaQuery.copyWith(
-            textScaler: TextScaler.linear(
-              mediaQuery.textScaler.scale(1.0).clamp(0.8, 1.2),
+        // Builder for additional global configuration
+        builder: (context, child) {
+          // Ensure text scaling doesn't break the UI
+          final mediaQuery = MediaQuery.of(context);
+          return MediaQuery(
+            data: mediaQuery.copyWith(
+              textScaler: TextScaler.linear(
+                mediaQuery.textScaler.scale(1.0).clamp(0.8, 1.2),
+              ),
             ),
-          ),
-          child: child ?? const SizedBox.shrink(),
-              ),
-
-              // Global Octocat floating widget
-              const OctocatFloatingWidget(
-                showPulse: true,
-                size: 50,
-              ),
-            ],
-        );
-      },
+            child: child ?? const SizedBox.shrink(),
+          );
+        },
       ),
     );
   }
