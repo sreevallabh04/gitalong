@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/project_provider.dart';
-import '../../providers/stats_provider.dart';
+
 import '../../providers/contributions_provider.dart';
 import '../../core/utils/logger.dart';
 import '../../models/models.dart';
@@ -511,7 +511,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 Expanded(
                   child: StatsCard(
                     title: 'Contributions',
-                    value: '${stats.contributionsCount}',
+                    value: '${stats.matchesCount}',
                     icon: Icons.trending_up,
                     color: const Color(0xFF238636),
                   ),

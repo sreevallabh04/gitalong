@@ -186,8 +186,8 @@ class AuthService {
       if (!_isValidEmail(cleanEmail)) {
         throw const FormatException('Invalid email format');
       }
-      if (cleanPassword.length < 6) {
-        throw const FormatException('Password must be at least 6 characters');
+      if (!_isValidPassword(cleanPassword)) {
+        throw const FormatException('Password must be at least 8 characters and contain uppercase, lowercase, and numbers');
       }
 
       // 3. Firebase sign-up with proper error handling
@@ -1176,6 +1176,8 @@ class AuthService {
           code: 'unknown-error');
     }
   }
+
+  
 }
 
 // Custom Auth Exception class for better error handling
@@ -1187,4 +1189,14 @@ class AuthException implements Exception {
 
   @override
   String toString() => message;
+}
+
+// Helper functions for validation
+bool _isValidEmail(String email) {
+  return RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(email);
+}
+
+bool _isValidPassword(String password) {
+  // At least 8 characters, contain uppercase, lowercase, and numbers
+  return RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$').hasMatch(password);
 }
