@@ -1,3 +1,8 @@
+enum SwipeDirection {
+  left,
+  right,
+}
+
 enum SwipeTargetType {
   user,
   project,

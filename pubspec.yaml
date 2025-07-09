@@ -147,6 +147,7 @@ dev_dependencies:
   patrol: ^3.6.1
   golden_toolkit: ^0.15.0
   network_image_mock: ^2.1.1
+  flutter_native_splash: ^2.4.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -190,10 +191,9 @@ flutter:
 
 # Flutter Launcher Icons configuration
 flutter_launcher_icons:
-  android: "launcher_icon"
+  android: true
   ios: true
   image_path: "assets/icons/app_icon.jpg"
-  min_sdk_android: 21 # android min sdk min:16, default 21
   web:
     generate: true
     image_path: "assets/icons/app_icon.jpg"
@@ -202,7 +202,14 @@ flutter_launcher_icons:
   windows:
     generate: true
     image_path: "assets/icons/app_icon.jpg"
-    icon_size: 48 # min:48, max:256, default: 48
+    icon_size: 48
   macos:
     generate: true
-    image_path: "assets/icons/app_icon.jpg" 
+    image_path: "assets/icons/app_icon.jpg"
+
+flutter_native_splash:
+  color: "#0D1117"
+  image: assets/images/splash.png
+  android: true
+  ios: true
+  web: true 

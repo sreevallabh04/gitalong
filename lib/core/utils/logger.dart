@@ -2,11 +2,44 @@ import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 import 'package:stack_trace/stack_trace.dart';
 
+// Add log level enum
+enum LogLevel { debug, info, warning, error }
+
 class AppLogger {
   static late Logger _logger;
   static final List<LogEvent> _logHistory = [];
   static const int maxLogHistory = 1000;
   static List<LogEvent> get logHistory => List.unmodifiable(_logHistory);
+
+  static LogLevel logLevel = const bool.fromEnvironment('dart.vm.product')
+      ? LogLevel.warning
+      : LogLevel.debug;
+
+  static void d(String message) {
+    if (logLevel.index <= LogLevel.debug.index) {
+      print('[DEBUG] $message');
+    }
+  }
+
+  static void i(String message) {
+    if (logLevel.index <= LogLevel.info.index) {
+      print('[INFO] $message');
+    }
+  }
+
+  static void w(String message) {
+    if (logLevel.index <= LogLevel.warning.index) {
+      print('[WARN] $message');
+    }
+  }
+
+  static void e(String message, {Object? error, StackTrace? stackTrace}) {
+    if (logLevel.index <= LogLevel.error.index) {
+      print('[ERROR] $message');
+      if (error != null) print('  Error: $error');
+      if (stackTrace != null) print('  StackTrace: $stackTrace');
+    }
+  }
 
   static void initialize() {
     _logger = Logger(

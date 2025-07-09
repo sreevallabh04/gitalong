@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import '../core/theme/app_theme.dart';
 import '../core/utils/logger.dart';
+import '../core/config/app_theme.dart';
 
 /// Easter egg screen that would make GitHub's design team weep with envy
 /// Features color-shifting background and floating Octocat animations

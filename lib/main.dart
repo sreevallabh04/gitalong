@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'core/theme/app_theme.dart';
 import 'core/utils/error_handler.dart';
 import 'core/utils/logger.dart';
 import 'core/utils/error_boundary.dart';
@@ -18,6 +17,7 @@ import 'providers/web_backend_provider.dart';
 import 'core/router/app_router.dart';
 import 'core/widgets/octocat_floating_widget.dart';
 import 'core/responsive/responsive_app_integration.dart';
+import 'core/config/app_theme.dart';
 
 final githubDarkTheme = ThemeData(
   brightness: Brightness.dark,
@@ -168,12 +168,12 @@ void main() async {
     // Configure system UI overlay style for GitHub theme
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
-        statusBarColor: AppTheme.backgroundColor,
+        statusBarColor: AppColors.background,
         statusBarIconBrightness: Brightness.light,
         statusBarBrightness: Brightness.dark,
-        systemNavigationBarColor: AppTheme.surfaceColor,
+        systemNavigationBarColor: AppColors.surface,
         systemNavigationBarIconBrightness: Brightness.light,
-        systemNavigationBarDividerColor: AppTheme.borderColor,
+        systemNavigationBarDividerColor: AppColors.border,
       ),
     );
 
@@ -205,7 +205,7 @@ void main() async {
     runApp(
       MaterialApp(
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.darkTheme,
+        theme: AppTheme.appThemeData,
         home: Scaffold(
           backgroundColor: const Color(0xFF0D1117),
           body: Center(
@@ -290,8 +290,7 @@ class GitAlongApp extends ConsumerWidget {
         debugShowCheckedModeBanner: false,
 
         // Use the GitHub-inspired theme
-        theme: AppTheme.darkTheme,
-        darkTheme: AppTheme.darkTheme,
+        theme: AppTheme.appThemeData,
         themeMode: ThemeMode.dark,
 
         // GoRouter configuration - this is the key!

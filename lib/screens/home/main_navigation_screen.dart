@@ -5,10 +5,12 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/utils/logger.dart';
 import '../../core/monitoring/analytics_service.dart';
+import '../../core/utils/accessibility_utils.dart';
 import 'swipe_screen.dart';
 import 'messages_screen.dart';
 import 'saved_screen.dart';
 import 'profile_screen.dart';
+import '../search/user_search_screen.dart';
 
 class MainNavigationScreen extends ConsumerStatefulWidget {
   final int initialIndex;
@@ -31,6 +33,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
 
   final List<Widget> _screens = [
     const SwipeScreen(),
+    const UserSearchScreen(),
     const MessagesScreen(),
     const SavedScreen(),
     const ProfileScreen(),
@@ -42,6 +45,12 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
       activeIcon: PhosphorIcons.heart(PhosphorIconsStyle.fill),
       label: 'Discover',
       color: const Color(0xFFE91E63),
+    ),
+    _NavigationItem(
+      icon: PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.regular),
+      activeIcon: PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.fill),
+      label: 'Search',
+      color: const Color(0xFF7C3AED),
     ),
     _NavigationItem(
       icon: PhosphorIcons.chatCircle(PhosphorIconsStyle.regular),
@@ -115,10 +124,12 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
       case 0:
         return 'swipe_screen';
       case 1:
-        return 'messages_screen';
+        return 'search_screen';
       case 2:
-        return 'saved_screen';
+        return 'messages_screen';
       case 3:
+        return 'saved_screen';
+      case 4:
         return 'profile_screen';
       default:
         return 'unknown_screen';
@@ -220,86 +231,94 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
     required int index,
     required bool isSelected,
   }) {
-    return GestureDetector(
-      onTap: () => _onDestinationSelected(index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: isSelected
-              ? item.color.withValues(alpha: 0.15)
-              : Colors.transparent,
-          border: isSelected
-              ? Border.all(
-                  color: item.color.withValues(alpha: 0.3),
-                  width: 1,
-                )
-              : null,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOutCubic,
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: isSelected
-                    ? item.color.withValues(alpha: 0.2)
-                    : Colors.transparent,
-                boxShadow: isSelected
-                    ? [
-                        BoxShadow(
-                          color: item.color.withValues(alpha: 0.3),
-                          blurRadius: 12,
-                          spreadRadius: 2,
-                        ),
-                      ]
-                    : null,
-              ),
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                transitionBuilder: (child, animation) {
-                  return ScaleTransition(
-                    scale: animation,
-                    child: child,
-                  );
-                },
-                child: Icon(
-                  isSelected ? item.activeIcon : item.icon,
-                  key: ValueKey(isSelected),
-                  size: 18,
-                  color: isSelected ? item.color : const Color(0xFF7D8590),
+    return Semantics(
+      label: AccessibilityUtils.getNavigationLabel(item.label, isSelected),
+      button: true,
+      selected: isSelected,
+      child: GestureDetector(
+        onTap: () {
+          HapticUtils.lightImpact();
+          _onDestinationSelected(index);
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOutCubic,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            color: isSelected
+                ? item.color.withValues(alpha: 0.15)
+                : Colors.transparent,
+            border: isSelected
+                ? Border.all(
+                    color: item.color.withValues(alpha: 0.3),
+                    width: 1,
+                  )
+                : null,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOutCubic,
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: isSelected
+                      ? item.color.withValues(alpha: 0.2)
+                      : Colors.transparent,
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: item.color.withValues(alpha: 0.3),
+                            blurRadius: 12,
+                            spreadRadius: 2,
+                          ),
+                        ]
+                      : null,
+                ),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  transitionBuilder: (child, animation) {
+                    return ScaleTransition(
+                      scale: animation,
+                      child: child,
+                    );
+                  },
+                  child: Icon(
+                    isSelected ? item.activeIcon : item.icon,
+                    key: ValueKey(isSelected),
+                    size: 18,
+                    color: isSelected ? item.color : const Color(0xFF7D8590),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 4),
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 300),
-              style: GoogleFonts.jetBrainsMono(
-                fontSize: 9,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected ? item.color : const Color(0xFF7D8590),
-                letterSpacing: 0.5,
+              const SizedBox(height: 4),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 300),
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 9,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: isSelected ? item.color : const Color(0xFF7D8590),
+                  letterSpacing: 0.5,
+                ),
+                child: Text(
+                  item.label,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
               ),
-              child: Text(
-                item.label,
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    ).animate(target: isSelected ? 1 : 0).scale(
-          begin: const Offset(1.0, 1.0),
-          end: const Offset(1.1, 1.1),
-          duration: 200.ms,
-          curve: Curves.easeInOut,
-        );
+      ).animate(target: isSelected ? 1 : 0).scale(
+            begin: const Offset(1.0, 1.0),
+            end: const Offset(1.1, 1.1),
+            duration: 200.ms,
+            curve: Curves.easeInOut,
+          ),
+    );
   }
 }
 

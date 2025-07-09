@@ -5,6 +5,8 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/utils/logger.dart';
 import '../../core/monitoring/analytics_service.dart';
+import '../../core/utils/accessibility_utils.dart';
+import '../../widgets/common/accessible_button.dart';
 
 class MessagesScreen extends ConsumerStatefulWidget {
   const MessagesScreen({super.key});
@@ -23,7 +25,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
     super.initState();
     AppLogger.logger.navigation('💬 Messages screen initialized');
     AnalyticsService.trackScreenView('messages_screen');
-    
+
     _setupAnimations();
   }
 
@@ -103,9 +105,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
               size: 24,
             ),
           ),
-          
           const SizedBox(width: 16),
-          
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,7 +129,6 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
               ],
             ),
           ),
-          
           Container(
             width: 48,
             height: 48,
@@ -140,26 +139,25 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
                 color: const Color(0xFF30363D),
               ),
             ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: () {
-                  AppLogger.logger.navigation('🔍 Search messages tapped');
-                },
-                child: Icon(
-                  PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.regular),
-                  color: const Color(0xFF7D8590),
-                  size: 20,
-                ),
-              ),
+            child: AccessibleIconButton(
+              onPressed: () {
+                HapticUtils.lightImpact();
+                AppLogger.logger.navigation('🔍 Search messages tapped');
+              },
+              icon: PhosphorIcons.magnifyingGlass(PhosphorIconsStyle.regular),
+              label: 'Search messages',
+              semanticLabel: AccessibilityUtils.searchField,
+              enableHapticFeedback: true,
+              iconColor: const Color(0xFF7D8590),
+              size: 20,
             ),
           ),
         ],
       ),
-    ).animate(controller: _contentController)
-      .fadeIn(duration: 800.ms)
-      .slideY(begin: -0.5, curve: Curves.easeOutBack);
+    )
+        .animate(controller: _contentController)
+        .fadeIn(duration: 800.ms)
+        .slideY(begin: -0.5, curve: Curves.easeOutBack);
   }
 
   Widget _buildEmptyState() {
@@ -198,7 +196,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
                       color: Colors.white,
                     ),
                   ),
-                  
+
                   // Floating message bubbles
                   Positioned(
                     top: 20,
@@ -211,7 +209,8 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF238636).withValues(alpha: 0.5),
+                            color:
+                                const Color(0xFF238636).withValues(alpha: 0.5),
                             blurRadius: 10,
                             spreadRadius: 2,
                           ),
@@ -222,11 +221,14 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
                         color: Colors.white,
                         size: 12,
                       ),
-                    ).animate(onPlay: (controller) => controller.repeat(reverse: true))
-                      .moveY(begin: 0, end: -10, duration: 2000.ms)
-                      .fadeIn(duration: 1000.ms),
+                    )
+                        .animate(
+                            onPlay: (controller) =>
+                                controller.repeat(reverse: true))
+                        .moveY(begin: 0, end: -10, duration: 2000.ms)
+                        .fadeIn(duration: 1000.ms),
                   ),
-                  
+
                   Positioned(
                     bottom: 25,
                     left: 15,
@@ -238,7 +240,8 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
                         borderRadius: BorderRadius.circular(8),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFE09800).withValues(alpha: 0.5),
+                            color:
+                                const Color(0xFFE09800).withValues(alpha: 0.5),
                             blurRadius: 8,
                             spreadRadius: 1,
                           ),
@@ -249,19 +252,23 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
                         color: Colors.white,
                         size: 10,
                       ),
-                    ).animate(onPlay: (controller) => controller.repeat(reverse: true))
-                      .moveX(begin: 0, end: 8, duration: 1500.ms)
-                      .fadeIn(duration: 1200.ms, delay: 500.ms),
+                    )
+                        .animate(
+                            onPlay: (controller) =>
+                                controller.repeat(reverse: true))
+                        .moveX(begin: 0, end: 8, duration: 1500.ms)
+                        .fadeIn(duration: 1200.ms, delay: 500.ms),
                   ),
                 ],
               ),
-            ).animate(controller: _contentController)
-              .scale(
-                begin: const Offset(0.5, 0.5),
-                duration: 1200.ms,
-                curve: Curves.elasticOut,
-              )
-              .fadeIn(duration: 800.ms),
+            )
+                .animate(controller: _contentController)
+                .scale(
+                  begin: const Offset(0.5, 0.5),
+                  duration: 1200.ms,
+                  curve: Curves.elasticOut,
+                )
+                .fadeIn(duration: 800.ms),
 
             const SizedBox(height: 48),
 
@@ -282,9 +289,10 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
                   letterSpacing: 1,
                 ),
               ),
-            ).animate(controller: _contentController)
-              .fadeIn(duration: 1000.ms, delay: 400.ms)
-              .slideY(begin: 0.3, curve: Curves.easeOutBack),
+            )
+                .animate(controller: _contentController)
+                .fadeIn(duration: 1000.ms, delay: 400.ms)
+                .slideY(begin: 0.3, curve: Curves.easeOutBack),
 
             const SizedBox(height: 20),
 
@@ -346,9 +354,10 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
                   ),
                 ],
               ),
-            ).animate(controller: _contentController)
-              .fadeIn(duration: 800.ms, delay: 600.ms)
-              .slideY(begin: 0.2, curve: Curves.easeOut),
+            )
+                .animate(controller: _contentController)
+                .fadeIn(duration: 800.ms, delay: 600.ms)
+                .slideY(begin: 0.2, curve: Curves.easeOut),
 
             const SizedBox(height: 48),
 
@@ -364,50 +373,30 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
                   ),
                 ],
               ),
-              child: ElevatedButton.icon(
+              child: AccessibleButton(
                 onPressed: () {
-                  AppLogger.logger.navigation('🔄 Start discovering tapped');
+                  HapticUtils.lightImpact();
                   // TODO: Navigate to swipe screen
                 },
-                icon: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    PhosphorIcons.heart(PhosphorIconsStyle.fill),
-                    size: 20,
-                    color: Colors.white,
-                  ),
-                ),
-                label: Text(
-                  'Start Discovering',
-                  style: GoogleFonts.inter(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1F6FEB),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 20,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 0,
-                ),
+                icon: PhosphorIcons.heart(PhosphorIconsStyle.fill),
+                label: 'Start Discovering',
+                semanticLabel: AccessibilityUtils.getButtonLabel(
+                    'Start Discovering', false),
+                enableHapticFeedback: true,
+                backgroundColor: const Color(0xFF1F6FEB),
+                textColor: Colors.white,
+                height: 60,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+                borderRadius: BorderRadius.circular(16),
               ),
-            ).animate(controller: _contentController)
-              .fadeIn(duration: 800.ms, delay: 800.ms)
-              .scale(
-                begin: const Offset(0.8, 0.8),
-                curve: Curves.elasticOut,
-              ),
+            )
+                .animate(controller: _contentController)
+                .fadeIn(duration: 800.ms, delay: 800.ms)
+                .scale(
+                  begin: const Offset(0.8, 0.8),
+                  curve: Curves.elasticOut,
+                ),
 
             const SizedBox(height: 32),
 
@@ -432,9 +421,10 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
                   ),
                 ),
               ],
-            ).animate(controller: _contentController)
-              .fadeIn(duration: 800.ms, delay: 1000.ms)
-              .slideY(begin: 0.3, curve: Curves.easeOut),
+            )
+                .animate(controller: _contentController)
+                .fadeIn(duration: 800.ms, delay: 1000.ms)
+                .slideY(begin: 0.3, curve: Curves.easeOut),
           ],
         ),
       ),

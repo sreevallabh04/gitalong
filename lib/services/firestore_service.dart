@@ -181,6 +181,7 @@ class FirestoreService {
   }
 
   /// Get users for matching (excluding current user and already swiped)
+  /// NOTE: For large user bases, implement pagination using startAfterDocument for scalability.
   static Future<List<UserModel>> getUsersForMatching(
     String currentUserId, {
     int limit = 10,
@@ -268,6 +269,7 @@ class FirestoreService {
   }
 
   /// Get projects for swiping
+  /// NOTE: For large project bases, implement pagination using startAfterDocument for scalability.
   static Future<List<ProjectModel>> getProjectsForSwiping(
     String userId, {
     int limit = 10,

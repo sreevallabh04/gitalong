@@ -24,9 +24,13 @@ class AuthService {
   /// 🔥 PRODUCTION-GRADE GOOGLE SIGN-IN CONFIGURATION
   /// Fixed to work with multiple environments and proper error handling
   late final GoogleSignIn _googleSignIn;
+  static bool _googleSignInInitialized = false;
 
   AuthService() {
-    _initializeGoogleSignIn();
+    if (!_googleSignInInitialized) {
+      _initializeGoogleSignIn();
+      _googleSignInInitialized = true;
+    }
   }
 
   void _initializeGoogleSignIn() {
@@ -187,7 +191,8 @@ class AuthService {
         throw const FormatException('Invalid email format');
       }
       if (!_isValidPassword(cleanPassword)) {
-        throw const FormatException('Password must be at least 8 characters and contain uppercase, lowercase, and numbers');
+        throw const FormatException(
+            'Password must be at least 8 characters and contain uppercase, lowercase, and numbers');
       }
 
       // 3. Firebase sign-up with proper error handling
@@ -274,22 +279,36 @@ class AuthService {
       try {
         final isSignedIn = await _googleSignIn.isSignedIn();
         AppLogger.logger.auth('Google Sign-In status check: $isSignedIn');
+        // Only sign out if already signed in
+        if (isSignedIn) {
+          await _googleSignIn.signOut();
+          AppLogger.logger.auth('🔄 Cleaned Google Sign-In state');
+        }
       } catch (e) {
         AppLogger.logger.w('⚠️ Google Sign-In status check failed', error: e);
       }
 
-      // 2. SIGN OUT FIRST to ensure clean state
-      try {
-        await _googleSignIn.signOut();
-        AppLogger.logger.auth('🔄 Cleaned Google Sign-In state');
-      } catch (e) {
-        AppLogger.logger.w('⚠️ Google Sign-In cleanup warning', error: e);
-        // Continue anyway - this is not critical
-      }
-
-      // 3. TRIGGER GOOGLE AUTHENTICATION FLOW
+      // 2. TRIGGER GOOGLE AUTHENTICATION FLOW WITH TIMEOUT
       AppLogger.logger.auth('🎯 Triggering Google authentication flow...');
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      GoogleSignInAccount? googleUser;
+      try {
+        googleUser = await _googleSignIn.signIn().timeout(
+          const Duration(seconds: 20),
+          onTimeout: () {
+            throw const AuthException(
+              'Google sign-in timed out. Please try again.',
+              code: 'timeout',
+            );
+          },
+        );
+      } catch (e) {
+        if (e is AuthException) rethrow;
+        AppLogger.logger.e('❌ Google sign-in error or timeout', error: e);
+        throw const AuthException(
+          'Google sign-in failed or timed out. Please try again.',
+          code: 'timeout',
+        );
+      }
 
       if (googleUser == null) {
         AppLogger.logger.auth('❌ Google sign-in cancelled by user');
@@ -299,14 +318,14 @@ class AuthService {
         );
       }
 
-      AppLogger.logger.auth('✅ Google user obtained: ${googleUser.email}');
+      AppLogger.logger.auth('✅ Google user obtained:  {googleUser.email}');
 
-      // 4. GET AUTHENTICATION DETAILS
+      // 3. GET AUTHENTICATION DETAILS
       AppLogger.logger.auth('🔑 Getting Google authentication tokens...');
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
 
-      // 5. VALIDATE TOKENS
+      // 4. VALIDATE TOKENS
       if (googleAuth.accessToken == null) {
         AppLogger.logger.e('❌ Google access token is null');
         throw const AuthException(
@@ -325,7 +344,7 @@ class AuthService {
 
       AppLogger.logger.auth('✅ Google tokens obtained successfully');
 
-      // 6. CREATE FIREBASE CREDENTIAL
+      // 5. CREATE FIREBASE CREDENTIAL
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
@@ -333,13 +352,13 @@ class AuthService {
 
       AppLogger.logger.auth('🔑 Firebase credential created, signing in...');
 
-      // 7. SIGN IN TO FIREBASE
+      // 6. SIGN IN TO FIREBASE
       final userCredential = await _auth.signInWithCredential(credential);
 
       AppLogger.logger.auth('✅ Google sign-in completed successfully!');
-      AppLogger.logger.auth('👤 User: ${userCredential.user?.email}');
+      AppLogger.logger.auth('👤 User:  {userCredential.user?.email}');
       AppLogger.logger
-          .auth('📧 Email verified: ${userCredential.user?.emailVerified}');
+          .auth('�� Email verified:  {userCredential.user?.emailVerified}');
 
       return userCredential;
     } on FirebaseAuthException catch (e) {
@@ -1176,8 +1195,6 @@ class AuthService {
           code: 'unknown-error');
     }
   }
-
-  
 }
 
 // Custom Auth Exception class for better error handling
@@ -1193,10 +1210,12 @@ class AuthException implements Exception {
 
 // Helper functions for validation
 bool _isValidEmail(String email) {
-  return RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(email);
+  return RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+      .hasMatch(email);
 }
 
 bool _isValidPassword(String password) {
   // At least 8 characters, contain uppercase, lowercase, and numbers
-  return RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$').hasMatch(password);
+  return RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$')
+      .hasMatch(password);
 }

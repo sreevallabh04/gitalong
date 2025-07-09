@@ -13,9 +13,10 @@ import '../../models/models.dart';
 import '../../widgets/profile/role_switch_card.dart';
 import '../../widgets/profile/stats_card.dart';
 import '../../widgets/profile/project_preview_card.dart';
-import '../../core/widgets/responsive_buttons.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import '../../core/utils/accessibility_utils.dart';
+import '../../widgets/common/accessible_button.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -452,15 +453,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => _showEditProfileDialog(userProfile),
-              icon: const Icon(Icons.edit, size: 16),
-              label: const Text('Edit Profile'),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Color(0xFF30363D)),
-                foregroundColor: const Color(0xFFC9D1D9),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
+            child: AccessibleButton(
+              onPressed: () {
+                HapticUtils.lightImpact();
+                _showEditProfileDialog(userProfile);
+              },
+              icon: Icons.edit,
+              label: 'Edit Profile',
+              semanticLabel: AccessibilityUtils.editButton,
+              enableHapticFeedback: true,
+              backgroundColor: Colors.transparent,
+              textColor: const Color(0xFFC9D1D9),
             ),
           ),
         ],
@@ -613,12 +616,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   color: const Color(0xFFF0F6FC),
                 ),
               ),
-              ResponsiveIconLabelButton(
-                onPressed: () => context.go('/project/upload'),
+              AccessibleButton(
+                onPressed: () {
+                  HapticUtils.lightImpact();
+                  context.go('/project/upload');
+                },
                 icon: Icons.add,
                 label: 'Upload Project',
-                foregroundColor: const Color(0xFF8B5CF6),
-                isOutlined: true,
+                semanticLabel:
+                    AccessibilityUtils.getButtonLabel('Upload Project', false),
+                enableHapticFeedback: true,
+                backgroundColor: Colors.transparent,
+                textColor: const Color(0xFF8B5CF6),
               ),
             ],
           ),
@@ -728,12 +737,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             ),
           ),
           const SizedBox(height: 16),
-          ResponsiveIconLabelButton(
-            onPressed: () => context.go('/project/upload'),
+          AccessibleButton(
+            onPressed: () {
+              HapticUtils.lightImpact();
+              context.go('/project/upload');
+            },
             icon: Icons.add,
             label: 'Upload Project',
+            semanticLabel:
+                AccessibilityUtils.getButtonLabel('Upload Project', false),
+            enableHapticFeedback: true,
             backgroundColor: const Color(0xFF8B5CF6),
-            foregroundColor: Colors.white,
+            textColor: Colors.white,
           ),
         ],
       ),
@@ -845,12 +860,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             ),
           ),
           const SizedBox(height: 16),
-          ResponsiveIconLabelButton(
-            onPressed: () => context.go('/home/swipe'),
+          AccessibleButton(
+            onPressed: () {
+              HapticUtils.lightImpact();
+              context.go('/home/swipe');
+            },
             icon: Icons.explore,
             label: 'Explore Projects',
+            semanticLabel:
+                AccessibilityUtils.getButtonLabel('Explore Projects', false),
+            enableHapticFeedback: true,
             backgroundColor: const Color(0xFF238636),
-            foregroundColor: Colors.white,
+            textColor: Colors.white,
           ),
         ],
       ),
@@ -967,40 +988,45 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: Icon(
-          icon,
-          color:
-              isDestructive ? const Color(0xFFDA3633) : const Color(0xFF7D8590),
-          size: 20,
-        ),
-        title: Text(
-          title,
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: isDestructive
-                ? const Color(0xFFDA3633)
-                : const Color(0xFFF0F6FC),
+      child: Semantics(
+        label: isDestructive
+            ? AccessibilityUtils.logoutButton
+            : AccessibilityUtils.getButtonLabel(title, false),
+        button: true,
+        child: ListTile(
+          leading: Icon(
+            icon,
+            color:
+                isDestructive ? const Color(0xFFDA3633) : const Color(0xFF7D8590),
+            size: 20,
           ),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: const TextStyle(
-            fontSize: 12,
+          title: Text(
+            title,
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: isDestructive
+                  ? const Color(0xFFDA3633)
+                  : const Color(0xFFF0F6FC),
+            ),
+          ),
+          subtitle: Text(
+            subtitle,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF7D8590),
+            ),
+          ),
+          trailing: const Icon(
+            Icons.chevron_right,
             color: Color(0xFF7D8590),
+            size: 16,
           ),
+          onTap: () {
+            HapticUtils.lightImpact();
+            onTap();
+          },
         ),
-        trailing: const Icon(
-          Icons.chevron_right,
-          color: Color(0xFF7D8590),
-          size: 16,
-        ),
-        onTap: onTap,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-        tileColor: const Color(0xFF161B22),
       ),
     );
   }

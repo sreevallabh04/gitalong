@@ -34,7 +34,7 @@ service cloud.firestore {
     }
     
     // ============================================================================
-    // 👤 USER PROFILES COLLECTION - ENHANCED SECURITY
+    // 👤 USER PROFILES COLLECTION - ENHANCED SECURITY WITH USERNAME SUPPORT
     // ============================================================================
     match /users/{userId} {
       // Strict user ID validation
@@ -43,16 +43,68 @@ service cloud.firestore {
         && isValidUserId(userId)
         && isEmailVerified();
       
-      // Allow reading basic profile info for matching (with restrictions)
+      // Allow reading basic profile info for matching and search (with restrictions)
       allow read: if request.auth != null 
         && isEmailVerified()
         && userId != request.auth.uid; // Prevent self-reading via this rule
       
-      // Enhanced data validation for user creation/updates
+      // Enhanced data validation for user creation/updates with username support
       allow write: if request.auth != null 
         && request.auth.uid == userId
         && isEmailVerified()
         && validateUserData();
+    }
+    
+    // ============================================================================
+    // 🔍 USERNAME SEARCH COLLECTION - FOR UNIQUENESS VALIDATION
+    // ============================================================================
+    match /usernames/{username} {
+      // Allow reading for username uniqueness checks
+      allow read: if request.auth != null && isEmailVerified();
+      
+      // Allow creating username claims for authenticated users
+      allow create: if request.auth != null 
+        && isEmailVerified()
+        && validateUsernameData();
+      
+      // Allow updating own username claims
+      allow update: if request.auth != null 
+        && isEmailVerified()
+        && resource.data.user_id == request.auth.uid
+        && validateUsernameData();
+      
+      // Allow deleting own username claims
+      allow delete: if request.auth != null 
+        && resource.data.user_id == request.auth.uid;
+    }
+    
+    function validateUsernameData() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['user_id', 'username'])
+        && data.user_id == request.auth.uid
+        && isValidUsername(data.username);
+    }
+    
+    function isValidUsername(username) {
+      return username is string 
+        && username.size() >= 3 
+        && username.size() <= 30
+        && username.matches('^[a-z0-9._]+$')
+        && !username.matches('^[._].*') // Cannot start with . or _
+        && !username.matches('.*[._]$') // Cannot end with . or _
+        && !username.matches('.*[._]{2,}.*') // No consecutive . or _
+        && !isReservedUsername(username);
+    }
+    
+    function isReservedUsername(username) {
+      return username in ['admin', 'administrator', 'root', 'user', 'gitalong', 
+                          'api', 'www', 'mail', 'email', 'support', 'help', 
+                          'about', 'contact', 'team', 'official', 'verified', 
+                          'staff', 'moderator', 'mod', 'bot', 'system', 'service',
+                          'null', 'undefined', 'test', 'demo', 'example', 'sample',
+                          'placeholder', 'temp', 'temporary', 'github', 'gitlab',
+                          'bitbucket', 'google', 'facebook', 'twitter', 'instagram',
+                          'linkedin', 'discord', 'slack', 'microsoft', 'apple'];
     }
     
     function validateUserData() {
@@ -65,7 +117,8 @@ service cloud.firestore {
         && (data.name == null || isValidString(data.name, 1, 100))
         && (data.bio == null || isValidString(data.bio, 0, 500))
         && (data.github_url == null || data.github_url.matches('https://github\\.com/.*'))
-        && (data.skills == null || (data.skills is list && data.skills.size() <= 10));
+        && (data.skills == null || (data.skills is list && data.skills.size() <= 10))
+        && (data.username == null || isValidUsername(data.username));
     }
     
     // ============================================================================

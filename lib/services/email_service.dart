@@ -1,7 +1,5 @@
-import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:http/http.dart' as http;
 import '../core/utils/logger.dart';
 import '../core/utils/firestore_utils.dart';
 import '../core/monitoring/analytics_service.dart';
@@ -250,10 +248,10 @@ class EmailService {
         return await FirebaseFirestore.instance
             .collection('welcome_emails')
             .where('user_id', isEqualTo: userId)
-            .where('type', whereIn: ['welcome', 'welcome_verified'])
+          .where('type', whereIn: ['welcome', 'welcome_verified'])
             .where('status', isEqualTo: 'sent')
-            .limit(1)
-            .get();
+          .limit(1)
+          .get();
       });
 
       return querySnapshot?.docs.isNotEmpty ?? false;
@@ -353,7 +351,7 @@ class EmailService {
           'user_id': userId,
           'email_type': type,
           'status': 'success',
-          'timestamp': FieldValue.serverTimestamp(),
+        'timestamp': FieldValue.serverTimestamp(),
         });
       });
     } catch (error) {
@@ -388,7 +386,7 @@ class EmailService {
           'email_type': type,
           'status': 'failure',
           'error': error,
-          'timestamp': FieldValue.serverTimestamp(),
+        'timestamp': FieldValue.serverTimestamp(),
         });
       });
     } catch (error) {
@@ -541,7 +539,7 @@ class EmailService {
 
       if (success) {
         AppLogger.logger.success('✅ Email service is healthy');
-      } else {
+    } else {
         AppLogger.logger.w('⚠️ Email service connectivity issues detected');
       }
 
@@ -582,7 +580,7 @@ class EmailAnalytics {
   int get totalAttempts => totalSent + totalFailed;
 
   Map<String, dynamic> toJson() {
-    return {
+      return {
       'total_sent': totalSent,
       'total_failed': totalFailed,
       'welcome_emails': welcomeEmails,

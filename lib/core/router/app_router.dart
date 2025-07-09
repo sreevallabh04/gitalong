@@ -11,6 +11,7 @@ import '../../screens/home/main_navigation_screen.dart';
 import '../../screens/splash_screen.dart';
 import '../../screens/project/project_upload_screen.dart';
 import '../../screens/error/route_error_screen.dart';
+import '../../screens/profile/public_profile_screen.dart';
 
 // Providers
 import '../../providers/auth_provider.dart';
@@ -35,11 +36,15 @@ class AppRoutes {
   // Protected routes (authenticated + verified + profile complete)
   static const String home = '/home';
   static const String discover = '/home/discover';
+  static const String search = '/home/search';
   static const String messages = '/home/messages';
   static const String saved = '/home/saved';
   static const String profile = '/home/profile';
   static const String projectUpload = '/project/upload';
   static const String settings = '/settings';
+
+  // Public profile routes
+  static const String publicProfile = '/profile/:username';
 
   // Maintenance and admin routes
   static const String maintenance = '/maintenance';
@@ -725,6 +730,23 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
 
+      // Public profile route (no authentication required)
+      GoRoute(
+        path: AppRoutes.publicProfile,
+        name: 'public_profile',
+        builder: (context, state) {
+          final username = state.pathParameters['username']!;
+
+          NavigationAnalytics.trackDeepLink(
+            state.uri.toString(),
+            'public_profile',
+            {'username': username},
+          );
+
+          return PublicProfileScreen(username: username);
+        },
+      ),
+
       // ========================================================================
       // 🔐 SEMI-PROTECTED ROUTES (Authentication Required)
       // ========================================================================
@@ -760,22 +782,28 @@ final routerProvider = Provider<GoRouter>((ref) {
                     const MainNavigationScreen(initialIndex: 0),
               ),
               GoRoute(
+                path: 'search',
+                name: 'search',
+                builder: (context, state) =>
+                    const MainNavigationScreen(initialIndex: 1),
+              ),
+              GoRoute(
                 path: 'messages',
                 name: 'messages',
                 builder: (context, state) =>
-                    const MainNavigationScreen(initialIndex: 1),
+                    const MainNavigationScreen(initialIndex: 2),
               ),
               GoRoute(
                 path: 'saved',
                 name: 'saved',
                 builder: (context, state) =>
-                    const MainNavigationScreen(initialIndex: 2),
+                    const MainNavigationScreen(initialIndex: 3),
               ),
               GoRoute(
                 path: 'profile',
                 name: 'profile',
                 builder: (context, state) =>
-                    const MainNavigationScreen(initialIndex: 3),
+                    const MainNavigationScreen(initialIndex: 4),
               ),
             ],
           ),
@@ -1114,6 +1142,10 @@ extension AppNavigation on BuildContext {
 
   Future<void> goToDiscover() async {
     await _trackAndNavigate('discover', AppRoutes.discover);
+  }
+
+  Future<void> goToSearch() async {
+    await _trackAndNavigate('search', AppRoutes.search);
   }
 
   Future<void> goToMessages() async {

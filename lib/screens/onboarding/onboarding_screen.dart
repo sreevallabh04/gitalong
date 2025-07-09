@@ -7,7 +7,9 @@ import '../../core/utils/logger.dart';
 import '../../core/router/app_router.dart';
 import '../../core/utils/firestore_utils.dart';
 import '../../providers/auth_provider.dart';
-import '../../core/widgets/responsive_buttons.dart';
+import '../../core/utils/accessibility_utils.dart';
+import '../../widgets/common/accessible_button.dart';
+import '../../widgets/common/accessible_form_field.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -193,6 +195,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       // After profile creation, check isMaintainer from the updated profile state
       final createdProfile = ref.read(userProfileProvider).value;
 
+      // Invalidate userProfileProvider to force refresh after onboarding
+      ref.invalidate(userProfileProvider);
+
       if (createdProfile != null &&
           createdProfile.role == UserRole.maintainer) {
         if (mounted) {
@@ -328,18 +333,27 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 top: BorderSide(color: Color(0xFF30363D), width: 1),
               ),
             ),
-            child: ResponsiveButtonGroup(
+            child: Row(
               children: [
                 if (_currentPage > 0)
-                  ResponsiveOutlinedButton(
+                  Expanded(
+                    child: AccessibleButton(
                       onPressed: _isLoading ? null : _previousPage,
-                    child: const Text('Back'),
-                      ),
-                ResponsiveElevatedButton(
+                      label: 'Back',
+                      semanticLabel: AccessibilityUtils.backButton,
+                      enableHapticFeedback: true,
+                    ),
+                  ),
+                if (_currentPage > 0) const SizedBox(width: 16),
+                Expanded(
+                  child: AccessibleButton(
                     onPressed: _isLoading ? null : _nextPage,
-                  isLoading: _isLoading,
-                  child: Text(
-                            _currentPage == 2 ? 'Complete Profile' : 'Next',
+                    label: _currentPage == 2 ? 'Complete Profile' : 'Next',
+                    isLoading: _isLoading,
+                    semanticLabel: _currentPage == 2 
+                        ? 'Complete profile setup' 
+                        : AccessibilityUtils.nextButton,
+                    enableHapticFeedback: true,
                   ),
                 ),
               ],
@@ -484,33 +498,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   ),
             ),
             const SizedBox(height: 48),
-            TextFormField(
+            AccessibleFormField(
               controller: _nameController,
-              style: const TextStyle(color: Color(0xFFF0F6FC)),
-              decoration: InputDecoration(
-                labelText: 'Name *',
-                hintText: 'Enter your full name',
-                labelStyle: const TextStyle(color: Color(0xFF7D8590)),
-                hintStyle: const TextStyle(color: Color(0xFF484F58)),
-                filled: true,
-                fillColor: const Color(0xFF0D1117),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFF30363D)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFF30363D)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFF238636)),
-                ),
-                errorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFFDA3633)),
-                ),
-              ),
+              label: 'Name *',
+              hintText: 'Enter your full name',
+              semanticLabel: AccessibilityUtils.nameField,
+              enableHapticFeedback: true,
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
                   return 'Please enter your name';
@@ -522,62 +515,24 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               },
             ),
             const SizedBox(height: 24),
-            TextFormField(
+            AccessibleFormField(
               controller: _bioController,
-              style: const TextStyle(color: Color(0xFFF0F6FC)),
-              decoration: InputDecoration(
-                labelText: 'Bio (Optional)',
-                hintText: 'Tell us about yourself...',
-                labelStyle: const TextStyle(color: Color(0xFF7D8590)),
-                hintStyle: const TextStyle(color: Color(0xFF484F58)),
-                filled: true,
-                fillColor: const Color(0xFF0D1117),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFF30363D)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFF30363D)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFF238636)),
-                ),
-              ),
+              label: 'Bio (Optional)',
+              hintText: 'Tell us about yourself...',
+              semanticLabel: AccessibilityUtils.bioField,
+              enableHapticFeedback: true,
               maxLines: 3,
               maxLength: 200,
             ),
             const SizedBox(height: 24),
-            TextFormField(
+            AccessibleFormField(
               controller: _githubController,
-              style: const TextStyle(color: Color(0xFFF0F6FC)),
-              decoration: InputDecoration(
-                labelText: 'GitHub URL (Optional)',
-                hintText: 'https://github.com/username',
-                labelStyle: const TextStyle(color: Color(0xFF7D8590)),
-                hintStyle: const TextStyle(color: Color(0xFF484F58)),
-                prefixIcon:
-                    const Icon(Icons.link_rounded, color: Color(0xFF7D8590)),
-                filled: true,
-                fillColor: const Color(0xFF0D1117),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFF30363D)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFF30363D)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFF238636)),
-                ),
-                errorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFFDA3633)),
-                ),
-              ),
+              label: 'GitHub URL (Optional)',
+              hintText: 'https://github.com/username',
+              semanticLabel: AccessibilityUtils.githubUrlField,
+              enableHapticFeedback: true,
+              prefixIcon:
+                  const Icon(Icons.link_rounded, color: Color(0xFF7D8590)),
               validator: (value) {
                 if (value != null && value.isNotEmpty) {
                   if (!value.startsWith('https://github.com/')) {

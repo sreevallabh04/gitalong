@@ -5,6 +5,8 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/utils/logger.dart';
 import '../../core/monitoring/analytics_service.dart';
+import '../../core/utils/accessibility_utils.dart';
+import '../../widgets/common/accessible_button.dart';
 
 class SavedScreen extends ConsumerStatefulWidget {
   const SavedScreen({super.key});
@@ -137,19 +139,18 @@ class _SavedScreenState extends ConsumerState<SavedScreen>
                 color: const Color(0xFF30363D),
               ),
             ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: () {
-                  AppLogger.logger.navigation('🔧 Sort saved items tapped');
-                },
-                child: Icon(
-                  PhosphorIcons.funnelSimple(PhosphorIconsStyle.regular),
-                  color: const Color(0xFF7D8590),
-                  size: 20,
-                ),
-              ),
+            child: AccessibleIconButton(
+              onPressed: () {
+                HapticUtils.lightImpact();
+                AppLogger.logger.navigation('🔧 Sort saved items tapped');
+              },
+              icon: PhosphorIcons.funnelSimple(PhosphorIconsStyle.regular),
+              label: 'Sort or filter saved items',
+              semanticLabel: AccessibilityUtils.getButtonLabel(
+                  'Sort or filter saved items', false),
+              enableHapticFeedback: true,
+              iconColor: const Color(0xFF7D8590),
+              size: 20,
             ),
           ),
         ],

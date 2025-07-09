@@ -289,6 +289,123 @@ exports.processEnhancedEmailNotifications = functions.firestore
     }
   });
 
+/**
+ * 🔔 Swipe Notification Handler
+ * 
+ * Triggers when a user swipes right on a project and sends notification to project owner
+ */
+exports.handleSwipeNotification = functions.firestore
+  .document('swipes/{swipeId}')
+  .onCreate(async (snap, context) => {
+    const swipeData = snap.data();
+    const { swiper_id, target_id, direction, target_type } = swipeData;
+    const swipeId = context.params.swipeId;
+
+    try {
+      console.log(`👆 Processing swipe: ${swiper_id} -> ${target_id} (${direction})`);
+
+      // Only handle right swipes on projects
+      if (direction !== 'right' || target_type !== 'project') {
+        console.log(`ℹ️ Skipping non-project right swipe: ${direction} on ${target_type}`);
+        return null;
+      }
+
+      // Get project details
+      const projectDoc = await admin.firestore()
+        .collection('projects')
+        .doc(target_id)
+        .get();
+
+      if (!projectDoc.exists) {
+        console.log(`⚠️ Project not found: ${target_id}`);
+        return null;
+      }
+
+      const projectData = projectDoc.data();
+      const projectOwnerId = projectData.owner_id;
+      const projectTitle = projectData.title;
+
+      // Don't notify if swiper is the project owner
+      if (swiper_id === projectOwnerId) {
+        console.log(`ℹ️ Skipping notification - swiper is project owner`);
+        return null;
+      }
+
+      // Get swiper details
+      const swiperDoc = await admin.firestore()
+        .collection('users')
+        .doc(swiper_id)
+        .get();
+
+      let swiperName = 'A developer';
+      if (swiperDoc.exists) {
+        const swiperData = swiperDoc.data();
+        swiperName = swiperData.display_name || swiperData.username || 'A developer';
+      }
+
+      console.log(`📧 Sending swipe notification to project owner: ${projectOwnerId}`);
+
+      // Create notification record
+      const notificationData = {
+        userId: projectOwnerId,
+        type: 'swipe',
+        title: '👋 New Swipe!',
+        message: `${swiperName} swiped right on your project "${projectTitle}"`,
+        read: false,
+        priority: 'medium',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        expiresAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)), // 7 days
+        actions: {
+          view_project: `/projects/${target_id}`,
+          view_profile: `/profile/${swiper_id}`,
+        },
+        metadata: {
+          swipeId: swipeId,
+          projectId: target_id,
+          swiperId: swiper_id,
+          swiperName: swiperName,
+          projectTitle: projectTitle,
+          functionVersion: '1.0.0',
+        }
+      };
+
+      // Add to user notifications
+      await admin.firestore()
+        .collection('user_notifications')
+        .add(notificationData);
+
+      // Send push notification
+      try {
+        await _sendSwipePushNotification(
+          projectOwnerId,
+          swiperName,
+          projectTitle,
+          target_id,
+          swiper_id
+        );
+      } catch (notifError) {
+        console.warn(`⚠️ Could not send push notification for swipe:`, notifError);
+      }
+
+      console.log(`✅ Swipe notification processed successfully`);
+      return { success: true, projectOwnerId, swiperName, projectTitle };
+
+    } catch (error) {
+      console.error(`❌ Error processing swipe notification:`, error);
+      
+      // Log the error for monitoring
+      await admin.firestore().collection('error_logs').add({
+        type: 'swipe_notification_error',
+        swipeId: swipeId,
+        error: error.message,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        functionVersion: '1.0.0',
+      });
+      
+      return { success: false, error: error.message };
+    }
+  });
+
 // ============================================================================
 // 🛠️ HELPER FUNCTIONS - Enhanced Utilities
 // ============================================================================
@@ -428,6 +545,75 @@ async function _sendEnhancedPushNotification(userId, email, displayName) {
       }
     } catch (error) {
     console.warn(`⚠️  Failed to send push notification for ${email}:`, error);
+  }
+}
+
+/**
+ * Send swipe push notification
+ */
+async function _sendSwipePushNotification(projectOwnerId, swiperName, projectTitle, projectId, swiperId) {
+  try {
+    // Check if user has FCM tokens
+    const userTokens = await admin.firestore()
+      .collection('user_fcm_tokens')
+      .where('userId', '==', projectOwnerId)
+      .where('active', '==', true)
+      .get();
+
+    if (userTokens.docs.length === 0) {
+      console.log(`ℹ️ No FCM tokens found for project owner: ${projectOwnerId}`);
+      return;
+    }
+
+    const tokens = userTokens.docs.map(doc => doc.data().token);
+
+    const message = {
+      notification: {
+        title: '👋 New Swipe!',
+        body: `${swiperName} swiped right on your project "${projectTitle}"`,
+        icon: 'https://gitalong.dev/icon-192.png',
+      },
+      data: {
+        type: 'swipe',
+        action: 'open_project',
+        projectId: projectId,
+        swiperId: swiperId,
+        swiperName: swiperName,
+        projectTitle: projectTitle,
+        version: '1.0.0',
+      },
+      tokens: tokens,
+    };
+
+    const response = await admin.messaging().sendMulticast(message);
+    console.log(`📱 Swipe push notification sent to ${response.successCount}/${tokens.length} devices`);
+    
+    // Clean up invalid tokens
+    if (response.failureCount > 0) {
+      const invalidTokens = [];
+      response.responses.forEach((resp, idx) => {
+        if (!resp.success) {
+          invalidTokens.push(tokens[idx]);
+        }
+      });
+      
+      // Mark invalid tokens as inactive
+      const batch = admin.firestore().batch();
+      for (const token of invalidTokens) {
+        const tokenDoc = await admin.firestore()
+          .collection('user_fcm_tokens')
+          .where('token', '==', token)
+          .limit(1)
+          .get();
+        
+        if (tokenDoc.docs.length > 0) {
+          batch.update(tokenDoc.docs[0].ref, { active: false });
+        }
+      }
+      await batch.commit();
+    }
+  } catch (error) {
+    console.warn(`⚠️ Failed to send swipe push notification:`, error);
   }
 }
 

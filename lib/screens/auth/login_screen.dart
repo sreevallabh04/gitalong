@@ -1,16 +1,13 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-
 import 'package:google_fonts/google_fonts.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
-
-import '../../services/auth_service.dart' as auth;
+import '../../core/config/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../core/utils/logger.dart';
-import '../../core/router/app_router.dart';
-import '../../core/widgets/responsive_buttons.dart';
+import '../../widgets/common/accessible_button.dart';
+import '../../widgets/common/accessible_form_field.dart';
+import '../../widgets/commit_dot.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -21,534 +18,198 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen>
     with TickerProviderStateMixin {
-  late TabController _tabController;
-  late AnimationController _cardController;
-
-  final GlobalKey<FormState> _signInFormKey = GlobalKey<FormState>();
-  final GlobalKey<FormState> _signUpFormKey = GlobalKey<FormState>();
-
-  // Controllers
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _signUpNameController = TextEditingController();
-  final TextEditingController _signUpEmailController = TextEditingController();
-  final TextEditingController _signUpPasswordController =
-      TextEditingController();
-  final TextEditingController _confirmPasswordController =
-      TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
 
   bool _isLoading = false;
-  bool _obscurePassword = true;
-  bool _obscureSignUpPassword = true;
-  bool _obscureConfirmPassword = true;
+  bool _isPasswordVisible = false;
+  bool _rememberMe = false;
+
+  late AnimationController _fadeController;
+  late AnimationController _slideController;
+  late AnimationController _pulseController;
+
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _cardController = AnimationController(
+    _setupAnimations();
+  }
+
+  void _setupAnimations() {
+    _fadeController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _cardController.forward();
-      }
-    });
+    _slideController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    );
+
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeInOut,
+    ));
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _slideController,
+      curve: Curves.easeOutCubic,
+    ));
+
+    _pulseAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.1,
+    ).animate(CurvedAnimation(
+      parent: _pulseController,
+      curve: Curves.easeInOut,
+    ));
+
+    // Start animations
+    _fadeController.forward();
+    _slideController.forward();
+    _pulseController.repeat(reverse: true);
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
-    _cardController.dispose();
+    _fadeController.dispose();
+    _slideController.dispose();
+    _pulseController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
-    _signUpNameController.dispose();
-    _signUpEmailController.dispose();
-    _signUpPasswordController.dispose();
-    _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  // Authentication methods
-  Future<void> _signIn() async {
-    if (!_signInFormKey.currentState!.validate()) return;
+  Future<void> _signInWithEmail() async {
+    if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final authService = ref.read(authServiceProvider);
-      await authService.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
-
-      if (mounted) {
-        AppLogger.logger.navigation('✅ Sign in successful, navigating to home');
-        context.goToHome();
-      }
-    } on auth.AuthException catch (e) {
-      if (mounted) {
-        _showErrorSnackbar(e.message);
-      }
-    } catch (e) {
-      AppLogger.logger.e('❌ Unexpected sign in error', error: e);
-      if (mounted) {
-        _showErrorSnackbar('An unexpected error occurred. Please try again.');
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  void _signUp() async {
-    if (_signUpFormKey.currentState?.validate() != true) return;
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      // Use the improved AuthService with proper credential validation
-      await ref.read(authServiceProvider).createUserWithEmailAndPassword(
-            email:
-                _signUpEmailController.text, // Already trimmed in AuthService
-            password: _signUpPasswordController
-                .text, // Already trimmed in AuthService
-          );
-
-      if (mounted) {
-        // Navigate to onboarding for profile setup instead of home
-        AppLogger.logger.navigation(
-            '✅ Sign-up successful, navigating to onboarding for profile setup');
-        context.goToOnboarding();
-      }
-    } on auth.AuthException catch (e) {
-      if (mounted) {
-        _showErrorSnackbar(e.message);
-      }
-    } catch (e, stackTrace) {
-      AppLogger.logger.e(
-        '❌ Unexpected error during sign-up',
-        error: e,
-        stackTrace: stackTrace,
-      );
-
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  void _signInWithGoogle() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      AppLogger.logger.auth('🔐 Starting Google Sign-In process...');
-
-      // Use the improved AuthService with comprehensive error handling
-      final credential = await ref.read(authServiceProvider).signInWithGoogle();
-
-      if (credential.user != null) {
-        AppLogger.logger
-            .auth('✅ Google sign-in successful for: ${credential.user!.email}');
-
-        if (mounted) {
-          // Navigate using GoRouter - this will trigger the auth redirect
-          AppLogger.logger
-              .navigation('✅ Google sign-in successful, navigating to home');
-          context.goToHome();
-        }
-      } else {
-        throw const auth.AuthException(
-          'Google sign-in completed but no user was returned.',
-          code: 'no-user-returned',
-        );
-      }
-    } on auth.AuthException catch (e) {
-      AppLogger.logger.e('❌ Auth error during Google sign-in', error: e);
-
-      if (mounted) {
-        String userFriendlyMessage;
-
-        // Provide more specific error messages based on the error code
-        switch (e.code) {
-          case 'sign-in-cancelled':
-            userFriendlyMessage =
-                'Google sign-in was cancelled. Please try again.';
-            break;
-          case 'network-request-failed':
-            userFriendlyMessage =
-                'Network error. Please check your connection and try again.';
-            break;
-          case 'operation-not-allowed':
-            userFriendlyMessage =
-                'Google sign-in is not enabled. Please contact support.';
-            break;
-          case 'invalid-credential':
-            userFriendlyMessage =
-                'Invalid credentials. Please try signing in again.';
-            break;
-          default:
-            userFriendlyMessage = e.message;
-        }
-
-        setState(() {
-          _isLoading = false;
-        });
-
-        // Show snackbar for better visibility
-        _showErrorSnackbar(userFriendlyMessage);
-      }
-    } catch (e, stackTrace) {
-      AppLogger.logger.e(
-        '❌ Unexpected error during Google sign-in',
-        error: e,
-        stackTrace: stackTrace,
-      );
-
-      if (mounted) {
-        String errorMessage = 'Google sign-in failed. Please try again.';
-
-        // Handle specific platform errors
-        if (e.toString().contains('DEVELOPER_ERROR') ||
-            e.toString().contains('Error 10')) {
-          errorMessage =
-              'Google sign-in configuration error. Please contact support.';
-        } else if (e.toString().contains('network') ||
-            e.toString().contains('connection')) {
-          errorMessage =
-              'Network error. Please check your internet connection.';
-        }
-
-        setState(() {
-          _isLoading = false;
-        });
-
-        _showErrorSnackbar(errorMessage);
-      }
-    }
-  }
-
-  void _signUpWithGoogle() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      AppLogger.logger.auth('🔐 Starting Google Sign-Up process...');
-
-      // Use the improved AuthService with comprehensive error handling
-      final credential = await ref.read(authServiceProvider).signInWithGoogle();
-
-      if (credential.user != null) {
-        AppLogger.logger
-            .auth('✅ Google sign-up successful for: ${credential.user!.email}');
-
-        if (mounted) {
-          // Navigate to onboarding for new users
-          AppLogger.logger.navigation(
-              '✅ Google sign-up successful, navigating to onboarding');
-          context.goToOnboarding();
-        }
-      } else {
-        throw const auth.AuthException(
-          'Google sign-up completed but no user was returned.',
-          code: 'no-user-returned',
-        );
-      }
-    } on auth.AuthException catch (e) {
-      AppLogger.logger.e('❌ Auth error during Google sign-up', error: e);
-
-      if (mounted) {
-        String userFriendlyMessage;
-
-        // Provide more specific error messages based on the error code
-        switch (e.code) {
-          case 'sign-in-cancelled':
-            userFriendlyMessage =
-                'Google sign-up was cancelled. Please try again.';
-            break;
-          case 'network-request-failed':
-            userFriendlyMessage =
-                'Network error. Please check your connection and try again.';
-            break;
-          case 'operation-not-allowed':
-            userFriendlyMessage =
-                'Google sign-up is not enabled. Please contact support.';
-            break;
-          case 'invalid-credential':
-            userFriendlyMessage =
-                'Invalid credentials. Please try signing up again.';
-            break;
-          default:
-            userFriendlyMessage = e.message;
-        }
-
-        setState(() {
-          _isLoading = false;
-        });
-
-        // Show snackbar for better visibility
-        _showErrorSnackbar(userFriendlyMessage);
-      }
-    } catch (e, stackTrace) {
-      AppLogger.logger.e(
-        '❌ Unexpected error during Google sign-up',
-        error: e,
-        stackTrace: stackTrace,
-      );
-
-      if (mounted) {
-        String errorMessage = 'Google sign-up failed. Please try again.';
-
-        // Handle specific platform errors
-        if (e.toString().contains('DEVELOPER_ERROR') ||
-            e.toString().contains('Error 10')) {
-          errorMessage =
-              'Google sign-up configuration error. Please contact support.';
-        } else if (e.toString().contains('network') ||
-            e.toString().contains('connection')) {
-          errorMessage =
-              'Network error. Please check your internet connection.';
-        }
-
-        setState(() {
-          _isLoading = false;
-        });
-
-        _showErrorSnackbar(errorMessage);
-      }
-    }
-  }
-
-  void _signInWithApple() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      // Use the improved AuthService with comprehensive error handling
-      await ref.read(authServiceProvider).signInWithApple();
-
-      if (mounted) {
-        // Navigate using GoRouter - this will trigger the auth redirect
-        AppLogger.logger
-            .navigation('✅ Apple sign-in successful, navigating to home');
-        context.goToHome();
-      }
-    } on auth.AuthException catch (e) {
-      AppLogger.logger.e('❌ Auth error during Apple sign-in', error: e);
-
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    } catch (e, stackTrace) {
-      AppLogger.logger.e(
-        '❌ Unexpected error during Apple sign-in',
-        error: e,
-        stackTrace: stackTrace,
-      );
-
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  void _signInWithGitHub() async {
-    setState(() {
-      _isLoading = true;
-    });
-    try {
-      AppLogger.logger.auth('🐙 Starting GitHub Sign-In process...');
-      final credential =
-          await ref.read(authServiceProvider).signInWithGitHubMobile();
-      if (credential.user != null) {
-        AppLogger.logger.auth(
-            '✅ GitHub sign-in successful for: \\${credential.user!.email}');
-        if (mounted) {
-          AppLogger.logger
-              .navigation('✅ GitHub sign-in successful, navigating to home');
-          context.goToHome();
-        }
-      } else {
-        throw const auth.AuthException(
-          'GitHub sign-in completed but no user was returned.',
-          code: 'no-user-returned',
-        );
-      }
-    } on auth.AuthException catch (e) {
-      AppLogger.logger.e('❌ Auth error during GitHub sign-in', error: e);
-      if (mounted) {
-        String userFriendlyMessage;
-        switch (e.code) {
-          case 'sign-in-cancelled':
-            userFriendlyMessage =
-                'GitHub sign-in was cancelled. Please try again.';
-            break;
-          case 'github-not-configured':
-            userFriendlyMessage =
-                'GitHub authentication is not configured. Please contact support.';
-            break;
-          case 'no-email':
-            userFriendlyMessage =
-                'Your GitHub account must have a public email address. Please update your GitHub settings.';
-            break;
-          case 'network-request-failed':
-            userFriendlyMessage =
-                'Network error. Please check your connection and try again.';
-            break;
-          case 'account-exists-with-different-credential':
-            userFriendlyMessage =
-                'An account with this email already exists using a different sign-in method. Please try signing in with email/password.';
-            break;
-          default:
-            userFriendlyMessage = e.message;
-        }
-        _showErrorSnackbar(userFriendlyMessage);
-      }
-    } catch (e, stackTrace) {
-      AppLogger.logger.e('❌ Unexpected error during GitHub sign-in',
-          error: e, stackTrace: stackTrace);
-      if (mounted) {
-        _showErrorSnackbar('An unexpected error occurred. Please try again.');
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  void _forgotPassword() async {
-    if (_emailController.text.trim().isEmpty) {
-      setState(() {
-        _isLoading = false;
-      });
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      // Use the improved AuthService for password reset
-      await ref.read(authServiceProvider).sendPasswordResetEmail(
-            _emailController.text, // Already trimmed in AuthService
-          );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Password reset email sent to ${_emailController.text.trim()}',
-              style: GoogleFonts.inter(color: const Color(0xFFF0F6FC)),
-            ),
-            backgroundColor: const Color(0xFF238636), // GitHub green
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        );
-      }
-    } on auth.AuthException catch (e) {
-      AppLogger.logger.e('❌ Auth error during password reset', error: e);
-
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    } catch (e, stackTrace) {
-      AppLogger.logger.e(
-        '❌ Unexpected error during password reset',
-        error: e,
-        stackTrace: stackTrace,
-      );
-
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  void _continueAsGuest() async {
     setState(() => _isLoading = true);
+
     try {
-      final userCred = await ref.read(authServiceProvider).signInAnonymously();
-      if (userCred.user != null && mounted) {
-        AppLogger.logger.navigation('✅ Guest sign-in, navigating to home');
-        context.goToHome();
-      } else {
-        _showErrorSnackbar('Guest sign-in failed. Please try again.');
-      }
+      await ref.read(authServiceProvider).signInWithEmailAndPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text,
+          );
+
+      AppLogger.logger.i('✅ User signed in successfully');
     } catch (e) {
-      _showErrorSnackbar('Guest sign-in failed. Please try again.');
+      AppLogger.logger.e('❌ Sign in failed', error: e);
+      _showErrorSnackBar('Sign in failed: ${e.toString()}');
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
+  Future<void> _signInWithGitHub() async {
+    setState(() => _isLoading = true);
+
+    try {
+      await ref.read(authServiceProvider).signInWithGitHubMobile();
+      AppLogger.logger.i('✅ GitHub sign in successful');
+    } catch (e) {
+      AppLogger.logger.e('❌ GitHub sign in failed', error: e);
+      _showErrorSnackBar('GitHub sign in failed: ${e.toString()}');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.error,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: _buildBackgroundDecoration(),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                const SizedBox(height: 40),
-                _buildHeader(),
-                const SizedBox(height: 40),
-                _buildAuthCard(),
-                const SizedBox(height: 40),
-              ],
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            // GitHub commit history background
+            _buildCommitHistoryBackground(),
+
+            // Main content
+            FadeTransition(
+              opacity: _fadeAnimation,
+              child: SlideTransition(
+                position: _slideAnimation,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 60),
+
+                      // Logo and title
+                      _buildHeader(),
+
+                      const SizedBox(height: 48),
+
+                      // Login form
+                      _buildLoginForm(),
+
+                      const SizedBox(height: 32),
+
+                      // Social login buttons
+                      _buildSocialLoginSection(),
+
+                      const SizedBox(height: 24),
+
+                      // Footer
+                      _buildFooter(),
+                    ],
+                  ),
+                ),
+              ),
             ),
-          ),
+
+            // Loading overlay
+            if (_isLoading) _buildLoadingOverlay(),
+          ],
         ),
       ),
     );
   }
 
-  BoxDecoration _buildBackgroundDecoration() {
-    return BoxDecoration(
-      gradient: RadialGradient(
-        center: Alignment.topRight,
-        radius: 1.5,
-        colors: [
-          const Color(0xFF238636).withValues(alpha: 0.1), // GitHub green
-          const Color(0xFF161B22).withValues(alpha: 0.8), // GitHub dark gray
-          const Color(0xFF0D1117), // GitHub black
-        ],
+  Widget _buildCommitHistoryBackground() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.background,
+            AppColors.surface.withValues(alpha: 0.3),
+            AppColors.background,
+          ],
+        ),
+      ),
+      child: CustomPaint(
+        painter: CommitHistoryPainter(),
+        size: Size.infinite,
       ),
     );
   }
@@ -556,656 +217,237 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   Widget _buildHeader() {
     return Column(
       children: [
-        // Logo with GitHub-style glow effect
-        Container(
-          width: 100,
-          height: 100,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [
-                Color(0xFF238636), // GitHub green
-                Color(0xFF2EA043), // GitHub bright green
+        // Animated logo
+        ScaleTransition(
+          scale: _pulseAnimation,
+          child: Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  blurRadius: 20,
+                  spreadRadius: 5,
+                ),
               ],
             ),
-            borderRadius: BorderRadius.circular(25),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF238636).withValues(alpha: 0.4),
-                blurRadius: 20,
-                spreadRadius: 2,
-              ),
-            ],
+            child: const Icon(
+              Icons.code,
+              color: AppColors.white,
+              size: 40,
+            ),
           ),
-          child: const Icon(Icons.code, size: 50, color: Colors.white),
-        ).animate().scale(duration: 800.ms).fadeIn(duration: 600.ms),
+        ),
 
         const SizedBox(height: 24),
 
-        // App title with GitHub-style gradient
-        ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
-            colors: [
-              Color(0xFF238636), // GitHub green
-              Color(0xFF3FB950), // GitHub lime green
-            ],
-          ).createShader(bounds),
-          child: Text(
-            'GitAlong',
-            style: GoogleFonts.orbitron(
-              fontSize: 36,
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
-              letterSpacing: 2,
-            ),
-          ),
-        ).animate(delay: 300.ms).fadeIn(duration: 800.ms).slideY(begin: 0.3),
-
-        const SizedBox(height: 12),
-
-        // Subtitle with GitHub-style muted text
+        // Title
         Text(
-          'Connect • Collaborate • Create',
+          'GitAlong',
+          style: GoogleFonts.jetBrainsMono(
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+            color: AppColors.white,
+            letterSpacing: 2,
+          ),
+        ),
+
+        const SizedBox(height: 8),
+
+        // Subtitle
+        Text(
+          'Connect with developers through your code',
           style: GoogleFonts.inter(
             fontSize: 16,
-            color: const Color(0xFF7D8590), // GitHub muted text
-            letterSpacing: 1,
+            color: AppColors.muted,
+            height: 1.5,
           ),
-        ).animate(delay: 600.ms).fadeIn(duration: 800.ms).slideY(begin: 0.3),
-      ],
-    );
-  }
-
-  Widget _buildAuthCard() {
-    return AnimatedBuilder(
-      animation: _cardController,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: _cardController.value,
-          child: Opacity(
-            opacity: _cardController.value,
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 24),
-              constraints: BoxConstraints(
-                minHeight: 500,
-                maxHeight: MediaQuery.of(context).size.height * 0.75,
-              ),
-              child: Container(
-                width: double.infinity,
-                height: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      const Color(0xFF21262D)
-                          .withValues(alpha: 0.8), // GitHub gray
-                      const Color(0xFF161B22)
-                          .withValues(alpha: 0.9), // GitHub dark gray
-                    ],
-                  ),
-                  border: Border.all(
-                    color: const Color(0xFF238636)
-                        .withValues(alpha: 0.3), // GitHub green
-                    width: 2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF000000).withValues(alpha: 0.2),
-                      blurRadius: 20,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(24), // Reduced padding
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildOAuthButtons(),
-                        const SizedBox(height: 24), // Reduced spacing
-                        _buildDivider(),
-                        const SizedBox(height: 24), // Reduced spacing
-                        _buildTabBar(),
-                        const SizedBox(height: 20), // Reduced spacing
-                        _buildTabViews(),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildOAuthButtons() {
-    return Column(
-      children: [
-        _buildOAuthButton(
-          onPressed: _isLoading ? null : _signInWithGoogle,
-          icon: Icons.g_mobiledata,
-          label: 'Sign in with Google',
-          backgroundColor: const Color(0xFF21262D),
-          borderColor: const Color(0xFF30363D),
-          textColor: const Color(0xFFF0F6FC),
-        ),
-        const SizedBox(height: 16),
-        _buildOAuthButton(
-          onPressed: _isLoading ? null : _signUpWithGoogle,
-          icon: Icons.g_mobiledata,
-          label: 'Sign up with Google',
-          backgroundColor: const Color(0xFF21262D),
-          borderColor: const Color(0xFF30363D),
-          textColor: const Color(0xFFF0F6FC),
-        ),
-        const SizedBox(height: 16),
-        _buildOAuthButton(
-          onPressed: _isLoading ? null : _signInWithGitHub,
-          icon: PhosphorIcons.githubLogo(PhosphorIconsStyle.fill),
-          label: 'Continue with GitHub',
-          backgroundColor: const Color(0xFF21262D),
-          borderColor: const Color(0xFF30363D),
-          textColor: const Color(0xFFF0F6FC),
-        ),
-        const SizedBox(height: 16),
-        if (Platform.isIOS || Platform.isMacOS)
-          _buildOAuthButton(
-            onPressed: _isLoading ? null : _signInWithApple,
-            icon: Icons.apple,
-            label: 'Continue with Apple',
-            backgroundColor: const Color(0xFF21262D),
-            borderColor: const Color(0xFF30363D),
-            textColor: const Color(0xFFF0F6FC),
-          ),
-        const SizedBox(height: 16),
-        _buildOAuthButton(
-          onPressed: _isLoading ? null : _continueAsGuest,
-          icon: Icons.explore,
-          label: 'Continue as Guest',
-          backgroundColor: const Color(0xFF161B22),
-          borderColor: const Color(0xFF30363D),
-          textColor: const Color(0xFF7D8590),
+          textAlign: TextAlign.center,
         ),
       ],
     );
   }
 
-  Widget _buildOAuthButton({
-    required VoidCallback? onPressed,
-    required IconData icon,
-    required String label,
-    required Color backgroundColor,
-    required Color borderColor,
-    required Color textColor,
-  }) {
-    return ResponsiveIconLabelButton(
-      onPressed: onPressed,
-      icon: icon,
-      label: label,
-      backgroundColor: backgroundColor,
-      foregroundColor: textColor,
-      isLoading: _isLoading,
-      isOutlined: true,
-    );
-  }
-
-  Widget _buildDivider() {
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            height: 1,
-            color: const Color(0xFF30363D), // GitHub border
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            'or',
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              color: const Color(0xFF7D8590), // GitHub muted text
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-        Expanded(
-          child: Container(
-            height: 1,
-            color: const Color(0xFF30363D), // GitHub border
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTabBar() {
+  Widget _buildLoginForm() {
     return Container(
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.1),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-        ),
-      ),
-      child: TabBar(
-        controller: _tabController,
-        indicator: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Theme.of(context).colorScheme.primary,
-              Theme.of(context).colorScheme.secondary,
-            ],
-          ),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        labelColor: Colors.white,
-        unselectedLabelColor: Theme.of(
-          context,
-        ).colorScheme.onSurface.withValues(alpha: 0.6),
-        labelStyle: GoogleFonts.rajdhani(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-        ),
-        tabs: const [Tab(text: 'Sign In'), Tab(text: 'Sign Up')],
-      ),
-    );
-  }
-
-  Widget _buildTabViews() {
-    return Container(
-      constraints: const BoxConstraints(minHeight: 300, maxHeight: 400),
-      child: TabBarView(
-        controller: _tabController,
-        children: [
-          SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: 20),
-            child: _buildSignInForm(),
-          ),
-          SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: 20),
-            child: _buildSignUpForm(),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildSignInForm() {
-    return Form(
-      key: _signInFormKey,
-      child: Column(
-        children: [
-          _buildTextField(
-            controller: _emailController,
-            label: 'Email',
-            icon: Icon(PhosphorIcons.envelope(PhosphorIconsStyle.bold)),
-            keyboardType: TextInputType.emailAddress,
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Please enter your email';
-              }
-              if (!value.contains('@')) {
-                return 'Please enter a valid email';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 16),
-
-          _buildTextField(
-            controller: _passwordController,
-            label: 'Password',
-            icon: Icon(PhosphorIcons.lock(PhosphorIconsStyle.bold)),
-            obscureText: _obscurePassword,
-            suffixIcon: IconButton(
-              icon: Icon(
-                _obscurePassword
-                    ? PhosphorIcons.eye(PhosphorIconsStyle.bold)
-                    : PhosphorIcons.eyeSlash(PhosphorIconsStyle.bold),
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              onPressed: () =>
-                  setState(() => _obscurePassword = !_obscurePassword),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Email field
+            AccessibleFormField(
+              label: 'Email',
+              hintText: 'Enter your email address',
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              prefixIcon: const Icon(Icons.email_outlined),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter your email';
+                }
+                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                    .hasMatch(value)) {
+                  return 'Please enter a valid email';
+                }
+                return null;
+              },
             ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter your password';
-              }
-              return null;
-            },
-          ),
 
-          const SizedBox(height: 12),
+            const SizedBox(height: 16),
 
-          // Forgot password
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: _forgotPassword,
-              child: Text(
-                'Forgot Password?',
-                style: GoogleFonts.inter(
-                  color: Theme.of(context).colorScheme.primary,
-                  fontSize: 14,
+            // Password field
+            AccessibleFormField(
+              label: 'Password',
+              hintText: 'Enter your password',
+              controller: _passwordController,
+              obscureText: !_isPasswordVisible,
+              prefixIcon: const Icon(Icons.lock_outlined),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                  color: AppColors.muted,
                 ),
+                onPressed: () {
+                  setState(() {
+                    _isPasswordVisible = !_isPasswordVisible;
+                  });
+                },
               ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter your password';
+                }
+                if (value.length < 6) {
+                  return 'Password must be at least 6 characters';
+                }
+                return null;
+              },
             ),
-          ),
 
-          const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
-          // Sign in button
-          ResponsiveElevatedButton(
-            onPressed: _isLoading ? null : _signIn,
-            isLoading: _isLoading,
-            child: const Text('Sign In'),
-          ),
-
-          const SizedBox(height: 20),
-
-          // Social authentication section
-          _buildSocialAuthSection(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSignUpForm() {
-    return Form(
-      key: _signUpFormKey,
-      child: Column(
-        children: [
-          _buildTextField(
-            controller: _signUpNameController,
-            label: 'Full Name',
-            icon: Icon(PhosphorIcons.user(PhosphorIconsStyle.bold)),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Please enter your name';
-              }
-              if (value.trim().length < 2) {
-                return 'Name must be at least 2 characters';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 16),
-
-          _buildTextField(
-            controller: _signUpEmailController,
-            label: 'Email',
-            icon: Icon(PhosphorIcons.envelope(PhosphorIconsStyle.bold)),
-            keyboardType: TextInputType.emailAddress,
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Please enter your email';
-              }
-              if (!RegExp(
-                r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-              ).hasMatch(value.trim())) {
-                return 'Please enter a valid email address';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 16),
-
-          _buildTextField(
-            controller: _signUpPasswordController,
-            label: 'Password',
-            icon: Icon(PhosphorIcons.lock(PhosphorIconsStyle.bold)),
-            obscureText: _obscureSignUpPassword,
-            suffixIcon: IconButton(
-              icon: Icon(
-                _obscureSignUpPassword
-                    ? PhosphorIcons.eye(PhosphorIconsStyle.bold)
-                    : PhosphorIcons.eyeSlash(PhosphorIconsStyle.bold),
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              onPressed: () => setState(
-                () => _obscureSignUpPassword = !_obscureSignUpPassword,
-              ),
-            ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter a password';
-              }
-              if (value.length < 6) {
-                return 'Password must be at least 6 characters';
-              }
-              if (!RegExp(r'^(?=.*[a-zA-Z])(?=.*\d)').hasMatch(value)) {
-                return 'Password must contain letters and numbers';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 16),
-
-          _buildTextField(
-            controller: _confirmPasswordController,
-            label: 'Confirm Password',
-            icon: Icon(PhosphorIcons.lockOpen(PhosphorIconsStyle.bold)),
-            obscureText: _obscureConfirmPassword,
-            suffixIcon: IconButton(
-              icon: Icon(
-                _obscureConfirmPassword
-                    ? PhosphorIcons.eye(PhosphorIconsStyle.bold)
-                    : PhosphorIcons.eyeSlash(PhosphorIconsStyle.bold),
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              onPressed: () => setState(
-                () => _obscureConfirmPassword = !_obscureConfirmPassword,
-              ),
-            ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please confirm your password';
-              }
-              if (value != _signUpPasswordController.text) {
-                return 'Passwords do not match';
-              }
-              return null;
-            },
-          ),
-
-          const SizedBox(height: 24),
-
-          // Sign up button
-          ResponsiveElevatedButton(
-            onPressed: _isLoading ? null : _signUp,
-            isLoading: _isLoading,
-            child: const Text('Create Account & Set Up Profile'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required Widget icon,
-    TextInputType? keyboardType,
-    bool obscureText = false,
-    Widget? suffixIcon,
-    String? Function(String?)? validator,
-  }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      obscureText: obscureText,
-      validator: validator,
-      style: GoogleFonts.inter(color: Theme.of(context).colorScheme.onSurface),
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Padding(padding: const EdgeInsets.all(16), child: icon),
-        suffixIcon: suffixIcon,
-        labelStyle: GoogleFonts.inter(
-          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
-        ),
-        filled: true,
-        fillColor: Theme.of(context).colorScheme.surface.withValues(alpha: 0.1),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-          ),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.primary,
-            width: 2,
-          ),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.error,
-            width: 2,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required VoidCallback? onPressed,
-    required String label,
-  }) {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Theme.of(context).colorScheme.primary,
-                Theme.of(context).colorScheme.secondary,
+            // Remember me checkbox
+            Row(
+              children: [
+                Checkbox(
+                  value: _rememberMe,
+                  onChanged: (value) {
+                    setState(() {
+                      _rememberMe = value ?? false;
+                    });
+                  },
+                  activeColor: AppColors.primary,
+                ),
+                Text(
+                  'Remember me',
+                  style: GoogleFonts.inter(
+                    color: AppColors.white,
+                    fontSize: 14,
+                  ),
+                ),
+                const Spacer(),
+                TextButton(
+                  onPressed: () {
+                    // TODO: Implement forgot password
+                  },
+                  child: Text(
+                    'Forgot password?',
+                    style: GoogleFonts.inter(
+                      color: AppColors.primary,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
               ],
             ),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Theme.of(
-                  context,
-                ).colorScheme.primary.withValues(alpha: 0.3),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Center(
-            child: _isLoading
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                : Text(
-                    label,
-                    style: GoogleFonts.rajdhani(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1,
-                    ),
-                  ),
-          ),
+
+            const SizedBox(height: 24),
+
+            // Sign in button
+            AccessibleButton(
+              label: 'Sign In',
+              onPressed: _isLoading ? null : _signInWithEmail,
+              isLoading: _isLoading,
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildSocialAuthSection() {
+  Widget _buildSocialLoginSection() {
     return Column(
       children: [
-        // Divider with "or" text
+        // Divider
         Row(
           children: [
-            Expanded(
-              child: Container(
-                height: 1,
-                color: const Color(0xFF30363D),
-              ),
-            ),
+            Expanded(child: Divider(color: AppColors.border)),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
-                'or continue with',
+                'OR',
                 style: GoogleFonts.inter(
-                  color: const Color(0xFF7D8590),
+                  color: AppColors.muted,
                   fontSize: 14,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
-            Expanded(
-              child: Container(
-                height: 1,
-                color: const Color(0xFF30363D),
-              ),
-            ),
+            Expanded(child: Divider(color: AppColors.border)),
           ],
         ),
 
-        const SizedBox(height: 20),
+        const SizedBox(height: 24),
 
-        // Social auth buttons
-        Row(
-          children: [
-            Expanded(
-              child: _buildSocialAuthButton(
-                onPressed: _isLoading ? null : _signInWithGoogle,
-                icon: PhosphorIcons.googleLogo(PhosphorIconsStyle.bold),
-                label: 'Google',
-                color: const Color(0xFFDB4437),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildSocialAuthButton(
-                onPressed: _isLoading ? null : _signInWithGitHub,
-                icon: PhosphorIcons.githubLogo(PhosphorIconsStyle.bold),
-                label: 'GitHub',
-                color: const Color(0xFF24292E),
-              ),
-            ),
-          ],
+        // GitHub login button
+        AccessibleButton(
+          label: 'Continue with GitHub',
+          onPressed: _isLoading ? null : _signInWithGitHub,
+          isLoading: _isLoading,
+          icon: Icons.code,
         ),
+      ],
+    );
+  }
 
-        const SizedBox(height: 16),
-
-        // Guest mode button
+  Widget _buildFooter() {
+    return Column(
+      children: [
+        Text(
+          "Don't have an account?",
+          style: GoogleFonts.inter(
+            color: AppColors.muted,
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(height: 8),
         TextButton(
-          onPressed: _isLoading ? null : _continueAsGuest,
+          onPressed: () {
+            // TODO: Navigate to sign up screen
+          },
           child: Text(
-            'Continue as Guest',
+            'Create account',
             style: GoogleFonts.inter(
-              color: const Color(0xFF7D8590),
+              color: AppColors.primary,
               fontSize: 14,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
@@ -1213,62 +455,54 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     );
   }
 
-  Widget _buildSocialAuthButton({
-    required VoidCallback? onPressed,
-    required IconData icon,
-    required String label,
-    required Color color,
-  }) {
+  Widget _buildLoadingOverlay() {
     return Container(
-      height: 48,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFF30363D),
-          width: 1,
-        ),
-      ),
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 20, color: color),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
+      color: Colors.black.withValues(alpha: 0.5),
+      child: const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
         ),
       ),
     );
+  }
+}
+
+class CommitHistoryPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = AppColors.primary.withValues(alpha: 0.1)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+
+    final path = Path();
+
+    // Draw commit history lines
+    for (int i = 0; i < 5; i++) {
+      final x = size.width * 0.2 + (i * size.width * 0.15);
+      final y = size.height * 0.1 + (i * size.height * 0.2);
+
+      path.moveTo(x, y);
+      path.lineTo(x + 20, y + 20);
+      path.lineTo(x + 40, y);
+      path.lineTo(x + 60, y + 20);
+
+      // Draw commit dots
+      canvas.drawCircle(
+        Offset(x, y),
+        3,
+        Paint()..color = AppColors.primary.withValues(alpha: 0.3),
+      );
+      canvas.drawCircle(
+        Offset(x + 40, y),
+        3,
+        Paint()..color = AppColors.primary.withValues(alpha: 0.3),
+      );
+    }
+
+    canvas.drawPath(path, paint);
   }
 
-  void _showErrorSnackbar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: GoogleFonts.inter(color: Colors.white),
-        ),
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-    );
-  }
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

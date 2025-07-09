@@ -2,10 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:uuid/uuid.dart';
 import '../config/firebase_config.dart';
-import '../models/models.dart';
+import '../models/swipe_model.dart';
+import '../models/user_model.dart';
+import '../models/project_model.dart';
+import '../models/match_model.dart';
 import '../core/utils/logger.dart';
 import '../core/utils/firestore_utils.dart';
-import '../widgets/swipe/swipe_card.dart';
+import 'notification_service.dart';
 
 abstract class ISwipeService {
   Future<List<ProjectModel>> getProjectsToSwipe(String userId);
@@ -18,12 +21,19 @@ abstract class ISwipeService {
   });
   Future<List<MatchModel>> getUserMatches(String userId);
   Future<List<ProjectModel>> getSmartRecommendations(String userId);
+  Future<List<String>> getSwipedProjectIds(String userId);
+  Future<void> notifyProjectOwner({
+    required String projectId,
+    required String swiperId,
+    required String swiperName,
+  });
 }
 
 /// Service for handling swipe operations and match detection
 class SwipeService implements ISwipeService {
   final FirebaseFirestore _firestore = FirebaseConfig.firestore;
   final Uuid _uuid = const Uuid();
+  final NotificationService _notificationService = NotificationService();
 
   // Static instance for convenience methods
   static final SwipeService _instance = SwipeService();
@@ -65,18 +75,24 @@ class SwipeService implements ISwipeService {
   @override
   Future<List<ProjectModel>> getProjectsToSwipe(String userId) async {
     return await safeQuery(() async {
+          // Get list of projects user has already swiped
+          final swipedProjectIds = await getSwipedProjectIds(userId);
+
           // Add timeout to prevent hanging
           return await _firestore
               .collection(_projectsCollection)
               .where('status', isEqualTo: 'active')
               .orderBy('created_at', descending: true)
-              .limit(10)
+              .limit(20) // Increased limit to account for filtering
               .get()
               .timeout(const Duration(seconds: 10))
               .then((querySnapshot) {
             return querySnapshot.docs
                 .where((doc) =>
-                    doc.data()['owner_id'] != userId) // Filter locally for now
+                    doc.data()['owner_id'] !=
+                        userId && // Filter out own projects
+                    !swipedProjectIds.contains(
+                        doc.data()['id'])) // Filter out swiped projects
                 .map((doc) =>
                     ProjectModel.fromJson(_convertFirestoreData(doc.data())))
                 .take(10)
@@ -91,18 +107,24 @@ class SwipeService implements ISwipeService {
   @override
   Future<List<UserModel>> getUsersToSwipe(String userId) async {
     return await safeQuery(() async {
+          // Get list of users user has already swiped
+          final swipedUserIds =
+              await _getSwipedTargetIds(userId, SwipeTargetType.user);
+
           // Add timeout to prevent hanging
           return await _firestore
               .collection(_usersCollection)
               .where('role', isEqualTo: 'contributor')
               .orderBy('created_at', descending: true)
-              .limit(10)
+              .limit(20) // Increased limit to account for filtering
               .get()
               .timeout(const Duration(seconds: 10))
               .then((querySnapshot) {
             return querySnapshot.docs
                 .where((doc) =>
-                    doc.data()['id'] != userId) // Filter locally for now
+                    doc.data()['id'] != userId && // Filter out self
+                    !swipedUserIds
+                        .contains(doc.data()['id'])) // Filter out swiped users
                 .map((doc) =>
                     UserModel.fromJson(_convertFirestoreData(doc.data())))
                 .take(10)
@@ -112,6 +134,11 @@ class SwipeService implements ISwipeService {
           AppLogger.logger.e('❌ Error loading users', error: e);
         }) ??
         [];
+  }
+
+  @override
+  Future<List<String>> getSwipedProjectIds(String userId) async {
+    return await _getSwipedTargetIds(userId, SwipeTargetType.project);
   }
 
   @override
@@ -153,6 +180,16 @@ class SwipeService implements ISwipeService {
       await swipesRef.doc(swipeId).set(swipeData);
 
       AppLogger.logger.success('✅ Swipe recorded successfully');
+
+      // If it's a right swipe on a project, notify the project owner
+      if (direction == SwipeDirection.right &&
+          targetType == SwipeTargetType.project) {
+        await notifyProjectOwner(
+          projectId: targetId,
+          swiperId: swiperId,
+          swiperName: await _getUserDisplayName(swiperId),
+        );
+      }
 
       // Check for match if it's a right swipe
       if (direction == SwipeDirection.right) {
@@ -268,6 +305,48 @@ class SwipeService implements ISwipeService {
     } catch (e) {
       AppLogger.logger.e('Failed to fetch smart recommendations', error: e);
       throw SwipeException('Failed to fetch smart recommendations: $e');
+    }
+  }
+
+  @override
+  Future<void> notifyProjectOwner({
+    required String projectId,
+    required String swiperId,
+    required String swiperName,
+  }) async {
+    try {
+      // Get project details
+      final projectDoc =
+          await _firestore.collection(_projectsCollection).doc(projectId).get();
+
+      if (!projectDoc.exists) {
+        AppLogger.logger.w('⚠️ Project not found for notification: $projectId');
+        return;
+      }
+
+      final projectData = projectDoc.data()!;
+      final projectOwnerId = projectData['owner_id'] as String;
+      final projectTitle = projectData['title'] as String;
+
+      // Don't notify if swiper is the project owner
+      if (swiperId == projectOwnerId) {
+        return;
+      }
+
+      AppLogger.logger
+          .d('📧 Sending swipe notification to project owner: $projectOwnerId');
+
+      // Send notification to project owner
+      await _notificationService.sendSwipeNotification(
+        projectOwnerId: projectOwnerId,
+        swiperName: swiperName,
+        projectTitle: projectTitle,
+      );
+
+      AppLogger.logger.success('✅ Swipe notification sent to project owner');
+    } catch (e) {
+      AppLogger.logger.e('❌ Failed to send swipe notification', error: e);
+      // Don't throw - notification failure shouldn't break the swipe
     }
   }
 
@@ -401,6 +480,24 @@ class SwipeService implements ISwipeService {
     }
 
     return convertedData;
+  }
+
+  Future<String> _getUserDisplayName(String userId) async {
+    try {
+      final userDoc =
+          await _firestore.collection(_usersCollection).doc(userId).get();
+
+      if (userDoc.exists) {
+        final userData = userDoc.data()!;
+        return userData['display_name'] as String? ??
+            userData['username'] as String? ??
+            'A developer';
+      }
+      return 'A developer';
+    } catch (e) {
+      AppLogger.logger.e('❌ Failed to get user display name', error: e);
+      return 'A developer';
+    }
   }
 }
 

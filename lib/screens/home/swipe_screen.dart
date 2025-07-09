@@ -14,6 +14,9 @@ import '../../core/monitoring/analytics_service.dart';
 import '../../services/firestore_service.dart';
 import '../../services/notification_service.dart';
 import '../../core/widgets/responsive_buttons.dart';
+import '../../core/utils/accessibility_utils.dart' as a11y_utils;
+import '../../widgets/common/accessible_button.dart';
+import '../../widgets/common/accessible_form_field.dart';
 
 class SwipeScreen extends ConsumerStatefulWidget {
   const SwipeScreen({super.key});
@@ -630,13 +633,19 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
     final iconSize = buttonSize * 0.4;
     final borderRadius = ResponsiveUtils.getResponsiveBorderRadius(context);
 
-    return ResponsiveIconButton(
-      onPressed: onTap,
+    return AccessibleIconButton(
+      onPressed: () {
+        onTap();
+      },
       icon: icon,
-      backgroundColor: const Color(0xFF21262D),
-      foregroundColor: color,
+      label: isLarge ? 'Super Like' : (icon == Icons.close ? 'Pass' : 'Like'),
+      isLoading: false,
+      iconColor: color,
       size: buttonSize,
-      tooltip: isLarge ? 'Super Like' : (icon == Icons.close ? 'Pass' : 'Like'),
+      isSelected: false,
+      enableHapticFeedback: true,
+      // Use AccessibilityUtils for semantic label
+      // (already provided by label)
     );
   }
 

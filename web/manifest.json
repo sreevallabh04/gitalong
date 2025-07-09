@@ -10,7 +10,11 @@
     "prefer_related_applications": false,
     "scope": "/",
     "lang": "en",
-    "categories": ["productivity", "social", "utilities"],
+    "categories": [
+        "productivity",
+        "social",
+        "utilities"
+    ],
     "shortcuts": [
         {
             "name": "Find Matches",
@@ -51,63 +55,8 @@
     ],
     "icons": [
         {
-            "src": "icons/Icon-16.png",
-            "sizes": "16x16",
-            "type": "image/png"
-        },
-        {
-            "src": "icons/Icon-32.png",
-            "sizes": "32x32",
-            "type": "image/png"
-        },
-        {
-            "src": "icons/Icon-48.png",
-            "sizes": "48x48",
-            "type": "image/png"
-        },
-        {
-            "src": "icons/Icon-72.png",
-            "sizes": "72x72",
-            "type": "image/png"
-        },
-        {
-            "src": "icons/Icon-96.png",
-            "sizes": "96x96",
-            "type": "image/png"
-        },
-        {
-            "src": "icons/Icon-128.png",
-            "sizes": "128x128",
-            "type": "image/png"
-        },
-        {
-            "src": "icons/Icon-144.png",
-            "sizes": "144x144",
-            "type": "image/png"
-        },
-        {
-            "src": "icons/Icon-152.png",
-            "sizes": "152x152",
-            "type": "image/png"
-        },
-        {
-            "src": "icons/Icon-167.png",
-            "sizes": "167x167",
-            "type": "image/png"
-        },
-        {
-            "src": "icons/Icon-180.png",
-            "sizes": "180x180",
-            "type": "image/png"
-        },
-        {
             "src": "icons/Icon-192.png",
             "sizes": "192x192",
-            "type": "image/png"
-        },
-        {
-            "src": "icons/Icon-384.png",
-            "sizes": "384x384",
             "type": "image/png"
         },
         {

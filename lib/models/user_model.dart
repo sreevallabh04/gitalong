@@ -7,6 +7,7 @@ class UserModel {
   final String id;
   final String email;
   final String? displayName;
+  final String? username; // 🆕 Instagram-style username
   final String? photoURL;
   final String? githubUsername;
   final String? githubUrl;
@@ -30,6 +31,7 @@ class UserModel {
     required this.id,
     required this.email,
     this.displayName,
+    this.username,
     this.photoURL,
     this.githubUsername,
     this.githubUrl,
@@ -58,6 +60,7 @@ class UserModel {
         email: _parseString(json['email']) ?? '',
         displayName:
             _parseString(json['name']) ?? _parseString(json['displayName']),
+        username: _parseString(json['username']),
         photoURL:
             _parseString(json['avatar_url']) ?? _parseString(json['photoURL']),
         githubUsername: _parseString(json['github_username']) ??
@@ -100,6 +103,7 @@ class UserModel {
         id: _parseString(json['id']) ?? 'unknown',
         email: _parseString(json['email']) ?? 'unknown@example.com',
         displayName: _parseString(json['name']) ?? 'Unknown User',
+        username: _parseString(json['username']),
         createdAt: DateTime.now(),
       );
     }
@@ -204,6 +208,7 @@ class UserModel {
       'id': id,
       'email': email,
       'name': displayName,
+      'username': username,
       'role': role.name,
       'avatar_url': photoURL,
       'bio': bio,
@@ -231,6 +236,7 @@ class UserModel {
       'id': id,
       'email': email,
       'name': displayName,
+      'username': username,
       'role': role.name,
       'avatar_url': photoURL,
       'bio': bio,
@@ -257,6 +263,7 @@ class UserModel {
     String? id,
     String? email,
     String? displayName,
+    String? username,
     String? photoURL,
     String? githubUsername,
     String? githubUrl,
@@ -280,6 +287,7 @@ class UserModel {
       id: id ?? this.id,
       email: email ?? this.email,
       displayName: displayName ?? this.displayName,
+      username: username ?? this.username,
       photoURL: photoURL ?? this.photoURL,
       githubUsername: githubUsername ?? this.githubUsername,
       githubUrl: githubUrl ?? this.githubUrl,
@@ -343,9 +351,10 @@ class UserModel {
   /// 🎯 Get completion percentage
   double get completionPercentage {
     int completedFields = 0;
-    int totalFields = 6; // Essential fields for profile completion
+    int totalFields = 7; // Essential fields for profile completion
 
     if (displayName?.isNotEmpty ?? false) completedFields++;
+    if (username?.isNotEmpty ?? false) completedFields++;
     if (bio?.isNotEmpty ?? false) completedFields++;
     if (skills.isNotEmpty) completedFields++;
     if (githubUrl?.isNotEmpty ?? false) completedFields++;
