@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/project_provider.dart';
-
+import '../../providers/stats_provider.dart';
 import '../../providers/contributions_provider.dart';
 import '../../core/utils/logger.dart';
 import '../../models/models.dart';
@@ -217,7 +217,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: RoleSwitchCard(
-              currentRole: userProfile.role,
+              currentRole: userProfile.role ?? UserRole.contributor,
               onRoleChanged: _handleRoleSwitch,
               isLoading: _isLoading,
             )
@@ -416,7 +416,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 ),
               ),
               const SizedBox(width: 8),
-              if (userProfile.isEmailVerified)
+              if (userProfile.isEmailVerified == true)
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -472,7 +472,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   }
 
   Widget _buildStatsSection(UserModel userProfile) {
-    final statsAsync = ref.watch(userStatsProvider(userProfile.id));
+    final statsAsync = ref.watch(userStatsProvider(userProfile.uid));
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -632,7 +632,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             ],
           ),
           const SizedBox(height: 16),
-          _buildProjectPreviewList(userProfile.id),
+          _buildProjectPreviewList(userProfile.uid),
         ],
       ),
     );
@@ -653,7 +653,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             ),
           ),
           const SizedBox(height: 16),
-          _buildContributionsList(userProfile.id),
+          _buildContributionsList(userProfile.uid),
         ],
       ),
     );
@@ -768,9 +768,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         return Column(
           children: contributions.take(5).map((contribution) {
             return _buildContributionItem(
-              contribution.projectName,
-              contribution.projectDescription,
-              contribution.timeAgo,
+              contribution.title,
+              contribution.description,
+              _getTimeAgo(contribution.createdAt),
               contribution.color,
             );
           }).toList(),
@@ -876,6 +876,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         ],
       ),
     );
+  }
+
+  String _getTimeAgo(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'Just now';
+    }
   }
 
   Widget _buildContributionItem(
@@ -996,8 +1011,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         child: ListTile(
           leading: Icon(
             icon,
-            color:
-                isDestructive ? const Color(0xFFDA3633) : const Color(0xFF7D8590),
+            color: isDestructive
+                ? const Color(0xFFDA3633)
+                : const Color(0xFF7D8590),
             size: 20,
           ),
           title: Text(
@@ -1047,7 +1063,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           role: newRole,
           bio: currentProfile.bio,
           githubUrl: currentProfile.githubUrl,
-          skills: currentProfile.skills,
+          skills: currentProfile.skills ?? [],
         );
 
         // Refresh the profile

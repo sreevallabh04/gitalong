@@ -1088,9 +1088,12 @@ class AuthService {
   Future<UserCredential> signInWithGitHubMobile() async {
     try {
       AppLogger.logger.auth('🐙 Starting GitHub OAuth authentication...');
+
+      // 1. Load environment variables
       final clientId = dotenv.env['GITHUB_CLIENT_ID'];
       final clientSecret = dotenv.env['GITHUB_CLIENT_SECRET'];
       final redirectUri = dotenv.env['GITHUB_REDIRECT_URI'];
+
       if (clientId == null || clientSecret == null || redirectUri == null) {
         AppLogger.logger.e('❌ GitHub OAuth credentials not configured');
         throw const AuthException(
@@ -1098,21 +1101,49 @@ class AuthService {
           code: 'github-not-configured',
         );
       }
+
+      AppLogger.logger.auth('✅ GitHub OAuth credentials loaded successfully');
+
+      // 2. Generate state parameter for security
+      final state = DateTime.now().millisecondsSinceEpoch.toString();
+
+      // 3. Build authorization URL
       final authUrl =
           Uri.parse('https://github.com/login/oauth/authorize').replace(
         queryParameters: {
           'client_id': clientId,
           'redirect_uri': redirectUri,
           'scope': 'user:email read:user',
-          'state': DateTime.now().millisecondsSinceEpoch.toString(),
+          'state': state,
+          'allow_signup': 'true',
         },
       );
+
+      AppLogger.logger.auth('🔗 Authorization URL: ${authUrl.toString()}');
+
+      // 4. Launch OAuth flow with flutter_web_auth_2
       final result = await FlutterWebAuth2.authenticate(
         url: authUrl.toString(),
         callbackUrlScheme: 'com.gitalong.app',
       );
+
+      AppLogger.logger.auth('🔄 OAuth callback received: $result');
+
+      // 5. Parse callback URL
       final callbackUrl = Uri.parse(result);
       final code = callbackUrl.queryParameters['code'];
+      final returnedState = callbackUrl.queryParameters['state'];
+      final error = callbackUrl.queryParameters['error'];
+
+      // 6. Validate response
+      if (error != null) {
+        AppLogger.logger.e('❌ GitHub OAuth error: $error');
+        throw AuthException(
+          'GitHub authentication failed: $error',
+          code: 'oauth-error',
+        );
+      }
+
       if (code == null) {
         AppLogger.logger.e('❌ No authorization code received from GitHub');
         throw const AuthException(
@@ -1120,6 +1151,18 @@ class AuthService {
           code: 'no-auth-code',
         );
       }
+
+      if (returnedState != state) {
+        AppLogger.logger.e('❌ State mismatch in OAuth response');
+        throw const AuthException(
+          'Security validation failed. Please try again.',
+          code: 'state-mismatch',
+        );
+      }
+
+      AppLogger.logger.auth('✅ Authorization code received successfully');
+
+      // 7. Exchange code for access token
       final tokenResponse = await http.post(
         Uri.parse('https://github.com/login/oauth/access_token'),
         headers: {
@@ -1133,16 +1176,29 @@ class AuthService {
           'redirect_uri': redirectUri,
         }),
       );
+
       if (tokenResponse.statusCode != 200) {
         AppLogger.logger.e(
-            '❌ Failed to exchange code for token: ${tokenResponse.statusCode}');
+          '❌ Failed to exchange code for token: ${tokenResponse.statusCode} - ${tokenResponse.body}',
+        );
         throw const AuthException(
           'Failed to complete GitHub authentication. Please try again.',
           code: 'token-exchange-failed',
         );
       }
+
       final tokenData = jsonDecode(tokenResponse.body) as Map<String, dynamic>;
       final accessToken = tokenData['access_token'] as String?;
+      final errorInToken = tokenData['error'] as String?;
+
+      if (errorInToken != null) {
+        AppLogger.logger.e('❌ Token exchange error: $errorInToken');
+        throw AuthException(
+          'GitHub authentication failed: $errorInToken',
+          code: 'token-error',
+        );
+      }
+
       if (accessToken == null) {
         AppLogger.logger.e('❌ No access token received from GitHub');
         throw const AuthException(
@@ -1150,22 +1206,141 @@ class AuthService {
           code: 'no-access-token',
         );
       }
+
+      AppLogger.logger.auth('✅ Access token received successfully');
+
+      // 8. Get user information from GitHub
+      final userResponse = await http.get(
+        Uri.parse('https://api.github.com/user'),
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Accept': 'application/vnd.github.v3+json',
+        },
+      );
+
+      if (userResponse.statusCode != 200) {
+        AppLogger.logger.e(
+          '❌ Failed to get user info: ${userResponse.statusCode} - ${userResponse.body}',
+        );
+        throw const AuthException(
+          'Failed to get user information from GitHub. Please try again.',
+          code: 'user-info-failed',
+        );
+      }
+
+      final userData = jsonDecode(userResponse.body) as Map<String, dynamic>;
+      final githubUserId = userData['id'] as int?;
+      final githubUsername = userData['login'] as String?;
+      final githubEmail = userData['email'] as String?;
+
+      if (githubUserId == null || githubUsername == null) {
+        AppLogger.logger.e('❌ Invalid user data from GitHub');
+        throw const AuthException(
+          'Invalid user data received from GitHub. Please try again.',
+          code: 'invalid-user-data',
+        );
+      }
+
+      AppLogger.logger.auth('✅ GitHub user info received: $githubUsername');
+
+      // 9. Create Firebase credential
       final credential = GithubAuthProvider.credential(accessToken);
+
+      // 10. Sign in to Firebase
       final userCredential = await _auth.signInWithCredential(credential);
+
+      if (userCredential.user == null) {
+        AppLogger.logger.e('❌ Firebase sign-in returned null user');
+        throw const AuthException(
+          'GitHub sign-in completed but no user was returned. Please try again.',
+          code: 'null-user',
+        );
+      }
+
       AppLogger.logger.auth('✅ GitHub sign-in completed successfully!');
+      AppLogger.logger.auth('👤 User: ${userCredential.user?.email}');
+      AppLogger.logger.auth('🔗 GitHub ID: $githubUserId');
+      AppLogger.logger
+          .auth('📧 Email verified: ${userCredential.user?.emailVerified}');
+
       return userCredential;
     } on FirebaseAuthException catch (e) {
-      AppLogger.logger.e('❌ Firebase Auth Error during GitHub sign-in',
-          error: e, stackTrace: StackTrace.current);
-      throw AuthException(
-        'GitHub sign-in failed: ${e.message ?? 'Please try again or contact support.'}',
-        code: e.code,
+      AppLogger.logger.e(
+        '❌ Firebase Auth Error during GitHub sign-in',
+        error: e,
+        stackTrace: StackTrace.current,
       );
+
+      // Handle specific Firebase auth errors
+      switch (e.code) {
+        case 'account-exists-with-different-credential':
+          throw AuthException(
+            'An account with this email already exists using a different sign-in method. Please try signing in with email/password.',
+            code: e.code,
+          );
+        case 'invalid-credential':
+          throw AuthException(
+            'GitHub sign-in failed due to invalid credentials. Please try again.',
+            code: e.code,
+          );
+        case 'operation-not-allowed':
+          throw AuthException(
+            'GitHub sign-in is not configured properly. Please contact support.',
+            code: e.code,
+          );
+        case 'user-disabled':
+          throw AuthException(
+            'This account has been disabled. Please contact support.',
+            code: e.code,
+          );
+        case 'network-request-failed':
+          throw AuthException(
+            'Network error. Please check your internet connection and try again.',
+            code: e.code,
+          );
+        default:
+          AppLogger.logger
+              .e('❌ Unhandled Firebase Auth error: ${e.code} - ${e.message}');
+          throw AuthException(
+            'GitHub sign-in failed: ${e.message ?? 'Please try again or contact support.'}',
+            code: e.code,
+          );
+      }
     } on AuthException {
       rethrow;
     } catch (e, stackTrace) {
-      AppLogger.logger.e('❌ Unexpected error during GitHub sign-in',
-          error: e, stackTrace: stackTrace);
+      AppLogger.logger.e(
+        '❌ Unexpected error during GitHub sign-in',
+        error: e,
+        stackTrace: stackTrace,
+      );
+
+      // Handle specific OAuth errors
+      final errorString = e.toString().toLowerCase();
+
+      if (errorString.contains('network') || errorString.contains('timeout')) {
+        throw const AuthException(
+          'Network error during GitHub sign-in. Please check your internet connection.',
+          code: 'network-error',
+        );
+      }
+
+      if (errorString.contains('cancelled') ||
+          errorString.contains('canceled')) {
+        throw const AuthException(
+          'GitHub sign-in was cancelled',
+          code: 'sign-in-cancelled',
+        );
+      }
+
+      if (errorString.contains('configuration') ||
+          errorString.contains('setup')) {
+        throw const AuthException(
+          'GitHub authentication is not properly configured. Please contact support.',
+          code: 'configuration-error',
+        );
+      }
+
       throw const AuthException(
         'An unexpected error occurred during GitHub sign-in. Please try again.',
         code: 'unknown-error',
@@ -1212,6 +1387,246 @@ class AuthException implements Exception {
 bool _isValidEmail(String email) {
   return RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
       .hasMatch(email);
+
+  /// Generate random string for state parameter
+  String _generateRandomString(int length) {
+    const chars =
+        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    return List.generate(
+        length,
+        (index) =>
+            chars[DateTime.now().millisecondsSinceEpoch % chars.length]).join();
+  }
+
+  /// Update user profile with GitHub data
+  Future<void> _updateUserProfileWithGitHubData(
+      User user, Map<String, dynamic> githubData) async {
+    try {
+      await user.updateDisplayName(githubData['name'] ?? githubData['login']);
+      await user.updatePhotoURL(githubData['avatar_url']);
+
+      // Store additional GitHub data in Firestore
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'email': user.email,
+        'name': githubData['name'] ?? githubData['login'],
+        'githubUsername': githubData['login'],
+        'githubUrl': githubData['html_url'],
+        'profileImageUrl': githubData['avatar_url'],
+        'bio': githubData['bio'],
+        'location': githubData['location'],
+        'company': githubData['company'],
+        'githubData': githubData,
+        'authMethod': 'github',
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      AppLogger.logger.auth('✅ User profile updated with GitHub data');
+    } catch (e) {
+      AppLogger.logger
+          .e('❌ Failed to update user profile with GitHub data', error: e);
+    }
+  }
+
+
+
+
+
+  /// 🚀 GITHUB OAUTH AUTHENTICATION for mobile using flutter_web_auth_2
+  Future<UserCredential> signInWithGitHubMobile() async {
+    try {
+      AppLogger.logger.auth('🐙 Starting GitHub OAuth authentication...');
+
+      // 1. Load environment variables
+      final clientId = dotenv.env['GITHUB_CLIENT_ID'];
+      final clientSecret = dotenv.env['GITHUB_CLIENT_SECRET'];
+      final redirectUri =
+          dotenv.env['GITHUB_REDIRECT_URI'] ?? 'com.gitalong.app://oauth';
+
+      if (clientId == null || clientSecret == null) {
+        AppLogger.logger.e('❌ GitHub OAuth credentials not configured');
+        throw const AuthException(
+          'GitHub authentication is not configured. Please contact support.',
+          code: 'github-not-configured',
+        );
+      }
+
+      // 2. Generate state parameter for security
+      final state = _generateRandomString(32);
+
+      // 3. Build OAuth URL
+      final authUrl = Uri.https('github.com', '/login/oauth/authorize', {
+        'client_id': clientId,
+        'redirect_uri': redirectUri,
+        'scope': 'user:email',
+        'state': state,
+      });
+
+      AppLogger.logger.auth('🔗 GitHub OAuth URL: $authUrl');
+
+      // 4. Launch OAuth flow with flutter_web_auth_2
+      final result = await FlutterWebAuth2.authenticate(
+        url: authUrl.toString(),
+        callbackUrlScheme: 'com.gitalong.app',
+      );
+
+      AppLogger.logger.auth('✅ GitHub OAuth callback received: $result');
+
+      // 5. Extract authorization code
+      final uri = Uri.parse(result);
+      final code = uri.queryParameters['code'];
+      final returnedState = uri.queryParameters['state'];
+
+      if (code == null) {
+        throw const AuthException(
+          'GitHub authorization failed. No code received.',
+          code: 'github-no-code',
+        );
+      }
+
+      if (returnedState != state) {
+        throw const AuthException(
+          'GitHub authorization failed. Invalid state parameter.',
+          code: 'github-invalid-state',
+        );
+      }
+
+      // 6. Exchange code for access token
+      final tokenResponse = await http.post(
+        Uri.https('github.com', '/login/oauth/access_token'),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: {
+          'client_id': clientId,
+          'client_secret': clientSecret,
+          'code': code,
+        },
+      );
+
+      if (tokenResponse.statusCode != 200) {
+        throw AuthException(
+          'GitHub token exchange failed: ${tokenResponse.statusCode}',
+          code: 'github-token-error',
+        );
+      }
+
+      final tokenData = jsonDecode(tokenResponse.body);
+      final accessToken = tokenData['access_token'];
+
+      if (accessToken == null) {
+        throw const AuthException(
+          'GitHub access token not received.',
+          code: 'github-no-token',
+        );
+      }
+
+      // 7. Get user info from GitHub
+      final userResponse = await http.get(
+        Uri.https('api.github.com', '/user'),
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Accept': 'application/vnd.github.v3+json',
+        },
+      );
+
+      if (userResponse.statusCode != 200) {
+        throw AuthException(
+          'GitHub user info fetch failed: ${userResponse.statusCode}',
+          code: 'github-user-error',
+        );
+      }
+
+      final userData = jsonDecode(userResponse.body);
+      final githubEmail = userData['email'] as String?;
+      final githubName =
+          userData['name'] as String? ?? userData['login'] as String?;
+
+      if (githubEmail == null || githubName == null) {
+        throw const AuthException(
+          'GitHub user information incomplete.',
+          code: 'github-incomplete-user',
+        );
+      }
+
+      // 8. Create custom token using Firebase Admin SDK (if available)
+      // For now, we'll use email/password authentication as fallback
+      // In production, you should implement Firebase Custom Token generation
+
+      // 9. Try to sign in with existing account or create new one
+      try {
+        // Try to sign in with existing account
+        final existingMethods =
+            await FirebaseAuth.instance.fetchSignInMethodsForEmail(githubEmail);
+
+        if (existingMethods.isNotEmpty) {
+          // Account exists, link GitHub provider
+          AppLogger.logger
+              .auth('👤 Existing account found, linking GitHub provider');
+
+          // For now, we'll create a temporary password and sign in
+          // In production, implement proper account linking
+          final tempPassword = _generateRandomString(16);
+
+          try {
+            final credential =
+                await FirebaseAuth.instance.signInWithEmailAndPassword(
+              email: githubEmail,
+              password: tempPassword,
+            );
+
+            // Update user profile with GitHub data
+            await _updateUserProfileWithGitHubData(credential.user!, userData);
+
+            AppLogger.logger
+                .auth('✅ GitHub sign-in successful (existing account)');
+            return credential;
+          } catch (e) {
+            // If password doesn't work, user needs to use their existing sign-in method
+            throw const AuthException(
+              'An account with this email already exists. Please sign in with your existing method first.',
+              code: 'account-exists-different-credential',
+            );
+          }
+        } else {
+          // Create new account
+          AppLogger.logger.auth('🆕 Creating new account with GitHub data');
+
+          final tempPassword = _generateRandomString(16);
+          final credential =
+              await FirebaseAuth.instance.createUserWithEmailAndPassword(
+            email: githubEmail,
+            password: tempPassword,
+          );
+
+          // Update user profile with GitHub data
+          await _updateUserProfileWithGitHubData(credential.user!, userData);
+
+          AppLogger.logger.auth('✅ GitHub sign-in successful (new account)');
+          return credential;
+        }
+      } catch (e) {
+        if (e is AuthException) rethrow;
+        throw AuthException(
+          'GitHub sign-in failed: ${e.toString()}',
+          code: 'github-signin-error',
+        );
+      }
+    } on AuthException {
+      rethrow;
+    } catch (e, stackTrace) {
+      AppLogger.logger.e(
+        '❌ GitHub sign-in error',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      throw AuthException(
+        'GitHub sign-in failed: ${e.toString()}',
+        code: 'github-error',
+      );
+    }
+  }
 }
 
 bool _isValidPassword(String password) {

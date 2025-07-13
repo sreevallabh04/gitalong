@@ -226,10 +226,10 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
     await safeQuery(() async {
       await _ref.read(authServiceProvider).upsertUserProfile(
             name: updatedProfile.name ?? '',
-            role: updatedProfile.role,
+            role: updatedProfile.role ?? UserRole.contributor,
             bio: updatedProfile.bio,
             githubUrl: updatedProfile.githubUrl,
-            skills: updatedProfile.skills,
+            skills: updatedProfile.skills ?? [],
           );
       state = AsyncValue.data(updatedProfile);
       AppLogger.logger.success('✅ User profile updated successfully');

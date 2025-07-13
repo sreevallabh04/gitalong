@@ -15,9 +15,8 @@ import 'services/notification_service.dart';
 import 'providers/app_lifecycle_provider.dart';
 import 'providers/web_backend_provider.dart';
 import 'core/router/app_router.dart';
-import 'core/widgets/octocat_floating_widget.dart';
-import 'core/responsive/responsive_app_integration.dart';
 import 'core/config/app_theme.dart';
+import 'core/theme/github_theme.dart';
 
 final githubDarkTheme = ThemeData(
   brightness: Brightness.dark,
@@ -120,6 +119,15 @@ void main() async {
     AppLogger.logger.i('🔥 Initializing Firebase...');
     await FirebaseConfig.initialize();
     AppLogger.logger.success('✅ Firebase initialized successfully');
+
+    // Initialize Firebase App Check for production security
+    try {
+      AppLogger.logger.i('🔒 Initializing Firebase App Check...');
+      await FirebaseConfig.initializeAppCheck();
+      AppLogger.logger.success('✅ Firebase App Check initialized successfully');
+    } catch (e) {
+      AppLogger.logger.w('⚠️ Firebase App Check initialization failed: $e');
+    }
 
     // Initialize Firebase web service AFTER Firebase is initialized
     final firebaseWeb = FirebaseWebService();
@@ -290,7 +298,7 @@ class GitAlongApp extends ConsumerWidget {
         debugShowCheckedModeBanner: false,
 
         // Use the GitHub-inspired theme
-        theme: AppTheme.appThemeData,
+        theme: GitHubTheme.darkTheme,
         themeMode: ThemeMode.dark,
 
         // GoRouter configuration - this is the key!

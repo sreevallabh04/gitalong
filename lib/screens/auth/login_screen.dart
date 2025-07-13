@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/config/app_theme.dart';
@@ -7,7 +6,7 @@ import '../../providers/auth_provider.dart';
 import '../../core/utils/logger.dart';
 import '../../widgets/common/accessible_button.dart';
 import '../../widgets/common/accessible_form_field.dart';
-import '../../widgets/commit_dot.dart';
+import 'package:go_router/go_router.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -28,11 +27,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
   late AnimationController _fadeController;
   late AnimationController _slideController;
-  late AnimationController _pulseController;
+  late AnimationController _githubLogoController;
 
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
-  late Animation<double> _pulseAnimation;
+  late Animation<double> _githubLogoAnimation;
 
   @override
   void initState() {
@@ -42,17 +41,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
   void _setupAnimations() {
     _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
 
     _slideController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
 
-    _pulseController = AnimationController(
-      duration: const Duration(milliseconds: 2000),
+    _githubLogoController = AnimationController(
+      duration: const Duration(milliseconds: 800),
       vsync: this,
     );
 
@@ -72,25 +71,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       curve: Curves.easeOutCubic,
     ));
 
-    _pulseAnimation = Tween<double>(
-      begin: 1.0,
-      end: 1.1,
+    _githubLogoAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
     ).animate(CurvedAnimation(
-      parent: _pulseController,
-      curve: Curves.easeInOut,
+      parent: _githubLogoController,
+      curve: Curves.elasticOut,
     ));
 
-    // Start animations
-    _fadeController.forward();
-    _slideController.forward();
-    _pulseController.repeat(reverse: true);
+    // Start animations with delays
+    Future.delayed(const Duration(milliseconds: 200), () {
+      _fadeController.forward();
+    });
+
+    Future.delayed(const Duration(milliseconds: 400), () {
+      _slideController.forward();
+    });
+
+    Future.delayed(const Duration(milliseconds: 600), () {
+      _githubLogoController.forward();
+    });
   }
 
   @override
   void dispose() {
     _fadeController.dispose();
     _slideController.dispose();
-    _pulseController.dispose();
+    _githubLogoController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -110,7 +117,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       AppLogger.logger.i('✅ User signed in successfully');
     } catch (e) {
       AppLogger.logger.e('❌ Sign in failed', error: e);
-      _showErrorSnackBar('Sign in failed: ${e.toString()}');
+      _showErrorDialog('Sign in failed', e.toString());
     } finally {
       setState(() => _isLoading = false);
     }
@@ -120,23 +127,146 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     setState(() => _isLoading = true);
 
     try {
-      await ref.read(authServiceProvider).signInWithGitHubMobile();
-      AppLogger.logger.i('✅ GitHub sign in successful');
+      AppLogger.logger.i('🔐 [LOGIN] Starting GitHub sign-in process...');
+
+      final userCredential =
+          await ref.read(authServiceProvider).signInWithGitHubMobile();
+      AppLogger.logger
+          .i('✅ [LOGIN] GitHub sign-in successful - UserCredential received');
+      AppLogger.logger.i('👤 [LOGIN] User: ${userCredential.user?.email}');
+      AppLogger.logger.i('🔑 [LOGIN] User ID: ${userCredential.user?.uid}');
+
+      // Check if we're still mounted before navigation
+      if (!mounted) {
+        AppLogger.logger
+            .w('⚠️ [LOGIN] Widget no longer mounted, skipping navigation');
+        return;
+      }
+
+      // Check current auth state
+      final currentUser = ref.read(authServiceProvider).currentUser;
+      AppLogger.logger
+          .i('🔍 [LOGIN] Current auth state: ${currentUser?.email ?? "null"}');
+
+      AppLogger.logger.i('🚀 [LOGIN] Attempting navigation to /home...');
+
+      // Try navigation and log the result
+      try {
+        AppLogger.logger
+            .i('�� [LOGIN] Attempting GoRouter context.go("/home")');
+        AppLogger.logger
+            .i('🧭 [LOGIN] Widget context: ' + context.widget.toString());
+        // Try to access GoRouter if available
+        try {
+          final goRouter = GoRouter.of(context);
+          AppLogger.logger.i('🧭 [LOGIN] GoRouter detected: $goRouter');
+        } catch (e) {
+          AppLogger.logger.i('🧭 [LOGIN] GoRouter not found in context: $e');
+        }
+        context.go('/home');
+        AppLogger.logger
+            .i('✅ [LOGIN] Navigation to /home initiated successfully');
+      } catch (navError) {
+        AppLogger.logger.e('❌ [LOGIN] Navigation failed', error: navError);
+        _showErrorDialog(
+            'Navigation Error', 'Failed to navigate to home: $navError');
+      }
     } catch (e) {
-      AppLogger.logger.e('❌ GitHub sign in failed', error: e);
-      _showErrorSnackBar('GitHub sign in failed: ${e.toString()}');
+      AppLogger.logger.e('❌ [LOGIN] GitHub sign in failed', error: e);
+      _showErrorDialog('GitHub sign in failed', e.toString());
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
-  void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.error,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+  Future<void> _signInWithGoogle() async {
+    setState(() => _isLoading = true);
+
+    try {
+      AppLogger.logger.i('🔐 [LOGIN] Starting Google sign-in process...');
+
+      final userCredential =
+          await ref.read(authServiceProvider).signInWithGoogle();
+      AppLogger.logger
+          .i('✅ [LOGIN] Google sign-in successful - UserCredential received');
+      AppLogger.logger.i('👤 [LOGIN] User: ${userCredential.user?.email}');
+      AppLogger.logger.i('🔑 [LOGIN] User ID: ${userCredential.user?.uid}');
+
+      // Check if we're still mounted before navigation
+      if (!mounted) {
+        AppLogger.logger
+            .w('⚠️ [LOGIN] Widget no longer mounted, skipping navigation');
+        return;
+      }
+
+      // Check current auth state
+      final currentUser = ref.read(authServiceProvider).currentUser;
+      AppLogger.logger
+          .i('🔍 [LOGIN] Current auth state: ${currentUser?.email ?? "null"}');
+
+      AppLogger.logger.i('🚀 [LOGIN] Attempting navigation to /home...');
+
+      // Try navigation and log the result
+      try {
+        AppLogger.logger
+            .i('�� [LOGIN] Attempting GoRouter context.go("/home")');
+        AppLogger.logger
+            .i('🧭 [LOGIN] Widget context: ' + context.widget.toString());
+        // Try to access GoRouter if available
+        try {
+          final goRouter = GoRouter.of(context);
+          AppLogger.logger.i('🧭 [LOGIN] GoRouter detected: $goRouter');
+        } catch (e) {
+          AppLogger.logger.i('🧭 [LOGIN] GoRouter not found in context: $e');
+        }
+        context.go('/home');
+        AppLogger.logger
+            .i('✅ [LOGIN] Navigation to /home initiated successfully');
+      } catch (navError) {
+        AppLogger.logger.e('❌ [LOGIN] Navigation failed', error: navError);
+        _showErrorDialog(
+            'Navigation Error', 'Failed to navigate to home: $navError');
+      }
+    } catch (e) {
+      AppLogger.logger.e('❌ [LOGIN] Google sign in failed', error: e);
+      _showErrorDialog('Google sign in failed', e.toString());
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _showErrorDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text(
+          title,
+          style: GoogleFonts.jetBrainsMono(
+            color: AppColors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          message,
+          style: GoogleFonts.inter(color: AppColors.muted),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'OK',
+              style: GoogleFonts.jetBrainsMono(
+                color: AppColors.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -148,8 +278,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       body: SafeArea(
         child: Stack(
           children: [
-            // GitHub commit history background
-            _buildCommitHistoryBackground(),
+            // GitHub-themed background
+            _buildGitHubBackground(),
 
             // Main content
             FadeTransition(
@@ -161,10 +291,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const SizedBox(height: 60),
+                      const SizedBox(height: 40),
 
-                      // Logo and title
-                      _buildHeader(),
+                      // GitHub logo and title
+                      _buildGitHubHeader(),
 
                       const SizedBox(height: 48),
 
@@ -173,8 +303,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
                       const SizedBox(height: 32),
 
-                      // Social login buttons
-                      _buildSocialLoginSection(),
+                      // GitHub login button
+                      _buildGitHubLoginSection(),
 
                       const SizedBox(height: 24),
 
@@ -194,7 +324,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     );
   }
 
-  Widget _buildCommitHistoryBackground() {
+  Widget _buildGitHubBackground() {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -208,21 +338,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         ),
       ),
       child: CustomPaint(
-        painter: CommitHistoryPainter(),
+        painter: GitHubCommitHistoryPainter(),
         size: Size.infinite,
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildGitHubHeader() {
     return Column(
       children: [
-        // Animated logo
+        // GitHub logo with animation
         ScaleTransition(
-          scale: _pulseAnimation,
+          scale: _githubLogoAnimation,
           child: Container(
-            width: 80,
-            height: 80,
+            width: 100,
+            height: 100,
             decoration: BoxDecoration(
               color: AppColors.primary,
               borderRadius: BorderRadius.circular(20),
@@ -237,18 +367,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             child: const Icon(
               Icons.code,
               color: AppColors.white,
-              size: 40,
+              size: 50,
             ),
           ),
         ),
 
         const SizedBox(height: 24),
 
-        // Title
+        // Title with GitHub branding
         Text(
           'GitAlong',
           style: GoogleFonts.jetBrainsMono(
-            fontSize: 32,
+            fontSize: 36,
             fontWeight: FontWeight.bold,
             color: AppColors.white,
             letterSpacing: 2,
@@ -267,6 +397,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           ),
           textAlign: TextAlign.center,
         ),
+
+        const SizedBox(height: 16),
+
+        // GitHub branding
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.favorite,
+              color: AppColors.primary,
+              size: 16,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Powered by GitHub',
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 12,
+                color: AppColors.muted,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -280,7 +433,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         border: Border.all(color: AppColors.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -355,23 +508,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   },
                   activeColor: AppColors.primary,
                 ),
-                Text(
-                  'Remember me',
-                  style: GoogleFonts.inter(
-                    color: AppColors.white,
-                    fontSize: 14,
+                Flexible(
+                  child: Text(
+                    'Remember me',
+                    style: GoogleFonts.inter(
+                      color: AppColors.white,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
                 const Spacer(),
-                TextButton(
-                  onPressed: () {
-                    // TODO: Implement forgot password
-                  },
-                  child: Text(
-                    'Forgot password?',
-                    style: GoogleFonts.inter(
-                      color: AppColors.primary,
-                      fontSize: 14,
+                Flexible(
+                  child: TextButton(
+                    onPressed: () {
+                      // TODO: Implement forgot password
+                    },
+                    child: Text(
+                      'Forgot password?',
+                      style: GoogleFonts.inter(
+                        color: AppColors.primary,
+                        fontSize: 14,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ),
@@ -392,13 +550,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     );
   }
 
-  Widget _buildSocialLoginSection() {
+  Widget _buildGitHubLoginSection() {
     return Column(
       children: [
         // Divider
         Row(
           children: [
-            Expanded(child: Divider(color: AppColors.border)),
+            const Expanded(child: Divider(color: AppColors.border)),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
@@ -410,18 +568,129 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 ),
               ),
             ),
-            Expanded(child: Divider(color: AppColors.border)),
+            const Expanded(child: Divider(color: AppColors.border)),
           ],
         ),
 
         const SizedBox(height: 24),
 
-        // GitHub login button
-        AccessibleButton(
-          label: 'Continue with GitHub',
-          onPressed: _isLoading ? null : _signInWithGitHub,
-          isLoading: _isLoading,
-          icon: Icons.code,
+        // Google login button
+        Container(
+          width: double.infinity,
+          height: 56,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.border),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _isLoading ? null : _signInWithGoogle,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (_isLoading)
+                      const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(AppColors.primary),
+                        ),
+                      )
+                    else ...[
+                      const Icon(
+                        Icons.account_circle,
+                        color: Colors.red,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                    Text(
+                      'Continue with Google',
+                      style: GoogleFonts.inter(
+                        color: Colors.black87,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // GitHub login button with enhanced styling
+        Container(
+          width: double.infinity,
+          height: 56,
+          decoration: BoxDecoration(
+            color: AppColors.primary,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _isLoading ? null : _signInWithGitHub,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (_isLoading)
+                      const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(AppColors.white),
+                        ),
+                      )
+                    else ...[
+                      const Icon(
+                        Icons.code,
+                        color: AppColors.white,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                    Text(
+                      'Continue with GitHub',
+                      style: GoogleFonts.jetBrainsMono(
+                        color: AppColors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
       ],
     );
@@ -444,10 +713,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           },
           child: Text(
             'Create account',
-            style: GoogleFonts.inter(
+            style: GoogleFonts.jetBrainsMono(
               color: AppColors.primary,
               fontSize: 14,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ),
@@ -457,17 +726,45 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
   Widget _buildLoadingOverlay() {
     return Container(
-      color: Colors.black.withValues(alpha: 0.5),
-      child: const Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+      color: Colors.black.withValues(alpha: 0.7),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Signing in...',
+                style: GoogleFonts.jetBrainsMono(
+                  color: AppColors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class CommitHistoryPainter extends CustomPainter {
+class GitHubCommitHistoryPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
@@ -477,26 +774,26 @@ class CommitHistoryPainter extends CustomPainter {
 
     final path = Path();
 
-    // Draw commit history lines
-    for (int i = 0; i < 5; i++) {
-      final x = size.width * 0.2 + (i * size.width * 0.15);
-      final y = size.height * 0.1 + (i * size.height * 0.2);
+    // Draw GitHub-style commit history lines
+    for (int i = 0; i < 6; i++) {
+      final x = size.width * 0.15 + (i * size.width * 0.12);
+      final y = size.height * 0.1 + (i * size.height * 0.15);
 
       path.moveTo(x, y);
       path.lineTo(x + 20, y + 20);
       path.lineTo(x + 40, y);
       path.lineTo(x + 60, y + 20);
 
-      // Draw commit dots
+      // Draw commit dots with GitHub green
       canvas.drawCircle(
         Offset(x, y),
-        3,
-        Paint()..color = AppColors.primary.withValues(alpha: 0.3),
+        4,
+        Paint()..color = AppColors.primary.withValues(alpha: 0.4),
       );
       canvas.drawCircle(
         Offset(x + 40, y),
-        3,
-        Paint()..color = AppColors.primary.withValues(alpha: 0.3),
+        4,
+        Paint()..color = AppColors.primary.withValues(alpha: 0.4),
       );
     }
 

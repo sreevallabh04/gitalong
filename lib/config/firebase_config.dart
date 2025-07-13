@@ -2,6 +2,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:flutter/foundation.dart';
 import '../firebase_options.dart';
 import '../core/utils/logger.dart';
 
@@ -464,6 +466,40 @@ class FirebaseConfig {
     } catch (e) {
       AppLogger.logger.w('⚠️ Storage health check failed: $e');
       return false;
+    }
+  }
+
+  /// Initialize Firebase App Check for production security
+  static Future<void> initializeAppCheck() async {
+    try {
+      AppLogger.logger.i('🔒 Initializing Firebase App Check...');
+      
+      if (kDebugMode) {
+        // In debug mode, use debug provider
+        AppLogger.logger.d('🔧 Debug mode: Using debug App Check provider');
+        await FirebaseAppCheck.instance.activate(
+          androidProvider: AndroidProvider.debug,
+          appleProvider: AppleProvider.debug,
+          webProvider: ReCaptchaV3Provider('debug'),
+        );
+      } else {
+        // In production, use proper providers
+        AppLogger.logger.d('🔒 Production mode: Using production App Check providers');
+        await FirebaseAppCheck.instance.activate(
+          androidProvider: AndroidProvider.playIntegrity,
+          appleProvider: AppleProvider.appAttest,
+          webProvider: ReCaptchaV3Provider('6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'), // Test key - replace with real one
+        );
+      }
+      
+      AppLogger.logger.success('✅ Firebase App Check initialized successfully');
+    } catch (e, stackTrace) {
+      AppLogger.logger.e(
+        '❌ Failed to initialize Firebase App Check',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      rethrow;
     }
   }
 }
