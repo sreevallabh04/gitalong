@@ -388,7 +388,7 @@ async def get_match_suggestions(
         
         logger.info(f"✅ Match suggestions generated for user: {user_id}")
         
-        return {
+    return {
             "suggestions": mock_suggestions,
             "total_count": len(mock_suggestions),
             "user_id": user_id,

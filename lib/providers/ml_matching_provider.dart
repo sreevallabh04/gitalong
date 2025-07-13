@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/models.dart' as models;
 import '../services/ml_matching_service.dart';
-import '../models/models.dart';
 import '../core/utils/logger.dart';
 
 /// Swipe direction enum for ML matching
@@ -48,7 +48,7 @@ class MLRecommendationsNotifier
   MLRecommendationsNotifier(this._ref) : super(const AsyncValue.loading());
 
   Future<void> getRecommendations({
-    required UserModel currentUser,
+    required models.UserModel currentUser,
     List<String> excludeUserIds = const [],
     int maxRecommendations = 20,
     bool includeAnalytics = true,
@@ -78,7 +78,7 @@ class MLRecommendationsNotifier
   Future<void> recordSwipe({
     required String swiperId,
     required String targetId,
-    required SwipeDirection direction,
+    required models.SwipeDirection direction,
     String targetType = 'user',
   }) async {
     try {
@@ -97,7 +97,7 @@ class MLRecommendationsNotifier
     }
   }
 
-  Future<void> updateUserProfile(UserModel user) async {
+  Future<void> updateUserProfile(models.UserModel user) async {
     try {
       final mlService = _ref.read(mlMatchingServiceProvider);
       await mlService.updateUserProfile(user);

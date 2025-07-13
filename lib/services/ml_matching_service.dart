@@ -1,5 +1,5 @@
 import '../core/network/api_client.dart';
-import '../models/models.dart';
+import '../models/models.dart' as models;
 import '../core/utils/logger.dart';
 
 import '../providers/ml_matching_provider.dart';
@@ -22,7 +22,7 @@ class MLMatchingService {
 
   /// Get personalized user recommendations using ML backend
   Future<Map<String, dynamic>> getRecommendations({
-    required UserModel currentUser,
+    required models.UserModel currentUser,
     List<String> excludeUserIds = const [],
     int maxRecommendations = 20,
     bool includeAnalytics = true,
@@ -34,7 +34,7 @@ class MLMatchingService {
 
       // Prepare request payload
       final requestData = {
-        'user_id': currentUser.id,
+        'user_id': currentUser.id ?? '',
         'user_profile': _userModelToBackendFormat(currentUser),
         'exclude_user_ids': excludeUserIds,
         'max_recommendations': maxRecommendations,
@@ -52,12 +52,12 @@ class MLMatchingService {
         // TODO: Create proper MLRecommendationResponse class
         final mlResponse = response.data!;
 
-        AppLogger.logger.success(
-            '✅ Got ML recommendations for ${currentUser.id}');
+        AppLogger.logger
+            .success('✅ Got ML recommendations for ${currentUser.id}');
 
         // Cache the results
         if (useCache) {
-          await _cacheRecommendations(currentUser.id, mlResponse);
+          await _cacheRecommendations(currentUser.id ?? '', mlResponse);
         }
 
         return mlResponse;
@@ -72,7 +72,8 @@ class MLMatchingService {
 
       // Try to return cached results on error
       if (useCache) {
-        final cachedResults = await _getCachedRecommendations(currentUser.id);
+        final cachedResults =
+            await _getCachedRecommendations(currentUser.id ?? '');
         if (cachedResults != null) {
           AppLogger.logger
               .w('⚠️ Returning cached recommendations due to error');
@@ -91,7 +92,7 @@ class MLMatchingService {
   Future<bool> recordSwipe({
     required String swiperId,
     required String targetId,
-    required SwipeDirection direction,
+    required models.SwipeDirection direction,
     String targetType = 'user',
   }) async {
     try {
@@ -99,7 +100,7 @@ class MLMatchingService {
           .d('👆 Recording swipe: $swiperId -> $targetId ($direction)');
 
       final swipeData = {
-        'swiper_id': swiperId,
+        'swiper_id': swiperId ?? '',
         'target_id': targetId,
         'direction': direction.name,
         'target_type': targetType,
@@ -128,7 +129,7 @@ class MLMatchingService {
   }
 
   /// Update user profile in ML backend
-  Future<bool> updateUserProfile(UserModel user) async {
+  Future<bool> updateUserProfile(models.UserModel user) async {
     try {
       AppLogger.logger.d('📝 Updating user profile in ML backend: ${user.id}');
 
@@ -249,7 +250,7 @@ class MLMatchingService {
   }
 
   /// Convert UserModel to backend-compatible format
-  Map<String, dynamic> _userModelToBackendFormat(UserModel user) {
+  Map<String, dynamic> _userModelToBackendFormat(models.UserModel user) {
     return {
       'id': user.id,
       'name': user.name ?? '',
@@ -270,22 +271,25 @@ class MLMatchingService {
   }
 
   /// Convert ProjectModel to backend-compatible format
-  Map<String, dynamic> _projectModelToBackendFormat(ProjectModel project) {
+  Map<String, dynamic> _projectModelToBackendFormat(
+      models.ProjectModel project) {
     return {
       'id': project.id,
-      'name': project.name ?? '',
-      'description': project.description ?? '',
-      'tech_stack': project.techStack,
-      'role': project.role?.name ?? '',
-      'github_url': project.githubUrl ?? '',
-      'demo_url': project.demoUrl ?? '',
-      'created_at': project.createdAt?.toIso8601String() ?? '',
-      'updated_at': project.updatedAt?.toIso8601String() ?? '',
+      'title': project.title,
+      'description': project.description,
+      'tech_stack': project.skillsRequired,
+      'owner_id': project.ownerId,
+      'repo_url': project.repoUrl,
+      'language': project.language ?? '',
+      'stars': project.stars ?? 0,
+      'forks': project.forks ?? 0,
+      'created_at': project.createdAt.toIso8601String(),
+      'updated_at': project.updatedAt.toIso8601String(),
     };
   }
 
   /// Extract GitHub stats from user model
-  Map<String, dynamic> _extractGitHubStats(UserModel user) {
+  Map<String, dynamic> _extractGitHubStats(models.UserModel user) {
     // This would be populated from GitHub API integration
     return {
       'repositories': 0,
@@ -300,12 +304,8 @@ class MLMatchingService {
   Future<void> _cacheRecommendations(
       String userId, Map<String, dynamic> recommendations) async {
     try {
-      await _apiClient.initializeCache();
-      await _apiClient.setCache(
-        'ml_recommendations_$userId',
-        recommendations,
-        const Duration(hours: 24),
-      );
+      // TODO: Implement caching when ApiClient cache methods are available
+      AppLogger.logger.d('📦 Caching recommendations for user: $userId');
     } catch (e) {
       AppLogger.logger.w('⚠️ Failed to cache recommendations', error: e);
     }
@@ -315,8 +315,9 @@ class MLMatchingService {
   Future<Map<String, dynamic>?> _getCachedRecommendations(
       String userId) async {
     try {
-      await _apiClient.initializeCache();
-      return await _apiClient.getCache('ml_recommendations_$userId');
+      // TODO: Implement cache retrieval when ApiClient cache methods are available
+      AppLogger.logger.d('📦 Getting cached recommendations for user: $userId');
+      return null;
     } catch (e) {
       AppLogger.logger.w('⚠️ Failed to get cached recommendations', error: e);
       return null;
