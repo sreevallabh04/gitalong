@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/config/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../core/utils/logger.dart';
 import '../../widgets/common/accessible_button.dart';
 import '../../widgets/common/accessible_form_field.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../../services/auth_service.dart' as auth_service;
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -24,19 +27,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   bool _isLoading = false;
   bool _isPasswordVisible = false;
   bool _rememberMe = false;
+  bool _isTestMode = false; // Test mode flag
 
   late AnimationController _fadeController;
   late AnimationController _slideController;
   late AnimationController _githubLogoController;
+  late AnimationController _bounceController;
 
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _githubLogoAnimation;
+  late Animation<double> _bounceAnimation;
 
   @override
   void initState() {
     super.initState();
     _setupAnimations();
+    _checkTestMode();
+  }
+
+  void _checkTestMode() {
+    // Check if test mode is enabled via environment variable
+    final testMode = dotenv.env['TEST_MODE']?.toLowerCase() == 'true';
+    setState(() {
+      _isTestMode = testMode;
+    });
+    AppLogger.logger.i('🧪 Test mode: ${_isTestMode ? 'ENABLED' : 'DISABLED'}');
   }
 
   void _setupAnimations() {
@@ -52,6 +68,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
     _githubLogoController = AnimationController(
       duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+
+    _bounceController = AnimationController(
+      duration: const Duration(milliseconds: 600),
       vsync: this,
     );
 
@@ -79,17 +100,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       curve: Curves.elasticOut,
     ));
 
+    _bounceAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.1,
+    ).animate(CurvedAnimation(
+      parent: _bounceController,
+      curve: Curves.elasticInOut,
+    ));
+
     // Start animations with delays
     Future.delayed(const Duration(milliseconds: 200), () {
-      _fadeController.forward();
+      if (mounted) _fadeController.forward();
     });
 
     Future.delayed(const Duration(milliseconds: 400), () {
-      _slideController.forward();
+      if (mounted) _slideController.forward();
     });
 
     Future.delayed(const Duration(milliseconds: 600), () {
-      _githubLogoController.forward();
+      if (mounted) _githubLogoController.forward();
+    });
+
+    // Start bounce animation after logo appears
+    Future.delayed(const Duration(milliseconds: 1400), () {
+      if (mounted) {
+        _bounceController.repeat(reverse: true);
+      }
     });
   }
 
@@ -98,6 +134,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     _fadeController.dispose();
     _slideController.dispose();
     _githubLogoController.dispose();
+    _bounceController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -109,17 +146,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     setState(() => _isLoading = true);
 
     try {
+      AppLogger.logger.auth('🔐 Attempting email sign-in...');
+
       await ref.read(authServiceProvider).signInWithEmailAndPassword(
             email: _emailController.text.trim(),
             password: _passwordController.text,
           );
 
-      AppLogger.logger.i('✅ User signed in successfully');
+      AppLogger.logger.auth('✅ Email sign-in successful');
+      _navigateToHome();
     } catch (e) {
-      AppLogger.logger.e('❌ Sign in failed', error: e);
-      _showErrorDialog('Sign in failed', e.toString());
+      AppLogger.logger.e('❌ Email sign-in failed', error: e);
+      _showErrorDialog('Sign In Failed', _getErrorMessage(e));
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -127,53 +169,41 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     setState(() => _isLoading = true);
 
     try {
-      AppLogger.logger.i('🔐 [LOGIN] Starting GitHub sign-in process...');
+      AppLogger.logger.auth('🐙 Starting GitHub sign-in process...');
 
-      final userCredential =
-          await ref.read(authServiceProvider).signInWithGitHubMobile();
-      AppLogger.logger
-          .i('✅ [LOGIN] GitHub sign-in successful - UserCredential received');
-      AppLogger.logger.i('👤 [LOGIN] User: ${userCredential.user?.email}');
-      AppLogger.logger.i('🔑 [LOGIN] User ID: ${userCredential.user?.uid}');
-
-      // Check if we're still mounted before navigation
-      if (!mounted) {
+      if (_isTestMode) {
+        // Simulate GitHub sign-in for testing
+        AppLogger.logger.auth('🧪 Test mode: Simulating GitHub sign-in...');
+        await Future.delayed(const Duration(seconds: 2));
         AppLogger.logger
-            .w('⚠️ [LOGIN] Widget no longer mounted, skipping navigation');
+            .auth('✅ Test mode: GitHub sign-in simulation successful');
+        _navigateToHome();
         return;
       }
 
-      // Check current auth state
-      final currentUser = ref.read(authServiceProvider).currentUser;
-      AppLogger.logger
-          .i('🔍 [LOGIN] Current auth state: ${currentUser?.email ?? "null"}');
+      final userCredential =
+          await ref.read(authServiceProvider).signInWithGitHubMobile();
 
-      AppLogger.logger.i('🚀 [LOGIN] Attempting navigation to /home...');
+      AppLogger.logger.auth('✅ GitHub sign-in successful');
+      AppLogger.logger.auth('👤 User: ${userCredential.user?.email}');
+      AppLogger.logger.auth('🔑 User ID: ${userCredential.user?.uid}');
 
-      // Try navigation and log the result
+      // Ensure user profile is created
       try {
+        await ref.read(authServiceProvider).getCurrentUserProfile();
+        AppLogger.logger.auth('✅ User profile ensured/created');
+      } catch (profileError) {
         AppLogger.logger
-            .i('�� [LOGIN] Attempting GoRouter context.go("/home")');
-        AppLogger.logger
-            .i('🧭 [LOGIN] Widget context: ' + context.widget.toString());
-        // Try to access GoRouter if available
-        try {
-          final goRouter = GoRouter.of(context);
-          AppLogger.logger.i('🧭 [LOGIN] GoRouter detected: $goRouter');
-        } catch (e) {
-          AppLogger.logger.i('🧭 [LOGIN] GoRouter not found in context: $e');
-        }
-        context.go('/home');
-        AppLogger.logger
-            .i('✅ [LOGIN] Navigation to /home initiated successfully');
-      } catch (navError) {
-        AppLogger.logger.e('❌ [LOGIN] Navigation failed', error: navError);
-        _showErrorDialog(
-            'Navigation Error', 'Failed to navigate to home: $navError');
+            .e('❌ Failed to create user profile', error: profileError);
+        _showErrorDialog('Profile Error',
+            'Failed to create user profile. Please try again.');
+        return;
       }
+
+      _navigateToHome();
     } catch (e) {
-      AppLogger.logger.e('❌ [LOGIN] GitHub sign in failed', error: e);
-      _showErrorDialog('GitHub sign in failed', e.toString());
+      AppLogger.logger.e('❌ GitHub sign-in failed', error: e);
+      _showErrorDialog('GitHub Sign-In Failed', _getErrorMessage(e));
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -185,53 +215,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     setState(() => _isLoading = true);
 
     try {
-      AppLogger.logger.i('🔐 [LOGIN] Starting Google sign-in process...');
+      AppLogger.logger.auth('🔐 Starting Google sign-in process...');
 
-      final userCredential =
-          await ref.read(authServiceProvider).signInWithGoogle();
-      AppLogger.logger
-          .i('✅ [LOGIN] Google sign-in successful - UserCredential received');
-      AppLogger.logger.i('👤 [LOGIN] User: ${userCredential.user?.email}');
-      AppLogger.logger.i('🔑 [LOGIN] User ID: ${userCredential.user?.uid}');
-
-      // Check if we're still mounted before navigation
-      if (!mounted) {
+      if (_isTestMode) {
+        // Simulate Google sign-in for testing
+        AppLogger.logger.auth('🧪 Test mode: Simulating Google sign-in...');
+        await Future.delayed(const Duration(seconds: 2));
         AppLogger.logger
-            .w('⚠️ [LOGIN] Widget no longer mounted, skipping navigation');
+            .auth('✅ Test mode: Google sign-in simulation successful');
+        _navigateToHome();
         return;
       }
 
-      // Check current auth state
-      final currentUser = ref.read(authServiceProvider).currentUser;
-      AppLogger.logger
-          .i('🔍 [LOGIN] Current auth state: ${currentUser?.email ?? "null"}');
+      final userCredential =
+          await ref.read(authServiceProvider).signInWithGoogle();
 
-      AppLogger.logger.i('🚀 [LOGIN] Attempting navigation to /home...');
+      AppLogger.logger.auth('✅ Google sign-in successful');
+      AppLogger.logger.auth('👤 User: ${userCredential.user?.email}');
 
-      // Try navigation and log the result
+      // Ensure user profile is created
       try {
+        await ref.read(authServiceProvider).getCurrentUserProfile();
+        AppLogger.logger.auth('✅ User profile ensured/created');
+      } catch (profileError) {
         AppLogger.logger
-            .i('�� [LOGIN] Attempting GoRouter context.go("/home")');
-        AppLogger.logger
-            .i('🧭 [LOGIN] Widget context: ' + context.widget.toString());
-        // Try to access GoRouter if available
-        try {
-          final goRouter = GoRouter.of(context);
-          AppLogger.logger.i('🧭 [LOGIN] GoRouter detected: $goRouter');
-        } catch (e) {
-          AppLogger.logger.i('🧭 [LOGIN] GoRouter not found in context: $e');
-        }
-        context.go('/home');
-        AppLogger.logger
-            .i('✅ [LOGIN] Navigation to /home initiated successfully');
-      } catch (navError) {
-        AppLogger.logger.e('❌ [LOGIN] Navigation failed', error: navError);
-        _showErrorDialog(
-            'Navigation Error', 'Failed to navigate to home: $navError');
+            .e('❌ Failed to create user profile', error: profileError);
+        _showErrorDialog('Profile Error',
+            'Failed to create user profile. Please try again.');
+        return;
       }
+
+      _navigateToHome();
     } catch (e) {
-      AppLogger.logger.e('❌ [LOGIN] Google sign in failed', error: e);
-      _showErrorDialog('Google sign in failed', e.toString());
+      AppLogger.logger.e('❌ Google sign-in failed', error: e);
+      _showErrorDialog('Google Sign-In Failed', _getErrorMessage(e));
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -239,21 +256,200 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     }
   }
 
-  void _showErrorDialog(String title, String message) {
+  void _navigateToHome() {
+    if (!mounted) return;
+
+    try {
+      AppLogger.logger.auth('🚀 Navigating to home screen...');
+      context.go('/home');
+      AppLogger.logger.auth('✅ Navigation successful');
+    } catch (navError) {
+      AppLogger.logger.e('❌ Navigation failed', error: navError);
+      _showErrorDialog('Navigation Error',
+          'Failed to navigate to home screen. Please restart the app.');
+    }
+  }
+
+  String _getErrorMessage(dynamic error) {
+    if (error is auth_service.AuthException) {
+      return error.message;
+    }
+
+    final errorString = error.toString().toLowerCase();
+
+    if (errorString.contains('network') || errorString.contains('timeout')) {
+      return 'Network error. Please check your internet connection and try again.';
+    }
+
+    if (errorString.contains('cancelled') || errorString.contains('canceled')) {
+      return 'Sign-in was cancelled. Please try again.';
+    }
+
+    if (errorString.contains('invalid-credential')) {
+      return 'Invalid credentials. Please check your email and password.';
+    }
+
+    if (errorString.contains('user-not-found')) {
+      return 'No account found with this email. Please sign up first.';
+    }
+
+    if (errorString.contains('wrong-password')) {
+      return 'Incorrect password. Please try again.';
+    }
+
+    if (errorString.contains('too-many-requests')) {
+      return 'Too many failed attempts. Please wait a moment before trying again.';
+    }
+
+    return 'An unexpected error occurred. Please try again.';
+  }
+
+  void _showForgotPasswordDialog() {
+    if (!mounted) return;
+
+    final emailController = TextEditingController();
+
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: Text(
-          title,
-          style: GoogleFonts.jetBrainsMono(
-            color: AppColors.white,
-            fontWeight: FontWeight.bold,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.lock_reset,
+              color: AppColors.primary,
+              size: 24,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Reset Password',
+                style: GoogleFonts.jetBrainsMono(
+                  color: AppColors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Enter your email address to receive a password reset link.',
+              style: GoogleFonts.inter(
+                color: AppColors.muted,
+                fontSize: 16,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: emailController,
+              decoration: InputDecoration(
+                hintText: 'Enter your email',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                filled: true,
+                fillColor: AppColors.background,
+              ),
+              keyboardType: TextInputType.emailAddress,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.jetBrainsMono(
+                color: AppColors.muted,
+                fontWeight: FontWeight.w500,
+                fontSize: 16,
+              ),
+            ),
           ),
+          TextButton(
+            onPressed: () async {
+              final email = emailController.text.trim();
+              if (email.isEmpty) {
+                _showErrorDialog('Error', 'Please enter your email address.');
+                return;
+              }
+              
+              Navigator.of(context).pop();
+              await _sendPasswordResetEmail(email);
+            },
+            child: Text(
+              'Send Reset Link',
+              style: GoogleFonts.jetBrainsMono(
+                color: AppColors.primary,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _sendPasswordResetEmail(String email) async {
+    try {
+      await ref.read(authServiceProvider).sendPasswordResetEmail(email);
+      _showErrorDialog(
+        'Reset Link Sent',
+        'Check your email for password reset instructions.',
+      );
+    } catch (e) {
+      _showErrorDialog('Error', _getErrorMessage(e));
+    }
+  }
+
+  void _showErrorDialog(String title, String message) {
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Icon(
+              Icons.error_outline,
+              color: AppColors.error,
+              size: 24,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: GoogleFonts.jetBrainsMono(
+                  color: AppColors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+          ],
         ),
         content: Text(
           message,
-          style: GoogleFonts.inter(color: AppColors.muted),
+          style: GoogleFonts.inter(
+            color: AppColors.muted,
+            fontSize: 16,
+            height: 1.5,
+          ),
         ),
         actions: [
           TextButton(
@@ -263,6 +459,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               style: GoogleFonts.jetBrainsMono(
                 color: AppColors.primary,
                 fontWeight: FontWeight.bold,
+                fontSize: 16,
               ),
             ),
           ),
@@ -318,6 +515,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
             // Loading overlay
             if (_isLoading) _buildLoadingOverlay(),
+
+            // Test mode indicator
+            if (_isTestMode) _buildTestModeIndicator(),
           ],
         ),
       ),
@@ -347,28 +547,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   Widget _buildGitHubHeader() {
     return Column(
       children: [
-        // GitHub logo with animation
+        // GitHub logo with animation and bounce
         ScaleTransition(
           scale: _githubLogoAnimation,
-          child: Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.3),
-                  blurRadius: 20,
-                  spreadRadius: 5,
+          child: AnimatedBuilder(
+            animation: _bounceAnimation,
+            builder: (context, child) {
+              return Transform.scale(
+                scale: _bounceAnimation.value,
+                child: Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.3),
+                        blurRadius: 20,
+                        spreadRadius: 5,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.code,
+                    color: AppColors.white,
+                    size: 50,
+                  ),
                 ),
-              ],
-            ),
-            child: const Icon(
-              Icons.code,
-              color: AppColors.white,
-              size: 50,
-            ),
+              );
+            },
           ),
         ),
 
@@ -383,7 +591,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             color: AppColors.white,
             letterSpacing: 2,
           ),
-        ),
+        ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.3, end: 0),
 
         const SizedBox(height: 8),
 
@@ -396,7 +604,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             height: 1.5,
           ),
           textAlign: TextAlign.center,
-        ),
+        ).animate().fadeIn(delay: 200.ms, duration: 600.ms),
 
         const SizedBox(height: 16),
 
@@ -419,7 +627,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               ),
             ),
           ],
-        ),
+        ).animate().fadeIn(delay: 400.ms, duration: 600.ms),
       ],
     );
   }
@@ -521,7 +729,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 Flexible(
                   child: TextButton(
                     onPressed: () {
-                      // TODO: Implement forgot password
+                      _showForgotPasswordDialog();
                     },
                     child: Text(
                       'Forgot password?',
@@ -709,7 +917,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         const SizedBox(height: 8),
         TextButton(
           onPressed: () {
-            // TODO: Navigate to sign up screen
+            context.go('/signup');
           },
           child: Text(
             'Create account',
@@ -758,6 +966,39 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTestModeIndicator() {
+    return Positioned(
+      top: 16,
+      right: 16,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.warning,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.science,
+              color: AppColors.white,
+              size: 16,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              'TEST MODE',
+              style: GoogleFonts.jetBrainsMono(
+                color: AppColors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
       ),
     );

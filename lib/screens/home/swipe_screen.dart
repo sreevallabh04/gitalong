@@ -45,7 +45,7 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
   void initState() {
     super.initState();
     _setupAnimations();
-    _loadRecommendations();
+    Future.microtask(_loadRecommendations);
   }
 
   void _setupAnimations() {

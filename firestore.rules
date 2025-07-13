@@ -58,6 +58,15 @@ service cloud.firestore {
         && validateUserData();
     }
     
+    // Allow users to read/write their own recent_searches
+    match /users/{userId}/recent_searches/{docId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId && isEmailVerified();
+    }
+    // Allow authenticated users to read/write follows
+    match /follows/{docId} {
+      allow read, write: if request.auth != null && isEmailVerified();
+    }
+    
     // ============================================================================
     // 🔍 USERNAME SEARCH COLLECTION - FOR UNIQUENESS VALIDATION
     // ============================================================================

@@ -21,11 +21,48 @@ class AppTheme {
   static const Color infoColor = Color(0xFF58A6FF);
 
   // Additional colors for GitHub profile card
-  static const Color surfaceGray = surfaceColor;
+  static const Color surfaceGray = Color(0xFF21262D);
   static const Color borderGray = borderColor;
   static const Color devGray = textSecondary;
-  static const Color neonGreen = accentColor;
-  static const Color carbonBlack = backgroundColor;
+  static const Color neonGreen = Color(0xFF2EA043);
+  static const Color carbonBlack = Color(0xFF0D1117);
+
+  static const Color primaryColor = Color(0xFF238636);
+  static const Color commitBubble = Color(0xFF39D353);
+  static const List<Color> contributionColors = [
+    Color(0xFF0E4429),
+    Color(0xFF006D32),
+    Color(0xFF26A641),
+    Color(0xFF39D353),
+  ];
+  static const LinearGradient timelineGradient = LinearGradient(
+    colors: [Color(0xFF238636), Color(0xFF39D353)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  // Critical missing getters for production
+  // Remove these instance getters:
+  // Color get primaryColor => const Color(0xFF238636);
+  // Color get cardColor => const Color(0xFF0D1117);
+  // Color get borderColor => const Color(0xFF30363D);
+  // Color get textPrimary => const Color(0xFFF0F6FC);
+  // Color get textSecondary => const Color(0xFF7D8590);
+  // Color get neonGreen => const Color(0xFF39D353);
+  // Color get carbonBlack => const Color(0xFF0D1117);
+  // Color get surfaceGray => const Color(0xFF161B22);
+  // Color get commitBubble => const Color(0xFF39D353);
+  // List<Color> get contributionColors => [
+  //       const Color(0xFF0E4429),
+  //       const Color(0xFF006D32),
+  //       const Color(0xFF26A641),
+  //       const Color(0xFF39D353),
+  //     ];
+  // LinearGradient get timelineGradient => const LinearGradient(
+  //       colors: [Color(0xFF238636), Color(0xFF39D353)],
+  //       begin: Alignment.topLeft,
+  //       end: Alignment.bottomRight,
+  //     );
 
   // Custom gradients
   static const LinearGradient accentGradient = LinearGradient(
@@ -233,7 +270,8 @@ class AppTheme {
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: errorColor, width: 2),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         hintStyle: GoogleFonts.inter(
           fontSize: 14,
           color: textMuted,

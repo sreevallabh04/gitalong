@@ -77,7 +77,7 @@ class UserCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            user.role.name.toUpperCase(),
+                            user.role?.name.toUpperCase() ?? 'UNKNOWN',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
@@ -114,12 +114,12 @@ class UserCard extends StatelessWidget {
                     ],
 
                     // Skills
-                    if (showSkills && user.skills.isNotEmpty) ...[
+                    if (showSkills && (user.skills?.isNotEmpty ?? false)) ...[
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 4,
                         runSpacing: 4,
-                        children: user.skills.take(3).map((skill) {
+                        children: (user.skills ?? []).take(3).map((skill) {
                           return Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 6,

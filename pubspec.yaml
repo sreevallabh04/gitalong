@@ -30,99 +30,56 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
-  # ============================================================================
-  # 🔥 CORE PACKAGES - Essential for app functionality
-  # ============================================================================
-  cupertino_icons: ^1.0.6
-  
-  # ============================================================================
-  # 🏗️ STATE MANAGEMENT - Riverpod for robust state management
-  # ============================================================================
-  flutter_riverpod: ^2.4.0
-  riverpod_annotation: ^2.3.3
-  hooks_riverpod: ^2.4.0
-  flutter_hooks: ^0.20.0
-  
-  # ============================================================================
-  # 🎨 UI & THEMING - Minimal but powerful UI components
-  # ============================================================================
-  google_fonts: ^5.1.0
-  flutter_animate: ^4.5.0 # For smooth animations
-  phosphor_flutter: ^2.1.0 # Consistent icon set
-  
-  # ============================================================================
-  # 🧭 NAVIGATION - Modern declarative routing
-  # ============================================================================
-  go_router: ^10.0.0
-  
-  # ============================================================================
-  # 🔥 FIREBASE - Complete Firebase integration (UPDATED FOR COMPATIBILITY)
-  # ============================================================================
-  firebase_core: ^3.15.0
-  firebase_auth: ^5.3.0
-  cloud_firestore: ^5.4.0
-  firebase_storage: ^12.4.9
-  firebase_analytics: ^11.3.3
-  firebase_crashlytics: ^4.1.3
+  cupertino_icons: ^1.0.2
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
+  cloud_firestore: ^5.5.1
+  firebase_storage: ^12.3.1
   firebase_messaging: ^15.1.3
-  firebase_app_check: ^0.3.1+3
-  flutter_local_notifications: ^17.2.2
-  
-  # ============================================================================
-  # 🔐 AUTHENTICATION - Social login providers (UPDATED)
-  # ============================================================================
-  google_sign_in: ^6.1.0
-  sign_in_with_apple: ^7.0.1
-  flutter_web_auth_2: ^4.1.0
-  
-  # ============================================================================
-  # 🗄️ DATA STORAGE - Local and remote data management
-  # ============================================================================
-  hive_flutter: ^1.1.0 # Fast local database
-  shared_preferences: ^2.2.3 # Simple key-value storage
-  
-  # ============================================================================
-  # 🌐 NETWORK & API - HTTP client and connectivity
-  # ============================================================================
-  dio: ^5.3.2 # Advanced HTTP client with interceptors
-  connectivity_plus: ^5.0.2 # Network connectivity detection
-  http: ^1.1.0 # HTTP client for GitHub API
-  
-  # ============================================================================
-  # 📱 DEVICE & PLATFORM - Platform-specific functionality
-  # ============================================================================
-  device_info_plus: ^10.1.0
-  permission_handler: ^11.1.0
-  url_launcher: ^6.2.1
-  
-  # ============================================================================
-  # 🛠️ UTILITIES - Essential utilities for production apps
-  # ============================================================================
-  logger: ^2.0.2+1 # Structured logging
-  stack_trace: ^1.11.1 # Stack trace formatting for better error handling
-  path_provider: ^2.1.1 # File system paths
-  uuid: ^4.5.1 # Unique ID generation
-  flutter_dotenv: ^5.1.0 # Environment variable management
-  package_info_plus: ^8.0.0 # App version and build info
-  
-  # ============================================================================
-  # 🖼️ MEDIA & ASSETS - Image handling and caching
-  # ============================================================================
-  cached_network_image: ^3.3.1 # Efficient image loading with cache
-  flutter_svg: ^2.0.10+1 # SVG support for crisp icons
-  
-  # ============================================================================
-  # 📄 SERIALIZATION - JSON handling for API communication
-  # ============================================================================
-  json_annotation: ^4.9.0
-  freezed_annotation: ^2.4.4
-  lottie: ^2.6.0
+  firebase_analytics: ^11.3.3
+  firebase_crashlytics: ^4.3.3
+  firebase_remote_config: ^5.1.3
+  firebase_app_check: ^0.3.2+9
+  google_sign_in: ^6.3.0
+  sign_in_with_apple: ^6.1.3
+  http: ^1.2.1
+  dio: ^5.7.0
+  flutter_riverpod: ^2.6.1
+  go_router: ^14.2.7
+  google_fonts: ^6.2.1
+  flutter_animate: ^4.5.0
+  lottie: ^3.1.2
   image_picker: ^1.1.2
   swipe_cards: ^2.0.0+1
   flutter_staggered_grid_view: ^0.6.2
   card_swiper: ^3.0.1
   jwt_decoder: ^2.0.1
+  redis: ^3.1.0
+  crypto: ^3.0.3
+  flutter_secure_storage: ^9.0.0
+  synchronized: ^3.1.0+1
+  pointycastle: ^3.7.3
+  meta: ^1.11.0
+  device_info_plus: ^10.1.2
+  connectivity_plus: ^5.0.2
+  permission_handler: ^11.4.0
+  flutter_local_notifications: ^17.2.4
+  flutter_dotenv: ^5.1.0
+  json_annotation: ^4.9.0
+  freezed_annotation: ^2.4.4
+  json_serializable: ^6.8.0
+  freezed: ^2.5.8
+  phosphor_flutter: ^2.0.0+1
+  flutter_hooks: ^0.20.5
+  hooks_riverpod: ^2.5.1
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.4.4
+  golden_toolkit: ^0.15.0
+  patrol: ^3.15.2
+  cached_network_image: ^3.3.1
+  hive_flutter: ^1.1.0
+  logger: ^2.6.0
+  flutter_web_auth_2: ^4.1.0
 
 dev_dependencies:
   flutter_test:
@@ -136,20 +93,10 @@ dev_dependencies:
   flutter_lints: ^3.0.0
   build_runner: ^2.4.9
   riverpod_generator: ^2.3.9
-  freezed: ^2.4.6
-  json_serializable: ^6.7.1
-  flutter_launcher_icons: ^0.13.1
-  
-  # Testing dependencies for comprehensive test suite (UPDATED FOR COMPATIBILITY)
   mockito: ^5.4.4
-
-
   integration_test:
     sdk: flutter
-  patrol: ^3.6.1
-  golden_toolkit: ^0.15.0
   network_image_mock: ^2.1.1
-  flutter_native_splash: ^2.4.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

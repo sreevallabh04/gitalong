@@ -17,6 +17,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../../core/utils/accessibility_utils.dart';
 import '../../widgets/common/accessible_button.dart';
+import 'package:flutter/services.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -32,6 +33,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   late AnimationController _roleSwitchController;
 
   bool _isLoading = false;
+  bool _isPickingImage = false;
 
   @override
   void initState() {
@@ -1151,33 +1153,76 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   }
 
   Future<void> _pickAndUploadProfileImage(UserModel userProfile) async {
+    if (_isPickingImage || _isLoading) return;
+    _isPickingImage = true;
     final picker = ImagePicker();
-    final pickedFile =
-        await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
-    if (pickedFile == null) return;
-
-    setState(() => _isLoading = true);
     try {
-      final storageRef = FirebaseStorage.instance
-          .ref()
-          .child('profile_pictures')
-          .child('${userProfile.id}.jpg');
-      await storageRef.putData(await pickedFile.readAsBytes());
-      final downloadUrl = await storageRef.getDownloadURL();
-      // Update user profile with new photoURL
-      await ref.read(userProfileProvider.notifier).updateProfile(
-            userProfile.copyWith(photoURL: downloadUrl),
+      final pickedFile =
+          await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+      if (pickedFile == null) return;
+      if (mounted) setState(() => _isLoading = true);
+      try {
+        final storageRef = FirebaseStorage.instance
+            .ref()
+            .child('profile_pictures')
+            .child('${userProfile.id}.jpg');
+        await storageRef.putData(await pickedFile.readAsBytes());
+        final downloadUrl = await storageRef.getDownloadURL();
+        // Update user profile with new photoURL
+        await ref.read(userProfileProvider.notifier).updateProfile(
+              userProfile.copyWith(photoURL: downloadUrl),
+            );
+        AppLogger.logger.success('✅ Profile picture updated');
+      } on FirebaseException catch (e) {
+        AppLogger.logger.e('❌ Firebase Storage error', error: e);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Storage error: ${e.message ?? e.code}')),
           );
-      AppLogger.logger.success('✅ Profile picture updated');
+        }
+      } on PlatformException catch (e) {
+        AppLogger.logger.e('❌ Platform error', error: e);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Platform error: ${e.message ?? e.code}')),
+          );
+        }
+      } catch (e) {
+        AppLogger.logger.e('❌ Failed to upload profile picture', error: e);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to upload profile picture: $e')),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    } on PlatformException catch (e) {
+      if (e.code == 'already_active') {
+        AppLogger.logger.e('❌ Image picker already active', error: e);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('Image picker is already open. Please wait.')),
+          );
+        }
+      } else {
+        AppLogger.logger.e('❌ Platform error', error: e);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Platform error: ${e.message ?? e.code}')),
+          );
+        }
+      }
     } catch (e) {
-      AppLogger.logger.e('❌ Failed to upload profile picture', error: e);
+      AppLogger.logger.e('❌ Error picking image', error: e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to upload profile picture: $e')),
+          SnackBar(content: Text('Error picking image: $e')),
         );
       }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      _isPickingImage = false;
     }
   }
 }

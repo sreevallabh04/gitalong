@@ -689,11 +689,11 @@ class AuthService {
 
     final userData = {
       'id': user.uid,
-      'email': user.email!,
-      'name': name,
+      'email': user.email ?? '',
+      'name': name ?? '',
       'role': role.name,
       'avatar_url': user.photoURL ??
-          'https://ui-avatars.com/api/?name=${Uri.encodeComponent(name)}&background=238636&color=FFFFFF',
+          'https://ui-avatars.com/api/?name=${Uri.encodeComponent(name ?? '')}&background=238636&color=FFFFFF',
       'bio': bio,
       'github_url': githubUrl,
       'skills': skills,
@@ -1620,6 +1620,142 @@ bool _isValidEmail(String email) {
       throw AuthException(
         'GitHub sign-in failed: ${e.toString()}',
         code: 'github-error',
+      );
+    }
+  }
+
+  /// Send password reset email
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      final cleanEmail = email.trim();
+
+      if (cleanEmail.isEmpty) {
+        throw const FormatException('Email cannot be empty');
+      }
+
+      if (!_isValidEmail(cleanEmail)) {
+        throw const FormatException('Invalid email format');
+      }
+
+      AppLogger.logger.auth('📧 Sending password reset email to: $cleanEmail');
+
+      await _auth.sendPasswordResetEmail(email: cleanEmail);
+
+      AppLogger.logger.auth('✅ Password reset email sent successfully');
+    } on FirebaseAuthException catch (e) {
+      AppLogger.logger.e(
+        '❌ Firebase Auth Error during password reset',
+        error: e,
+        stackTrace: StackTrace.current,
+      );
+
+      switch (e.code) {
+        case 'user-not-found':
+          throw AuthException(
+            'No account found with this email address.',
+            code: e.code,
+          );
+        case 'invalid-email':
+          throw AuthException(
+            'Invalid email format. Please enter a valid email.',
+            code: e.code,
+          );
+        case 'too-many-requests':
+          throw AuthException(
+            'Too many password reset attempts. Please try again later.',
+            code: e.code,
+          );
+        case 'network-request-failed':
+          throw AuthException(
+            'Network error. Please check your internet connection.',
+            code: e.code,
+          );
+        default:
+          throw AuthException(
+            'Password reset failed: ${e.message ?? 'Unknown error'}',
+            code: e.code,
+          );
+      }
+    } on FormatException catch (e) {
+      AppLogger.logger.e('❌ Format validation error', error: e);
+      throw AuthException(e.message, code: 'format-error');
+    } catch (e, stackTrace) {
+      AppLogger.logger.e(
+        '❌ Unexpected error during password reset',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      throw const AuthException(
+        'An unexpected error occurred. Please try again.',
+        code: 'unknown-error',
+      );
+    }
+  }
+
+  /// Send password reset email
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      final cleanEmail = email.trim();
+
+      if (cleanEmail.isEmpty) {
+        throw const FormatException('Email cannot be empty');
+      }
+
+      if (!_isValidEmail(cleanEmail)) {
+        throw const FormatException('Invalid email format');
+      }
+
+      AppLogger.logger.auth('📧 Sending password reset email to: $cleanEmail');
+
+      await _auth.sendPasswordResetEmail(email: cleanEmail);
+
+      AppLogger.logger.auth('✅ Password reset email sent successfully');
+    } on FirebaseAuthException catch (e) {
+      AppLogger.logger.e(
+        '❌ Firebase Auth Error during password reset',
+        error: e,
+        stackTrace: StackTrace.current,
+      );
+
+      switch (e.code) {
+        case 'user-not-found':
+          throw AuthException(
+            'No account found with this email address.',
+            code: e.code,
+          );
+        case 'invalid-email':
+          throw AuthException(
+            'Invalid email format. Please enter a valid email.',
+            code: e.code,
+          );
+        case 'too-many-requests':
+          throw AuthException(
+            'Too many password reset attempts. Please try again later.',
+            code: e.code,
+          );
+        case 'network-request-failed':
+          throw AuthException(
+            'Network error. Please check your internet connection.',
+            code: e.code,
+          );
+        default:
+          throw AuthException(
+            'Password reset failed: ${e.message ?? 'Unknown error'}',
+            code: e.code,
+          );
+      }
+    } on FormatException catch (e) {
+      AppLogger.logger.e('❌ Format validation error', error: e);
+      throw AuthException(e.message, code: 'format-error');
+    } catch (e, stackTrace) {
+      AppLogger.logger.e(
+        '❌ Unexpected error during password reset',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      throw const AuthException(
+        'An unexpected error occurred. Please try again.',
+        code: 'unknown-error',
       );
     }
   }
