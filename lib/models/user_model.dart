@@ -15,7 +15,7 @@ class UserModel with _$UserModel {
   const factory UserModel({
     required String uid,
     required String email,
-    required String name,
+    String? name,
     String? bio,
     String? githubHandle,
     String? location,

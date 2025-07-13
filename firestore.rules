@@ -37,11 +37,14 @@ service cloud.firestore {
     // 👤 USER PROFILES COLLECTION - ENHANCED SECURITY WITH USERNAME SUPPORT
     // ============================================================================
     match /users/{userId} {
-      // Strict user ID validation
-      allow read, write: if request.auth != null 
+      // TEMPORARY: Allow all authenticated, email-verified users to read all user profiles for development
+      allow read: if request.auth != null && isEmailVerified();
+      // Strict user ID validation for write
+      allow write: if request.auth != null 
         && request.auth.uid == userId 
         && isValidUserId(userId)
-        && isEmailVerified();
+        && isEmailVerified()
+        && validateUserData();
       
       // Allow reading basic profile info for matching and search (with restrictions)
       allow read: if request.auth != null 

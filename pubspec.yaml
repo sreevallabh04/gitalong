@@ -115,13 +115,14 @@ dependencies:
   # ============================================================================
   # 📄 SERIALIZATION - JSON handling for API communication
   # ============================================================================
-  json_annotation: ^4.8.1
+  json_annotation: ^4.9.0
   freezed_annotation: ^2.4.4
   lottie: ^2.6.0
   image_picker: ^1.1.2
   swipe_cards: ^2.0.0+1
   flutter_staggered_grid_view: ^0.6.2
   card_swiper: ^3.0.1
+  jwt_decoder: ^2.0.1
 
 dev_dependencies:
   flutter_test:

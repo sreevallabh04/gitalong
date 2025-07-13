@@ -652,7 +652,7 @@ class AuthService {
               .auth('🆕 User profile not found, creating default profile...');
           return await createDefaultUserProfile();
         }
-        return UserModel.fromJson(doc.data()!);
+        return UserModel.fromJson(_defensiveUserMap(doc.data()!));
       },
       operationName: 'getCurrentUserProfile',
       onError: (e) {
@@ -1428,10 +1428,6 @@ bool _isValidEmail(String email) {
     }
   }
 
-
-
-
-
   /// 🚀 GITHUB OAUTH AUTHENTICATION for mobile using flutter_web_auth_2
   Future<UserCredential> signInWithGitHubMobile() async {
     try {
@@ -1633,4 +1629,13 @@ bool _isValidPassword(String password) {
   // At least 8 characters, contain uppercase, lowercase, and numbers
   return RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$')
       .hasMatch(password);
+}
+
+Map<String, dynamic> _defensiveUserMap(Map<String, dynamic> data) {
+  return {
+    ...data,
+    'uid': data['uid'] ?? data['id'] ?? '',
+    'email': data['email'] ?? '',
+    'name': data['name'] ?? '',
+  };
 }

@@ -430,26 +430,31 @@ class _SavedScreenState extends ConsumerState<SavedScreen>
             const SizedBox(height: 32),
 
             // Feature Cards
-            Row(
-              children: [
-                Expanded(
-                  child: _buildFeatureCard(
-                    icon: PhosphorIcons.folders(PhosphorIconsStyle.fill),
-                    title: 'Organize',
-                    subtitle: 'Create collections',
-                    color: const Color(0xFF238636),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 220,
+                    child: _buildFeatureCard(
+                      icon: PhosphorIcons.folders(PhosphorIconsStyle.fill),
+                      title: 'Organize',
+                      subtitle: 'Create collections',
+                      color: const Color(0xFF238636),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildFeatureCard(
-                    icon: PhosphorIcons.export(PhosphorIconsStyle.fill),
-                    title: 'Share',
-                    subtitle: 'Export your lists',
-                    color: const Color(0xFF1F6FEB),
+                  const SizedBox(width: 16),
+                  SizedBox(
+                    width: 220,
+                    child: _buildFeatureCard(
+                      icon: PhosphorIcons.export(PhosphorIconsStyle.fill),
+                      title: 'Share',
+                      subtitle: 'Export your lists',
+                      color: const Color(0xFF1F6FEB),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             )
                 .animate(controller: _contentController)
                 .fadeIn(duration: 800.ms, delay: 1000.ms)
