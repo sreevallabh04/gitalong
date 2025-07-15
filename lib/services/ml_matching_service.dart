@@ -4,6 +4,9 @@ import '../core/utils/logger.dart';
 
 import '../providers/ml_matching_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../core/utils/production_config.dart';
 
 /// Production-ready ML matching service that connects to Python FastAPI backend
 class MLMatchingService {
@@ -249,6 +252,38 @@ class MLMatchingService {
     }
   }
 
+  /// Fetch AI-powered recommendations from Google Gemini
+  Future<List<dynamic>> fetchGeminiRecommendations({
+    required String userId,
+    List<String> excludeUserIds = const [],
+    int maxRecommendations = 10,
+  }) async {
+    final apiKey = ProductionConfig.googleGeminiApiKey;
+    if (apiKey.isEmpty) {
+      throw Exception('Google Gemini API key is not set.');
+    }
+    final url = Uri.parse(
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=$apiKey');
+    final body = jsonEncode({
+      'user_id': userId,
+      'exclude_user_ids': excludeUserIds,
+      'max_recommendations': maxRecommendations,
+    });
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: body,
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      // Adjust parsing as per Gemini API response
+      return data['recommendations'] ?? [];
+    } else {
+      throw Exception(
+          'Failed to fetch Gemini recommendations: ${response.body}');
+    }
+  }
+
   /// Convert UserModel to backend-compatible format
   Map<String, dynamic> _userModelToBackendFormat(models.UserModel user) {
     return {
@@ -312,8 +347,7 @@ class MLMatchingService {
   }
 
   /// Get cached recommendations
-  Future<Map<String, dynamic>?> _getCachedRecommendations(
-      String userId) async {
+  Future<Map<String, dynamic>?> _getCachedRecommendations(String userId) async {
     try {
       // TODO: Implement cache retrieval when ApiClient cache methods are available
       AppLogger.logger.d('📦 Getting cached recommendations for user: $userId');
