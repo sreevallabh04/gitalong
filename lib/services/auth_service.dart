@@ -360,6 +360,19 @@ class AuthService {
       AppLogger.logger
           .auth('�� Email verified:  {userCredential.user?.emailVerified}');
 
+      // Immediately upsert user profile with Google info to sync photoURL
+      if (userCredential.user != null) {
+        await upsertUserProfile(
+          name: userCredential.user!.displayName ??
+              userCredential.user!.email?.split('@')[0] ??
+              'User',
+          role: UserRole.contributor, // Default to contributor on first sign-in
+          bio: '',
+          githubUrl: null,
+          skills: [],
+        );
+      }
+
       return userCredential;
     } on FirebaseAuthException catch (e) {
       AppLogger.logger.e(
@@ -702,12 +715,19 @@ class AuthService {
 
     final user = currentUser!;
 
+    // Always use the latest Google photoURL if available
+    final googlePhotoUrl = user.photoURL;
+
     final userData = {
       'id': user.uid,
+      'uid': user.uid,
       'email': user.email ?? '',
       'name': name ?? '',
       'role': role.name,
-      'avatar_url': user.photoURL ??
+      // Store both photoURL and avatar_url for compatibility
+      'photoURL': googlePhotoUrl ??
+          'https://ui-avatars.com/api/?name=${Uri.encodeComponent(name ?? '')}&background=238636&color=FFFFFF',
+      'avatar_url': googlePhotoUrl ??
           'https://ui-avatars.com/api/?name=${Uri.encodeComponent(name ?? '')}&background=238636&color=FFFFFF',
       'bio': bio,
       'github_url': githubUrl,
@@ -730,7 +750,7 @@ class AuthService {
       onError: (e) {
         AppLogger.logger.e('❌ Failed to upsert user profile', error: e);
         throw AuthException(
-          'Failed to update user profile: ${e.toString()}',
+          'Failed to update user profile:  e.toString()',
           code: 'profile-update-error',
         );
       },

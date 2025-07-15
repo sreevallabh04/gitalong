@@ -308,21 +308,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   margin: const EdgeInsets.all(3),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    image: userProfile.photoURL != null
+                    image: userProfile.effectivePhotoUrl != null
                         ? DecorationImage(
-                            image: NetworkImage(userProfile.photoURL!),
+                            image: NetworkImage(userProfile.effectivePhotoUrl!),
                             fit: BoxFit.cover,
                           )
-                        : null,
-                    color: userProfile.photoURL == null
+                        : null, // Fallback to initials if all are null
+                    color: userProfile.effectivePhotoUrl == null
                         ? const Color(0xFF21262D)
                         : null,
                   ),
-                  child: userProfile.photoURL == null
+                  child: userProfile.effectivePhotoUrl == null
                       ? Icon(
                           Icons.person,
                           size: 48,
-                          color: Colors.white.withValues(alpha: 0.7),
+                          color: Colors.white.withOpacity(0.7),
                         )
                       : null,
                 ),

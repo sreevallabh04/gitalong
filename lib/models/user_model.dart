@@ -49,6 +49,9 @@ class UserModel with _$UserModel {
 
   factory UserModel.fromJson(Map<String, dynamic> json) =>
       _$UserModelFromJson(json);
+
+  // Returns the best available profile image URL
+  String? get effectivePhotoUrl => photoURL ?? avatarUrl ?? profileImageUrl;
 }
 
 class TimestampConverter implements JsonConverter<DateTime?, Object?> {

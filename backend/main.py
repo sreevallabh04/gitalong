@@ -271,47 +271,65 @@ async def get_recommendations(
     try:
         if request.user_id != verified_user_id:
             raise HTTPException(status_code=403, detail="User ID mismatch")
-        
-        # In production, this would call your ML model
-        # For now, return mock recommendations
-        mock_recommendations = [
-            {
-                "id": "user_1",
-                "name": "Alice Developer",
-                "bio": "Full-stack developer passionate about open source",
-                "tech_stack": ["Flutter", "Python", "React"],
-                "skills": ["Mobile Development", "Web Development"],
-                "similarity_score": 0.85,
-                "tech_overlap_score": 0.9,
-                "bio_similarity_score": 0.7
-            },
-            {
-                "id": "user_2", 
-                "name": "Bob Maintainer",
-                "bio": "Open source maintainer looking for contributors",
-                "tech_stack": ["Python", "FastAPI", "PostgreSQL"],
-                "skills": ["Backend Development", "DevOps"],
-                "similarity_score": 0.78,
-                "tech_overlap_score": 0.8,
-                "bio_similarity_score": 0.6
-            }
+
+        # Find the requesting user's profile
+        user = user_profiles.get(request.user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User profile not found")
+
+        # Prepare candidate profiles (exclude self and excluded users)
+        candidates = [
+            u for uid, u in user_profiles.items()
+            if uid != request.user_id and uid not in request.exclude_user_ids
         ]
-        
-        # Filter out excluded users
-        filtered_recommendations = [
-            rec for rec in mock_recommendations 
-            if rec["id"] not in request.exclude_user_ids
-        ][:request.max_recommendations]
-        
-        logger.info(f"✅ Recommendations generated for user: {request.user_id}")
-        
+        if not candidates:
+            return {
+                "recommendations": [],
+                "total_count": 0,
+                "user_id": request.user_id,
+                "generated_at": datetime.now().isoformat()
+            }
+
+        # Compute tech stack overlap
+        def tech_overlap(a, b):
+            set_a = set(a or [])
+            set_b = set(b or [])
+            if not set_a or not set_b:
+                return 0.0
+            return len(set_a & set_b) / len(set_a | set_b)
+
+        # Compute bio similarity using sentence transformer
+        user_bio_emb = sentence_transformer.encode([user.bio or ""])[0]
+        candidate_bios = [c.bio or "" for c in candidates]
+        candidate_bio_embs = sentence_transformer.encode(candidate_bios)
+        bio_similarities = cosine_similarity([user_bio_emb], candidate_bio_embs)[0]
+
+        # Score and rank candidates
+        scored = []
+        for idx, c in enumerate(candidates):
+            overlap = tech_overlap(user.tech_stack, c.tech_stack)
+            bio_sim = float(bio_similarities[idx])
+            # Simple average for now
+            overall = 0.6 * overlap + 0.4 * bio_sim
+            scored.append({
+                "id": c.id,
+                "name": c.name,
+                "bio": c.bio,
+                "tech_stack": c.tech_stack,
+                "skills": c.skills,
+                "similarity_score": overall,
+                "tech_overlap_score": overlap,
+                "bio_similarity_score": bio_sim
+            })
+        # Sort by overall score
+        scored.sort(key=lambda x: x["similarity_score"], reverse=True)
+        top = scored[:request.max_recommendations]
         return {
-            "recommendations": filtered_recommendations,
-            "total_count": len(filtered_recommendations),
+            "recommendations": top,
+            "total_count": len(top),
             "user_id": request.user_id,
             "generated_at": datetime.now().isoformat()
         }
-        
     except Exception as e:
         logger.error(f"❌ Recommendations failed: {e}")
         raise HTTPException(status_code=500, detail="Failed to get recommendations")
@@ -508,11 +526,6 @@ async def startup_event():
     logger.info("🚀 Starting GitAlong ML Matching Engine")
     await populate_sample_data()
     logger.info("✅ Startup complete - Ready to match developers!")
-
-@app.get("/recommendations")
-def get_recommendations(uid: str = Query(...)) -> List[str]:
-    # TODO: Implement AI-powered recommendations
-    return ["user1", "user2", "user3"]
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
