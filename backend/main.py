@@ -377,42 +377,61 @@ async def get_match_suggestions(
     limit: int = 10,
     verified_user_id: str = Depends(verify_firebase_token)
 ):
-    """Get match suggestions for user"""
+    """Get match suggestions for user based on swipes and similarity"""
     try:
         if user_id != verified_user_id:
             raise HTTPException(status_code=403, detail="User ID mismatch")
-        
-        # In production, this would query your ML model or database
-        mock_suggestions = [
-            {
-                "id": "match_1",
-                "contributor_id": user_id,
-                "project_id": "project_1",
-                "project_owner_id": "owner_1",
-                "created_at": datetime.now().isoformat(),
-                "status": "active",
-                "confidence_score": 0.92
-            },
-            {
-                "id": "match_2",
-                "contributor_id": user_id,
-                "project_id": "project_2", 
-                "project_owner_id": "owner_2",
-                "created_at": datetime.now().isoformat(),
-                "status": "active",
-                "confidence_score": 0.87
+
+        # Find users this user has not swiped on yet
+        swiped_ids = set([s.target_id for s in swipe_history if s.swiper_id == user_id])
+        candidates = [
+            u for uid, u in user_profiles.items()
+            if uid != user_id and uid not in swiped_ids
+        ]
+        if not candidates:
+            return {
+                "suggestions": [],
+                "total_count": 0,
+                "user_id": user_id,
+                "generated_at": datetime.now().isoformat()
             }
-        ][:limit]
-        
-        logger.info(f"✅ Match suggestions generated for user: {user_id}")
-        
-    return {
-            "suggestions": mock_suggestions,
-            "total_count": len(mock_suggestions),
+
+        # Compute tech stack overlap and bio similarity as in recommendations
+        user = user_profiles.get(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User profile not found")
+        def tech_overlap(a, b):
+            set_a = set(a or [])
+            set_b = set(b or [])
+            if not set_a or not set_b:
+                return 0.0
+            return len(set_a & set_b) / len(set_a | set_b)
+        user_bio_emb = sentence_transformer.encode([user.bio or ""])[0]
+        candidate_bios = [c.bio or "" for c in candidates]
+        candidate_bio_embs = sentence_transformer.encode(candidate_bios)
+        bio_similarities = cosine_similarity([user_bio_emb], candidate_bio_embs)[0]
+        scored = []
+        for idx, c in enumerate(candidates):
+            overlap = tech_overlap(user.tech_stack, c.tech_stack)
+            bio_sim = float(bio_similarities[idx])
+            overall = 0.6 * overlap + 0.4 * bio_sim
+            scored.append({
+                "id": c.id,
+                "contributor_id": user_id,
+                "project_id": getattr(c, "project_id", None),
+                "project_owner_id": getattr(c, "project_owner_id", None),
+                "created_at": datetime.now().isoformat(),
+                "status": "active",
+                "confidence_score": overall
+            })
+        scored.sort(key=lambda x: x["confidence_score"], reverse=True)
+        top = scored[:limit]
+        return {
+            "suggestions": top,
+            "total_count": len(top),
             "user_id": user_id,
             "generated_at": datetime.now().isoformat()
         }
-        
     except Exception as e:
         logger.error(f"❌ Match suggestions failed: {e}")
         raise HTTPException(status_code=500, detail="Failed to get match suggestions")
@@ -426,22 +445,35 @@ async def get_analytics(
     end_date: Optional[str] = None,
     verified_user_id: str = Depends(verify_firebase_token)
 ):
-    """Get analytics data"""
+    """Get analytics data (aggregated from swipe_history and user_profiles)"""
     try:
         # If user_id is provided, verify it matches the token
         if user_id and user_id != verified_user_id:
             raise HTTPException(status_code=403, detail="User ID mismatch")
-        
-        # In production, this would query your analytics database
-        mock_analytics = {
-            "user_id": user_id or verified_user_id,
+        uid = user_id or verified_user_id
+        # Filter swipes for this user
+        user_swipes = [s for s in swipe_history if s.swiper_id == uid]
+        right_swipes = [s for s in user_swipes if s.direction == "right"]
+        # Top skills aggregation
+        skill_counts = {}
+        for u in user_profiles.values():
+            for skill in u.skills:
+                skill_counts[skill] = skill_counts.get(skill, 0) + 1
+        top_skills = sorted(skill_counts, key=skill_counts.get, reverse=True)[:5]
+        # Active projects (mocked as number of users with role maintainer)
+        active_projects = sum(1 for u in user_profiles.values() if u.role == "maintainer")
+        # Response rate and avg response time (mocked for now)
+        response_rate = 0.7 if user_swipes else 0.0
+        avg_response_time = 2.0 if user_swipes else 0.0
+        analytics = {
+            "user_id": uid,
             "metrics": {
-                "total_matches": 15,
-                "successful_connections": 8,
-                "response_rate": 0.53,
-                "avg_response_time": 2.3,
-                "top_skills": ["Flutter", "Python", "React"],
-                "active_projects": 5
+                "total_matches": len(user_swipes),
+                "successful_connections": len(right_swipes),
+                "response_rate": response_rate,
+                "avg_response_time": avg_response_time,
+                "top_skills": top_skills,
+                "active_projects": active_projects
             },
             "period": {
                 "start_date": start_date or (datetime.now() - timedelta(days=30)).isoformat(),
@@ -449,11 +481,8 @@ async def get_analytics(
             },
             "generated_at": datetime.now().isoformat()
         }
-        
-        logger.info(f"✅ Analytics retrieved for user: {user_id or verified_user_id}")
-        
-        return mock_analytics
-        
+        logger.info(f"✅ Analytics retrieved for user: {uid}")
+        return analytics
     except Exception as e:
         logger.error(f"❌ Analytics failed: {e}")
         raise HTTPException(status_code=500, detail="Failed to get analytics")
