@@ -52,6 +52,8 @@ class UserModel with _$UserModel {
 
   // Returns the best available profile image URL
   String? get effectivePhotoUrl => photoURL ?? avatarUrl ?? profileImageUrl;
+
+  const UserModel._();
 }
 
 class TimestampConverter implements JsonConverter<DateTime?, Object?> {
