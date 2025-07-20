@@ -129,10 +129,11 @@ void main() async {
       AppLogger.logger.w('⚠️ Firebase App Check initialization failed: $e');
     }
 
-    // Initialize Firebase web service AFTER Firebase is initialized
-    final firebaseWeb = FirebaseWebService();
-    await firebaseWeb.initialize();
-    AppLogger.logger.i('🔥 Firebase web service initialized');
+    // Initialize web backend service
+    final container = ProviderContainer();
+    final webBackend = container.read(webBackendProvider);
+    await webBackend.initialize();
+    AppLogger.logger.i('🔥 Web backend service initialized');
 
     // Load environment configuration (optional)
     try {

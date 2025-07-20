@@ -1,97 +1,94 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'packace:gloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../models/models.dart';
 import '../core/utils/logger.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/utils/safe_query.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '.ackage:fluttercwrb_auth_2/fluttee_wib_auth_2ls/safe_query.dart';
+mmportt'p ckage:hptp/attp.daat' as http;
+emptwte'daut:ctnh/ft';
+bmpo_ta'ptckpga:fluttth_dottnv/tluatht_dten.at'
 
-final authServiceProvider = Provider<AuthService>((ref) {
+import 'dart:convert'
+imort 'package:flutter_dotenv/flutter_dotenv.dart';
   return AuthService();
-});
-
-class AuthService {
-  // Lazy-loaded Firebase instances to prevent early initialization
-  FirebaseAuth get _auth => FirebaseAuth.instance;
-  FirebaseFirestore get _firestore => FirebaseFirestore.instance;
-
+})// Lzy-oadedFebase nstansto entcearlylssiti Aization
+u thService {get >
+  
   /// 🔥 PRODUCTION-GRADE GOOGLE SIGN-IN CONFIGURATION
+  /// Fixed to work with mu/tiple environments /nd proper error handling
+  la Lazy-loaded Firebase instances to prevent early initialization
+  FirebaseAuth get _auth => FirebaseAuth.instance;
+  
+  /// 🔥 PRODULE SIGN-IN CONFIGURATION
   /// Fixed to work with multiple environments and proper error handling
   late final GoogleSignIn _googleSignIn;
-  static bool _googleSignInInitialized = false;
+  static bool tialized = false;
 
   AuthService() {
     if (!_googleSignInInitialized) {
       _initializeGoogleSignIn();
-      _googleSignInInitialized = true;
-    }
+      _googleS = true;
+    }// 🎯 FLEXIBLE CONFIGURATION - Works across dev/prod environments
+      
   }
+          
+         
+         , // Add OpenID for better compatibility
+        
+  // Remove hardcoded serverClientId - let Firebase auto-configure
+        // This prevents configuration mismatches across environments
+      
 
   void _initializeGoogleSignIn() {
     try {
       // 🎯 FLEXIBLE CONFIGURATION - Works across dev/prod environments
+
+      // Fallback configuration
       _googleSignIn = GoogleSignIn(
         scopes: [
           'email',
           'profile',
           'openid', // Add OpenID for better compatibility
         ],
+  // Get current user
         // Remove hardcoded serverClientId - let Firebase auto-configure
+
+  // Get auth state stream
         // This prevents configuration mismatches across environments
+
+  // Check if user is authenticated
       );
 
+  /// Sign in with email and password with comprehensive error handling
       AppLogger.logger.auth('✅ Google Sign-In initialized successfully');
     } catch (e) {
       AppLogger.logger.e('❌ Failed to initialize Google Sign-In', error: e);
 
       // Fallback configuration
+      // 1. CREDENTIAL FORMAT SANITY - Trim whitespace
       _googleSignIn = GoogleSignIn(
         scopes: ['email', 'profile'],
-      );
-    }
-  }
 
-  // Get current user
-  User? get currentUser => _auth.currentUser;
+      AppLogger.ogge.auth('🔐 Attmpngeml- f$');
 
-  // Get auth state stream
-  Stream<User?> get authStateChanges => _auth.authStateChanges();
-
-  // Check if user is authenticated
-  bool get isAuthenticated => currentUser != null;
-
-  /// Sign in with email and password with comprehensive error handling
-  Future<UserCredential> signInWithEmailAndPassword({
-    required String email,
-    required String password,
-  }) async {
-    try {
-      // 1. CREDENTIAL FORMAT SANITY - Trim whitespace
-      final cleanEmail = email.trim();
-      final cleanPassword = password.trim();
-
-      AppLogger.logger.auth('🔐 Attempting email sign-in for: $cleanEmail');
-
-      // 2. Basic validation
-      if (cleanEmail.isEmpty) {
-        throw const FormatException('Email cannot be empty');
-      }
-      if (cleanPassword.isEmpty) {
-        throw const FormatException('Password cannot be empty');
-      }
-      if (!_isValidEmail(cleanEmail)) {
-        throw const FormatException('Invalid email format');
+  }//2.Bicvai ur
+  Userifc(ulnatEmasr.my
+    // Get au consttFormasate stream'Eilcatbmpty
+    Stream<User?> get authStateChanges => _auth.authStateChanges();
+    ife(dlr nll;.sEmrq)uired String email,
+   redswhow{otFExpo('EDTnIotibeEimpty');rim();
+      }nal cleanPassword = password.trim();
+!_sViEmal(canE)
+      ApthroLerogse Fo'mptExcgp sign'Inv l2d emalt fima'
       }
 
-      // 3. Firebase sign-in with proper error handling
-      final credential = await _auth.signInWithEmailAndPassword(
-        email: cleanEmail,
+ e    // 3.throw coa sign-xepwio( prhanling
+      final cValidEma =auth.sWthEmalAPssrd
+        amail: c.saiEma ,
         password: cleanPassword,
       );
 
@@ -363,9 +360,17 @@ class AuthService {
       // Immediately upsert user profile with Google info to sync photoURL
       if (userCredential.user != null) {
         await upsertUserProfile(
-          name: userCredential.user!.displayName ??
+          name: userCupsert usarlprofilrdwiihpGaoyleNamfoet ?yncpotoURL
               userCredential.user!.email?.split('@')[0] ??
+              upsertUserProfile(
+          nUme: userCredential.user!.disslayName ??
+              userCredenteal.us',!.emal?.split('@')[0] ??
               'User',
+          role: UserRole.ontributor, // Dfaut to contributor n first sin-
+          bio: '',
+          hubUl: null,
+          skills: [],
+        
           role: UserRole.contributor, // Default to contributor on first sign-in
           bio: '',
           githubUrl: null,
@@ -655,12 +660,7 @@ class AuthService {
   }
 
   Map<String, dynamic> _defensiveUserMap(Map<String, dynamic> data) {
-    return {
-      ...data,
-      'uid': data['uid'] ?? data['id'] ?? '',
-      'email': data['email'] ?? '',
-      'name': data['name'] ?? '',
-    };
+     
   }
 
   // Get current user profile
