@@ -157,21 +157,17 @@ void main() async {
       // Initialize dotenv with empty state first
       dotenv.testLoad(fileInput: '');
 
-      // Then manually set default environment variables
+      // Set default environment variables for development
       dotenv.env['APP_NAME'] = 'GitAlong';
       dotenv.env['ENVIRONMENT'] = 'development';
       dotenv.env['ENABLE_ANALYTICS'] = 'true';
       dotenv.env['ENABLE_DEBUG_LOGGING'] = 'true';
       dotenv.env['API_TIMEOUT_SECONDS'] = '30';
 
-      // Set GitHub OAuth credentials for development
-      dotenv.env['GITHUB_CLIENT_ID'] = 'Ov23liqdqoZ88pfzPSnY';
-      dotenv.env['GITHUB_CLIENT_SECRET'] =
-          'dc2d8b7eeaef3a6a3a021cc5995de74efb1e2a2c2';
-      dotenv.env['GITHUB_REDIRECT_URI'] = 'com.gitalong.app://oauth/callback';
-
       AppLogger.logger
           .d('✅ Using default environment configuration (no .env file found)');
+      AppLogger.logger.w(
+          '⚠️ GitHub OAuth credentials not configured - GitHub features will be disabled');
     }
 
     // Configure system UI overlay style for GitHub theme
