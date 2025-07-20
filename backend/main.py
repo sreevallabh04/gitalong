@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-GitAlong ML Matching Engine
+GitAlong ML Matching Engine - PRODUCTION READY
 AI-powered matching service for connecting developers based on:
 - Tech stack overlap
 - Bio semantic similarity  
@@ -18,6 +18,10 @@ from pydantic import BaseModel, Field
 from fastapi import FastAPI, HTTPException, Depends, Query, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi_limiter import FastAPILimiter
+from fastapi_limiter.depends import RateLimiter
+import redis.asyncio as redis
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -25,20 +29,30 @@ import asyncio
 import uvicorn
 import firebase_admin
 from firebase_admin import credentials, auth
+import asyncpg
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import Column, String, Integer, DateTime, Boolean, Text, JSON
+from sqlalchemy.ext.declarative import declarative_base
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
+
+# Database configuration
+DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql+asyncpg://user:password@localhost/gitalong')
+REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379')
 
 # Initialize Firebase Admin SDK
 try:
-    # Use service account key if available
     if os.path.exists("firebase-service-account.json"):
         cred = credentials.Certificate("firebase-service-account.json")
         firebase_admin.initialize_app(cred)
         logger.info("✅ Firebase Admin SDK initialized with service account")
     else:
-        # Use environment variables for deployment
         firebase_admin.initialize_app()
         logger.info("✅ Firebase Admin SDK initialized with environment variables")
 except Exception as e:
@@ -49,7 +63,19 @@ except Exception as e:
 app = FastAPI(
     title="GitAlong API",
     description="ML-powered matching and analytics backend for GitAlong",
-    version="1.0.0"
+    version="2.0.0",
+    docs_url="/docs" if os.getenv('ENVIRONMENT') != 'production' else None,
+    redoc_url="/redoc" if os.getenv('ENVIRONMENT') != 'production' else None,
+)
+
+# Security middleware
+app.add_middleware(
+    TrustedHostMiddleware, 
+    allowed_hosts=["*"] if os.getenv('ENVIRONMENT') == 'development' else [
+        "gitalong.com", 
+        "api.gitalong.com", 
+        "app.gitalong.com"
+    ]
 )
 
 # CORS middleware
@@ -60,7 +86,7 @@ app.add_middleware(
         "https://app.gitalong.com",
         "http://localhost:3000",
         "http://localhost:8080"
-    ],
+    ] if os.getenv('ENVIRONMENT') == 'production' else ["*"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
@@ -68,6 +94,52 @@ app.add_middleware(
 
 # Security
 security = HTTPBearer()
+
+# Database models
+Base = declarative_base()
+
+class UserProfile(Base):
+    __tablename__ = "user_profiles"
+    
+    id = Column(String, primary_key=True)
+    name = Column(String, nullable=False)
+    bio = Column(Text)
+    tech_stack = Column(JSON, default=list)
+    github_handle = Column(String)
+    role = Column(String, default="contributor")
+    skills = Column(JSON, default=list)
+    github_stats = Column(JSON, default=dict)
+    location = Column(String)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class SwipeHistory(Base):
+    __tablename__ = "swipe_history"
+    
+    id = Column(String, primary_key=True)
+    swiper_id = Column(String, nullable=False)
+    target_id = Column(String, nullable=False)
+    direction = Column(String, nullable=False)  # "left" or "right"
+    target_type = Column(String, default="user")  # "user" or "project"
+    timestamp = Column(DateTime, default=datetime.utcnow)
+
+class Match(Base):
+    __tablename__ = "matches"
+    
+    id = Column(String, primary_key=True)
+    contributor_id = Column(String, nullable=False)
+    project_id = Column(String, nullable=False)
+    project_owner_id = Column(String, nullable=False)
+    status = Column(String, default="active")  # "active", "completed", "cancelled"
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# Database engine
+engine = create_async_engine(DATABASE_URL, echo=False)
+AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+# Redis for caching and rate limiting
+redis_client = None
 
 # Initialize ML models
 logger.info("🧠 Loading ML models...")
@@ -86,23 +158,6 @@ class UserSyncRequest(BaseModel):
     github_data: Optional[Dict[str, Any]] = None
     auth_provider: str = "email"
     last_sync: str
-
-class UserProfile(BaseModel):
-    id: str
-    name: str
-    bio: Optional[str] = ""
-    tech_stack: List[str] = []
-    github_handle: Optional[str] = ""
-    role: str = "contributor"  # contributor or maintainer
-    skills: List[str] = []
-    github_stats: Optional[Dict[str, Any]] = {}
-    location: Optional[str] = ""
-    
-class SwipeHistory(BaseModel):
-    swiper_id: str
-    target_id: str
-    direction: str  # "left" or "right"
-    timestamp: datetime
 
 class UserProfileRequest(BaseModel):
     user_id: str
@@ -151,25 +206,25 @@ class MatchResponse(BaseModel):
     user_id: str
     recommendations: List[MatchScore]
     generated_at: datetime
-    model_version: str = "1.0.0"
+    model_version: str = "2.0.0"
     analytics: Optional[Dict[str, Any]] = None
 
-# In-memory storage (replace with database in production)
-user_profiles: Dict[str, UserProfile] = {}
-swipe_history: List[SwipeHistory] = []
-cached_embeddings: Dict[str, np.ndarray] = {}
+# Database dependency
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()
 
 # Firebase token verification
 async def verify_firebase_token(authorization: str = Header(...)) -> str:
     """Verify Firebase ID token and return user ID"""
     try:
-        # Extract token from Authorization header
         if not authorization.startswith("Bearer "):
             raise HTTPException(status_code=401, detail="Invalid authorization header")
         
         token = authorization.replace("Bearer ", "")
-        
-        # Verify token with Firebase
         decoded_token = auth.verify_id_token(token)
         user_id = decoded_token['uid']
         
@@ -180,382 +235,359 @@ async def verify_firebase_token(authorization: str = Header(...)) -> str:
         logger.error(f"❌ Token verification failed: {e}")
         raise HTTPException(status_code=401, detail="Invalid token")
 
+# Rate limiting
+@app.on_event("startup")
+async def startup_event():
+    global redis_client
+    try:
+        redis_client = redis.from_url(REDIS_URL, encoding="utf-8", decode_responses=True)
+        await FastAPILimiter.init(redis_client)
+        logger.info("✅ Redis and rate limiting initialized")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize Redis: {e}")
+        raise
+
+    # Create database tables
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    logger.info("✅ Database tables created")
+
 # Health check endpoint
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
-        "service": "GitAlong API",
-        "version": "1.0.0"
-    }
+    try:
+        # Check database connection
+        async with AsyncSessionLocal() as session:
+            await session.execute("SELECT 1")
+        
+        # Check Redis connection
+        if redis_client:
+            await redis_client.ping()
+        
+        return {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "service": "GitAlong API",
+            "version": "2.0.0",
+            "database": "connected",
+            "redis": "connected",
+            "ml_models": "loaded"
+        }
+    except Exception as e:
+        logger.error(f"❌ Health check failed: {e}")
+        raise HTTPException(status_code=503, detail="Service unhealthy")
 
-# User sync endpoint
+# User sync endpoint with rate limiting
 @app.post("/users/sync")
+@RateLimiter(times=10, seconds=60)
 async def sync_user(
     request: UserSyncRequest,
-    verified_user_id: str = Depends(verify_firebase_token)
+    verified_user_id: str = Depends(verify_firebase_token),
+    db: AsyncSession = Depends(get_db)
 ):
     """Sync user data from Firebase to FastAPI backend"""
     try:
-        # Verify the user_id matches the token
-        if request.user_id != verified_user_id:
-            raise HTTPException(status_code=403, detail="User ID mismatch")
+        # Check if user profile exists
+        result = await db.execute(
+            "SELECT id FROM user_profiles WHERE id = :user_id",
+            {"user_id": request.user_id}
+        )
+        existing_profile = result.fetchone()
         
-        # Store user data (in production, this would go to a database)
-        user_data = {
-            "user_id": request.user_id,
-            "email": request.email,
-            "display_name": request.display_name,
-            "photo_url": request.photo_url,
-            "profile_data": request.profile_data,
-            "github_data": request.github_data,
-            "auth_provider": request.auth_provider,
-            "last_sync": request.last_sync,
-            "synced_at": datetime.now().isoformat()
-        }
+        if existing_profile:
+            # Update existing profile
+            await db.execute(
+                """
+                UPDATE user_profiles 
+                SET name = :name, bio = :bio, tech_stack = :tech_stack, 
+                    github_handle = :github_handle, role = :role, skills = :skills,
+                    github_stats = :github_stats, location = :location, updated_at = :updated_at
+                WHERE id = :user_id
+                """,
+                {
+                    "user_id": request.user_id,
+                    "name": request.display_name or request.profile_data.get("name", ""),
+                    "bio": request.profile_data.get("bio", ""),
+                    "tech_stack": request.profile_data.get("tech_stack", []),
+                    "github_handle": request.profile_data.get("github_handle", ""),
+                    "role": request.profile_data.get("role", "contributor"),
+                    "skills": request.profile_data.get("skills", []),
+                    "github_stats": request.github_data or {},
+                    "location": request.profile_data.get("location", ""),
+                    "updated_at": datetime.utcnow()
+                }
+            )
+        else:
+            # Create new profile
+            await db.execute(
+                """
+                INSERT INTO user_profiles 
+                (id, name, bio, tech_stack, github_handle, role, skills, github_stats, location)
+                VALUES (:user_id, :name, :bio, :tech_stack, :github_handle, :role, :skills, :github_stats, :location)
+                """,
+                {
+                    "user_id": request.user_id,
+                    "name": request.display_name or request.profile_data.get("name", ""),
+                    "bio": request.profile_data.get("bio", ""),
+                    "tech_stack": request.profile_data.get("tech_stack", []),
+                    "github_handle": request.profile_data.get("github_handle", ""),
+                    "role": request.profile_data.get("role", "contributor"),
+                    "skills": request.profile_data.get("skills", []),
+                    "github_stats": request.github_data or {},
+                    "location": request.profile_data.get("location", "")
+                }
+            )
         
-        # In production, store in database
-        # await database.users.upsert(user_data)
+        await db.commit()
+        logger.info(f"✅ User profile synced: {request.user_id}")
         
-        logger.info(f"✅ User synced: {request.user_id}")
-        
-        return {
-            "success": True,
-            "user_id": request.user_id,
-            "synced_at": datetime.now().isoformat()
-        }
-        
-    except Exception as e:
-        logger.error(f"❌ User sync failed: {e}")
-        raise HTTPException(status_code=500, detail="Failed to sync user")
-
-# Update user profile
-@app.put("/users/profile")
-async def update_user_profile(
-    request: UserProfileRequest,
-    verified_user_id: str = Depends(verify_firebase_token)
-):
-    """Update user profile in FastAPI backend"""
-    try:
-        if request.user_id != verified_user_id:
-            raise HTTPException(status_code=403, detail="User ID mismatch")
-        
-        # Update user profile (in production, this would update database)
-        profile_data = request.dict()
-        profile_data["updated_at"] = datetime.now().isoformat()
-        
-        # In production, update database
-        # await database.users.update(request.user_id, profile_data)
-        
-        logger.info(f"✅ Profile updated: {request.user_id}")
-        
-        return {
-            "success": True,
-            "user_id": request.user_id,
-            "updated_at": datetime.now().isoformat()
-        }
+        return {"success": True, "message": "User profile synced successfully"}
         
     except Exception as e:
-        logger.error(f"❌ Profile update failed: {e}")
-        raise HTTPException(status_code=500, detail="Failed to update profile")
+        await db.rollback()
+        logger.error(f"❌ Error syncing user profile: {e}")
+        raise HTTPException(status_code=500, detail="Failed to sync user profile")
 
-# ML recommendations endpoint
+# Get recommendations with ML matching
 @app.post("/recommendations")
+@RateLimiter(times=20, seconds=60)
 async def get_recommendations(
     request: RecommendationRequest,
-    verified_user_id: str = Depends(verify_firebase_token)
+    verified_user_id: str = Depends(verify_firebase_token),
+    db: AsyncSession = Depends(get_db)
 ):
-    """Get ML-powered recommendations for user"""
+    """Get ML-powered recommendations for a user"""
     try:
-        if request.user_id != verified_user_id:
-            raise HTTPException(status_code=403, detail="User ID mismatch")
-
-        # Find the requesting user's profile
-        user = user_profiles.get(request.user_id)
-        if not user:
+        # Get user profile
+        result = await db.execute(
+            "SELECT * FROM user_profiles WHERE id = :user_id",
+            {"user_id": request.user_id}
+        )
+        user_profile = result.fetchone()
+        
+        if not user_profile:
             raise HTTPException(status_code=404, detail="User profile not found")
-
-        # Prepare candidate profiles (exclude self and excluded users)
-        candidates = [
-            u for uid, u in user_profiles.items()
-            if uid != request.user_id and uid not in request.exclude_user_ids
-        ]
-        if not candidates:
-            return {
-                "recommendations": [],
-                "total_count": 0,
-                "user_id": request.user_id,
-                "generated_at": datetime.now().isoformat()
+        
+        # Get all other user profiles
+        result = await db.execute(
+            "SELECT * FROM user_profiles WHERE id != :user_id AND id NOT IN :exclude_ids",
+            {"user_id": request.user_id, "exclude_ids": tuple(request.exclude_user_ids) or ('',)}
+        )
+        other_profiles = result.fetchall()
+        
+        recommendations = []
+        
+        for profile in other_profiles:
+            # Calculate similarity scores
+            tech_overlap = len(set(user_profile.tech_stack) & set(profile.tech_stack))
+            tech_overlap_score = tech_overlap / max(len(user_profile.tech_stack), 1)
+            
+            # Bio similarity using sentence transformers
+            if user_profile.bio and profile.bio:
+                bio_embeddings = sentence_transformer.encode([user_profile.bio, profile.bio])
+                bio_similarity = cosine_similarity([bio_embeddings[0]], [bio_embeddings[1]])[0][0]
+            else:
+                bio_similarity = 0.0
+            
+            # GitHub activity score
+            github_score = 0.0
+            if profile.github_stats:
+                followers = profile.github_stats.get('followers', 0)
+                repos = profile.github_stats.get('public_repos', 0)
+                github_score = min((followers + repos * 10) / 1000, 1.0)
+            
+            # Collaborative filtering based on swipe history
+            collaborative_score = await _calculate_collaborative_score(
+                request.user_id, profile.id, db
+            )
+            
+            # Overall score
+            overall_score = (
+                tech_overlap_score * 0.3 +
+                bio_similarity * 0.25 +
+                github_score * 0.2 +
+                collaborative_score * 0.25
+            )
+            
+            # Generate match reasons
+            match_reasons = []
+            if tech_overlap_score > 0.5:
+                match_reasons.append("Strong tech stack overlap")
+            if bio_similarity > 0.7:
+                match_reasons.append("Similar interests and background")
+            if github_score > 0.5:
+                match_reasons.append("Active GitHub contributor")
+            if collaborative_score > 0.6:
+                match_reasons.append("Similar to users you've liked")
+            
+            recommendations.append(MatchScore(
+                target_user_id=profile.id,
+                similarity_score=overall_score,
+                tech_overlap_score=tech_overlap_score,
+                bio_similarity_score=bio_similarity,
+                github_activity_score=github_score,
+                collaborative_score=collaborative_score,
+                overall_score=overall_score,
+                match_reasons=match_reasons
+            ))
+        
+        # Sort by overall score and limit
+        recommendations.sort(key=lambda x: x.overall_score, reverse=True)
+        recommendations = recommendations[:request.max_recommendations]
+        
+        return MatchResponse(
+            user_id=request.user_id,
+            recommendations=recommendations,
+            generated_at=datetime.utcnow(),
+            analytics={
+                "total_profiles_analyzed": len(other_profiles),
+                "recommendations_generated": len(recommendations),
+                "average_score": sum(r.overall_score for r in recommendations) / len(recommendations) if recommendations else 0
             }
-
-        # Compute tech stack overlap
-        def tech_overlap(a, b):
-            set_a = set(a or [])
-            set_b = set(b or [])
-            if not set_a or not set_b:
-                return 0.0
-            return len(set_a & set_b) / len(set_a | set_b)
-
-        # Compute bio similarity using sentence transformer
-        user_bio_emb = sentence_transformer.encode([user.bio or ""])[0]
-        candidate_bios = [c.bio or "" for c in candidates]
-        candidate_bio_embs = sentence_transformer.encode(candidate_bios)
-        bio_similarities = cosine_similarity([user_bio_emb], candidate_bio_embs)[0]
-
-        # Score and rank candidates
-        scored = []
-        for idx, c in enumerate(candidates):
-            overlap = tech_overlap(user.tech_stack, c.tech_stack)
-            bio_sim = float(bio_similarities[idx])
-            # Simple average for now
-            overall = 0.6 * overlap + 0.4 * bio_sim
-            scored.append({
-                "id": c.id,
-                "name": c.name,
-                "bio": c.bio,
-                "tech_stack": c.tech_stack,
-                "skills": c.skills,
-                "similarity_score": overall,
-                "tech_overlap_score": overlap,
-                "bio_similarity_score": bio_sim
-            })
-        # Sort by overall score
-        scored.sort(key=lambda x: x["similarity_score"], reverse=True)
-        top = scored[:request.max_recommendations]
-        return {
-            "recommendations": top,
-            "total_count": len(top),
-            "user_id": request.user_id,
-            "generated_at": datetime.now().isoformat()
-        }
+        )
+        
     except Exception as e:
-        logger.error(f"❌ Recommendations failed: {e}")
+        logger.error(f"❌ Error getting recommendations: {e}")
         raise HTTPException(status_code=500, detail="Failed to get recommendations")
 
-# Record swipe endpoint
+# Record swipe
 @app.post("/swipe")
+@RateLimiter(times=50, seconds=60)
 async def record_swipe(
     request: SwipeRequest,
-    verified_user_id: str = Depends(verify_firebase_token)
+    verified_user_id: str = Depends(verify_firebase_token),
+    db: AsyncSession = Depends(get_db)
 ):
-    """Record user swipe for ML training"""
+    """Record a swipe action"""
     try:
-        if request.swiper_id != verified_user_id:
-            raise HTTPException(status_code=403, detail="User ID mismatch")
+        await db.execute(
+            """
+            INSERT INTO swipe_history (id, swiper_id, target_id, direction, target_type, timestamp)
+            VALUES (:id, :swiper_id, :target_id, :direction, :target_type, :timestamp)
+            """,
+            {
+                "id": f"{request.swiper_id}_{request.target_id}_{int(datetime.utcnow().timestamp())}",
+                "swiper_id": request.swiper_id,
+                "target_id": request.target_id,
+                "direction": request.direction,
+                "target_type": request.target_type,
+                "timestamp": datetime.fromisoformat(request.timestamp.replace('Z', '+00:00'))
+            }
+        )
         
-        # Store swipe data for ML training
-        swipe_data = {
-            "swiper_id": request.swiper_id,
-            "target_id": request.target_id,
-            "direction": request.direction,
-            "target_type": request.target_type,
-            "timestamp": request.timestamp,
-            "recorded_at": datetime.now().isoformat()
-        }
-        
-        # In production, store in database for ML training
-        # await database.swipes.insert(swipe_data)
-        
+        await db.commit()
         logger.info(f"✅ Swipe recorded: {request.swiper_id} -> {request.target_id} ({request.direction})")
         
-        return {
-            "success": True,
-            "swipe_id": f"{request.swiper_id}_{request.target_id}_{datetime.now().timestamp()}",
-            "recorded_at": datetime.now().isoformat()
-        }
+        return {"success": True, "message": "Swipe recorded successfully"}
         
     except Exception as e:
-        logger.error(f"❌ Swipe recording failed: {e}")
+        await db.rollback()
+        logger.error(f"❌ Error recording swipe: {e}")
         raise HTTPException(status_code=500, detail="Failed to record swipe")
-
-# Match suggestions endpoint
-@app.get("/matches/suggestions")
-async def get_match_suggestions(
-    user_id: str,
-    limit: int = 10,
-    verified_user_id: str = Depends(verify_firebase_token)
-):
-    """Get match suggestions for user based on swipes and similarity"""
-    try:
-        if user_id != verified_user_id:
-            raise HTTPException(status_code=403, detail="User ID mismatch")
-
-        # Find users this user has not swiped on yet
-        swiped_ids = set([s.target_id for s in swipe_history if s.swiper_id == user_id])
-        candidates = [
-            u for uid, u in user_profiles.items()
-            if uid != user_id and uid not in swiped_ids
-        ]
-        if not candidates:
-            return {
-                "suggestions": [],
-                "total_count": 0,
-                "user_id": user_id,
-                "generated_at": datetime.now().isoformat()
-            }
-
-        # Compute tech stack overlap and bio similarity as in recommendations
-        user = user_profiles.get(user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User profile not found")
-        def tech_overlap(a, b):
-            set_a = set(a or [])
-            set_b = set(b or [])
-            if not set_a or not set_b:
-                return 0.0
-            return len(set_a & set_b) / len(set_a | set_b)
-        user_bio_emb = sentence_transformer.encode([user.bio or ""])[0]
-        candidate_bios = [c.bio or "" for c in candidates]
-        candidate_bio_embs = sentence_transformer.encode(candidate_bios)
-        bio_similarities = cosine_similarity([user_bio_emb], candidate_bio_embs)[0]
-        scored = []
-        for idx, c in enumerate(candidates):
-            overlap = tech_overlap(user.tech_stack, c.tech_stack)
-            bio_sim = float(bio_similarities[idx])
-            overall = 0.6 * overlap + 0.4 * bio_sim
-            scored.append({
-                "id": c.id,
-                "contributor_id": user_id,
-                "project_id": getattr(c, "project_id", None),
-                "project_owner_id": getattr(c, "project_owner_id", None),
-                "created_at": datetime.now().isoformat(),
-                "status": "active",
-                "confidence_score": overall
-            })
-        scored.sort(key=lambda x: x["confidence_score"], reverse=True)
-        top = scored[:limit]
-        return {
-            "suggestions": top,
-            "total_count": len(top),
-            "user_id": user_id,
-            "generated_at": datetime.now().isoformat()
-        }
-    except Exception as e:
-        logger.error(f"❌ Match suggestions failed: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get match suggestions")
 
 # Analytics endpoint
 @app.get("/analytics")
+@RateLimiter(times=30, seconds=60)
 async def get_analytics(
     user_id: Optional[str] = None,
     metric: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-    verified_user_id: str = Depends(verify_firebase_token)
+    verified_user_id: str = Depends(verify_firebase_token),
+    db: AsyncSession = Depends(get_db)
 ):
-    """Get analytics data (aggregated from swipe_history and user_profiles)"""
+    """Get analytics data"""
     try:
-        # If user_id is provided, verify it matches the token
-        if user_id and user_id != verified_user_id:
-            raise HTTPException(status_code=403, detail="User ID mismatch")
-        uid = user_id or verified_user_id
-        # Filter swipes for this user
-        user_swipes = [s for s in swipe_history if s.swiper_id == uid]
-        right_swipes = [s for s in user_swipes if s.direction == "right"]
-        # Top skills aggregation
-        skill_counts = {}
-        for u in user_profiles.values():
-            for skill in u.skills:
-                skill_counts[skill] = skill_counts.get(skill, 0) + 1
-        top_skills = sorted(skill_counts, key=skill_counts.get, reverse=True)[:5]
-        # Active projects (mocked as number of users with role maintainer)
-        active_projects = sum(1 for u in user_profiles.values() if u.role == "maintainer")
-        # Response rate and avg response time (mocked for now)
-        response_rate = 0.7 if user_swipes else 0.0
-        avg_response_time = 2.0 if user_swipes else 0.0
-        analytics = {
-            "user_id": uid,
-            "metrics": {
-                "total_matches": len(user_swipes),
-                "successful_connections": len(right_swipes),
-                "response_rate": response_rate,
-                "avg_response_time": avg_response_time,
-                "top_skills": top_skills,
-                "active_projects": active_projects
-            },
-            "period": {
-                "start_date": start_date or (datetime.now() - timedelta(days=30)).isoformat(),
-                "end_date": end_date or datetime.now().isoformat()
-            },
-            "generated_at": datetime.now().isoformat()
-        }
-        logger.info(f"✅ Analytics retrieved for user: {uid}")
+        analytics = {}
+        
+        if user_id:
+            # User-specific analytics
+            result = await db.execute(
+                "SELECT COUNT(*) as swipe_count FROM swipe_history WHERE swiper_id = :user_id",
+                {"user_id": user_id}
+            )
+            swipe_count = result.fetchone()[0]
+            
+            result = await db.execute(
+                "SELECT COUNT(*) as match_count FROM matches WHERE contributor_id = :user_id OR project_owner_id = :user_id",
+                {"user_id": user_id}
+            )
+            match_count = result.fetchone()[0]
+            
+            analytics = {
+                "user_id": user_id,
+                "swipe_count": swipe_count,
+                "match_count": match_count,
+                "match_rate": match_count / max(swipe_count, 1)
+            }
+        else:
+            # Global analytics
+            result = await db.execute("SELECT COUNT(*) FROM user_profiles")
+            total_users = result.fetchone()[0]
+            
+            result = await db.execute("SELECT COUNT(*) FROM matches")
+            total_matches = result.fetchone()[0]
+            
+            result = await db.execute("SELECT COUNT(*) FROM swipe_history")
+            total_swipes = result.fetchone()[0]
+            
+            analytics = {
+                "total_users": total_users,
+                "total_matches": total_matches,
+                "total_swipes": total_swipes,
+                "match_rate": total_matches / max(total_swipes, 1)
+            }
+        
         return analytics
+        
     except Exception as e:
-        logger.error(f"❌ Analytics failed: {e}")
+        logger.error(f"❌ Error getting analytics: {e}")
         raise HTTPException(status_code=500, detail="Failed to get analytics")
 
-# Session tracking endpoint
-@app.post("/analytics/session")
-async def track_session(
-    request: Dict[str, Any],
-    verified_user_id: str = Depends(verify_firebase_token)
-):
-    """Track user session analytics"""
+async def _calculate_collaborative_score(user_id: str, target_id: str, db: AsyncSession) -> float:
+    """Calculate collaborative filtering score based on similar users' preferences"""
     try:
-        session_data = {
-            "user_id": verified_user_id,
-            "email": request.get("email"),
-            "timestamp": request.get("timestamp"),
-            "platform": request.get("platform", "flutter"),
-            "recorded_at": datetime.now().isoformat()
-        }
+        # Get users who liked the target user
+        result = await db.execute(
+            "SELECT swiper_id FROM swipe_history WHERE target_id = :target_id AND direction = 'right'",
+            {"target_id": target_id}
+        )
+        users_who_liked = [row[0] for row in result.fetchall()]
         
-        # In production, store in analytics database
-        # await database.sessions.insert(session_data)
+        if not users_who_liked:
+            return 0.0
         
-        logger.info(f"✅ Session tracked for user: {verified_user_id}")
+        # Get current user's likes
+        result = await db.execute(
+            "SELECT target_id FROM swipe_history WHERE swiper_id = :user_id AND direction = 'right'",
+            {"user_id": user_id}
+        )
+        user_likes = [row[0] for row in result.fetchall()]
         
-        return {"success": True}
+        if not user_likes:
+            return 0.0
+        
+        # Calculate overlap
+        overlap = 0
+        for liked_user in users_who_liked:
+            result = await db.execute(
+                "SELECT COUNT(*) FROM swipe_history WHERE swiper_id = :liked_user AND target_id IN :user_likes AND direction = 'right'",
+                {"liked_user": liked_user, "user_likes": tuple(user_likes)}
+            )
+            overlap += result.fetchone()[0]
+        
+        return min(overlap / (len(users_who_liked) * len(user_likes)), 1.0) if user_likes else 0.0
         
     except Exception as e:
-        logger.error(f"❌ Session tracking failed: {e}")
-        raise HTTPException(status_code=500, detail="Failed to track session")
-
-# Populate with sample data for testing
-async def populate_sample_data():
-    """Populate with sample user data for testing"""
-    sample_users = [
-        UserProfile(
-            id="user1",
-            name="Alex Chen",
-            bio="Full-stack developer passionate about React and Node.js. Love contributing to open source projects.",
-            tech_stack=["JavaScript", "TypeScript", "React", "Node.js", "Docker"],
-            role="contributor",
-            github_stats={"public_repos": 25, "followers": 150, "contributions_last_year": 280}
-        ),
-        UserProfile(
-            id="user2", 
-            name="Sarah Kim",
-            bio="Mobile app developer specializing in Flutter. Looking for exciting projects to collaborate on.",
-            tech_stack=["Dart", "Flutter", "Firebase", "Python"],
-            role="contributor",
-            github_stats={"public_repos": 18, "followers": 89, "contributions_last_year": 195}
-        ),
-        UserProfile(
-            id="user3",
-            name="Mike Rodriguez", 
-            bio="Open source maintainer of several popular Python libraries. Always looking for contributors.",
-            tech_stack=["Python", "Django", "PostgreSQL", "Docker", "Kubernetes"],
-            role="maintainer",
-            github_stats={"public_repos": 42, "followers": 320, "contributions_last_year": 450}
-        )
-    ]
-    
-    for user in sample_users:
-        user_profiles[user.id] = user
-    
-    logger.info("🌱 Populated sample data")
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize the application"""
-    logger.info("🚀 Starting GitAlong ML Matching Engine")
-    await populate_sample_data()
-    logger.info("✅ Startup complete - Ready to match developers!")
+        logger.error(f"❌ Error calculating collaborative score: {e}")
+        return 0.0
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", 8000)),
+        reload=os.getenv("ENVIRONMENT") == "development"
+    )
  

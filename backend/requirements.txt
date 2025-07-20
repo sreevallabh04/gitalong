@@ -1,46 +1,23 @@
-# FastAPI and web framework
+# Production dependencies for GitAlong Backend
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 pydantic==2.5.0
-
-# Firebase Admin SDK
 firebase-admin==6.2.0
-
-# ML and data processing
-numpy>=1.26.0
-scikit-learn>=1.4.0
-sentence-transformers>=2.5.0
-pandas>=2.2.0
-
-# Security and authentication
+asyncpg==0.29.0
+sqlalchemy[asyncio]==2.0.23
+redis==5.0.1
+fastapi-limiter==0.1.5
+sentence-transformers==2.2.2
+scikit-learn==1.3.2
+numpy==1.24.3
+python-multipart==0.0.6
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
-python-multipart==0.0.6
-
-# Database (for future PostgreSQL integration)
-sqlalchemy==2.0.23
-psycopg2-binary==2.9.9
-alembic==1.12.1
-
-# Caching and performance
-redis==5.0.1
-celery==5.3.4
-
-# Monitoring and logging
-structlog==23.2.0
-prometheus-client==0.19.0
-
-# Development and testing
+python-dotenv==1.0.0
+httpx==0.25.2
+aiofiles==23.2.1
 pytest==7.4.3
 pytest-asyncio==0.21.1
-httpx==0.25.2
-
-# Production deployment
-gunicorn==21.2.0
-python-dotenv==1.0.0
-
-# Rate limiting
-slowapi==0.1.9
-
-# CORS and middleware
-python-cors==1.7.0 
+black==23.11.0
+flake8==6.1.0
+mypy==1.7.1 
