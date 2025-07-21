@@ -64,8 +64,9 @@ class DefaultFirebaseOptions {
     messagingSenderId: '267802124592',
     projectId: 'gitalong-c8075',
     storageBucket: 'gitalong-c8075.firebasestorage.app',
-    iosClientId: '267802124592-imp7fos397ehr9rhpjemv2imcjj2b4o8.apps.googleusercontent.com',
-    iosBundleId: 'com.example.gitalong',
+    iosClientId:
+        '267802124592-imp7fos397ehr9rhpjemv2imcjj2b4o8.apps.googleusercontent.com',
+    iosBundleId: 'com.gitalong.app',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -74,8 +75,9 @@ class DefaultFirebaseOptions {
     messagingSenderId: '267802124592',
     projectId: 'gitalong-c8075',
     storageBucket: 'gitalong-c8075.firebasestorage.app',
-    iosClientId: '267802124592-imp7fos397ehr9rhpjemv2imcjj2b4o8.apps.googleusercontent.com',
-    iosBundleId: 'com.example.gitalong',
+    iosClientId:
+        '267802124592-imp7fos397ehr9rhpjemv2imcjj2b4o8.apps.googleusercontent.com',
+    iosBundleId: 'com.gitalong.app',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
@@ -87,5 +89,4 @@ class DefaultFirebaseOptions {
     storageBucket: 'gitalong-c8075.firebasestorage.app',
     measurementId: 'G-6B59981K34',
   );
-
 }

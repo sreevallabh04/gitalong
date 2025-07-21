@@ -319,7 +319,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         ),
         title: Row(
           children: [
-            Icon(
+            const Icon(
               Icons.lock_reset,
               color: AppColors.primary,
               size: 24,
@@ -425,7 +425,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         ),
         title: Row(
           children: [
-            Icon(
+            const Icon(
               Icons.error_outline,
               color: AppColors.error,
               size: 24,

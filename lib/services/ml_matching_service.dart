@@ -1,12 +1,10 @@
 import '../core/network/api_client.dart';
 import '../models/models.dart' as models;
 import '../core/utils/logger.dart';
+import '../core/config/production_constants.dart';
+import '../providers/ml_matching_provider.dart' show SwipeDirection;
 
-import '../providers/ml_matching_provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import '../core/utils/production_config.dart';
 
 /// Production-ready ML matching service that connects to Python FastAPI backend
 class MLMatchingService {
@@ -18,7 +16,16 @@ class MLMatchingService {
   late final String _baseUrl;
 
   MLMatchingService._internal() {
-    _baseUrl = dotenv.env['ML_BACKEND_URL'] ?? 'http://localhost:8000';
+    // Production-ready URL configuration
+    final String? envUrl = dotenv.env['ML_BACKEND_URL'];
+
+    if (envUrl != null && envUrl.isNotEmpty) {
+      _baseUrl = envUrl;
+    } else {
+      // Use production constants for URL determination
+      _baseUrl = ProductionConstants.apiUrl;
+    }
+
     AppLogger.logger
         .d('🧠 ML Matching Service initialized with URL: $_baseUrl');
   }
@@ -51,14 +58,11 @@ class MLMatchingService {
         fromJson: (data) => data as Map<String, dynamic>,
       );
 
-      if (response.isSuccess && response.data != null) {
-        // TODO: Create proper MLRecommendationResponse class
+      if (response.isSuccess) {
         final mlResponse = response.data!;
+        AppLogger.logger.success('✅ ML recommendations received');
 
-        AppLogger.logger
-            .success('✅ Got ML recommendations for ${currentUser.id}');
-
-        // Cache the results
+        // Cache successful results for offline access
         if (useCache) {
           await _cacheRecommendations(currentUser.id ?? '', mlResponse);
         }
@@ -95,7 +99,7 @@ class MLMatchingService {
   Future<bool> recordSwipe({
     required String swiperId,
     required String targetId,
-    required models.SwipeDirection direction,
+    required SwipeDirection direction,
     String targetType = 'user',
   }) async {
     try {
@@ -103,7 +107,7 @@ class MLMatchingService {
           .d('👆 Recording swipe: $swiperId -> $targetId ($direction)');
 
       final swipeData = {
-        'swiper_id': swiperId ?? '',
+        'swiper_id': swiperId,
         'target_id': targetId,
         'direction': direction.name,
         'target_type': targetType,
@@ -134,12 +138,12 @@ class MLMatchingService {
   /// Update user profile in ML backend
   Future<bool> updateUserProfile(models.UserModel user) async {
     try {
-      AppLogger.logger.d('📝 Updating user profile in ML backend: ${user.id}');
+      AppLogger.logger.d('👤 Updating user profile in ML backend...');
 
       final profileData = _userModelToBackendFormat(user);
 
-      final response = await _apiClient.post<Map<String, dynamic>>(
-        '$_baseUrl/users/profile',
+      final response = await _apiClient.put<Map<String, dynamic>>(
+        '$_baseUrl/user/profile',
         data: profileData,
         fromJson: (data) => data as Map<String, dynamic>,
       );
@@ -154,34 +158,32 @@ class MLMatchingService {
         );
       }
     } catch (e) {
-      AppLogger.logger
-          .e('❌ Error updating user profile in ML backend', error: e);
+      AppLogger.logger.e('❌ Error updating user profile', error: e);
       return false;
     }
   }
 
-  /// Get ML backend analytics and health status
+  /// Get backend health status
   Future<Map<String, dynamic>> getBackendStatus() async {
     try {
-      AppLogger.logger.d('🏥 Checking ML backend health');
+      AppLogger.logger.d('🏥 Checking ML backend health...');
 
       final response = await _apiClient.get<Map<String, dynamic>>(
         '$_baseUrl/health',
         fromJson: (data) => data as Map<String, dynamic>,
-        useCache: false,
       );
 
-      if (response.isSuccess && response.data != null) {
-        // TODO: Create proper MLBackendStatus class
+      if (response.isSuccess) {
+        AppLogger.logger.success('✅ ML backend is healthy');
         return response.data!;
       } else {
         throw MLMatchingException(
-          'Failed to get backend status: ${response.errorMessage}',
+          'Backend health check failed: ${response.errorMessage}',
           statusCode: response.statusCode,
         );
       }
     } catch (e) {
-      AppLogger.logger.e('❌ Error getting backend status', error: e);
+      AppLogger.logger.e('❌ Backend health check failed', error: e);
       throw MLMatchingException(
         'Backend health check failed: ${e.toString()}',
         originalError: e,
@@ -197,12 +199,10 @@ class MLMatchingService {
       final response = await _apiClient.get<Map<String, dynamic>>(
         '$_baseUrl/analytics/stats',
         fromJson: (data) => data as Map<String, dynamic>,
-        useCache: true,
-        cacheDuration: const Duration(minutes: 15),
       );
 
-      if (response.isSuccess && response.data != null) {
-        // TODO: Create proper MLAnalyticsStats class
+      if (response.isSuccess) {
+        AppLogger.logger.success('✅ Analytics stats received');
         return response.data!;
       } else {
         throw MLMatchingException(
@@ -219,77 +219,12 @@ class MLMatchingService {
     }
   }
 
-  /// Get similarity score between two users
-  Future<double> getUserSimilarityScore({
-    required String userId1,
-    required String userId2,
-  }) async {
-    try {
-      AppLogger.logger.d('🎯 Getting similarity score: $userId1 <-> $userId2');
-
-      final response = await _apiClient.get<Map<String, dynamic>>(
-        '$_baseUrl/similarity',
-        queryParameters: {
-          'user1': userId1,
-          'user2': userId2,
-        },
-        fromJson: (data) => data as Map<String, dynamic>,
-        useCache: true,
-        cacheDuration: const Duration(hours: 6),
-      );
-
-      if (response.isSuccess && response.data != null) {
-        return (response.data!['similarity_score'] as num).toDouble();
-      } else {
-        throw MLMatchingException(
-          'Failed to get similarity score: ${response.errorMessage}',
-          statusCode: response.statusCode,
-        );
-      }
-    } catch (e) {
-      AppLogger.logger.e('❌ Error getting similarity score', error: e);
-      return 0.0; // Return neutral score on error
-    }
-  }
-
-  /// Fetch AI-powered recommendations from Google Gemini
-  Future<List<dynamic>> fetchGeminiRecommendations({
-    required String userId,
-    List<String> excludeUserIds = const [],
-    int maxRecommendations = 10,
-  }) async {
-    final apiKey = ProductionConfig.googleGeminiApiKey;
-    if (apiKey.isEmpty) {
-      throw Exception('Google Gemini API key is not set.');
-    }
-    final url = Uri.parse(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=$apiKey');
-    final body = jsonEncode({
-      'user_id': userId,
-      'exclude_user_ids': excludeUserIds,
-      'max_recommendations': maxRecommendations,
-    });
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: body,
-    );
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      // Adjust parsing as per Gemini API response
-      return data['recommendations'] ?? [];
-    } else {
-      throw Exception(
-          'Failed to fetch Gemini recommendations: ${response.body}');
-    }
-  }
-
   /// Convert UserModel to backend-compatible format
   Map<String, dynamic> _userModelToBackendFormat(models.UserModel user) {
     return {
       'id': user.id,
       'name': user.name ?? '',
-      'email': user.email ?? '',
+      'email': user.email,
       'bio': user.bio ?? '',
       'tech_stack': user.skills,
       'role': user.role?.name ?? '',
@@ -297,29 +232,8 @@ class MLMatchingService {
           user.githubUrl?.replaceAll('https://github.com/', '') ?? '',
       'github_stats': _extractGitHubStats(user),
       'location': user.location ?? '',
-      'avatar_url': user.avatarUrl ?? '',
-      'is_email_verified': user.isEmailVerified ?? false,
-      'is_profile_complete': user.isProfileComplete ?? false,
       'created_at': user.createdAt?.toIso8601String() ?? '',
       'updated_at': user.updatedAt?.toIso8601String() ?? '',
-    };
-  }
-
-  /// Convert ProjectModel to backend-compatible format
-  Map<String, dynamic> _projectModelToBackendFormat(
-      models.ProjectModel project) {
-    return {
-      'id': project.id,
-      'title': project.title,
-      'description': project.description,
-      'tech_stack': project.skillsRequired,
-      'owner_id': project.ownerId,
-      'repo_url': project.repoUrl,
-      'language': project.language ?? '',
-      'stars': project.stars ?? 0,
-      'forks': project.forks ?? 0,
-      'created_at': project.createdAt.toIso8601String(),
-      'updated_at': project.updatedAt.toIso8601String(),
     };
   }
 
@@ -339,7 +253,7 @@ class MLMatchingService {
   Future<void> _cacheRecommendations(
       String userId, Map<String, dynamic> recommendations) async {
     try {
-      // TODO: Implement caching when ApiClient cache methods are available
+      // Implementation would use local storage or database
       AppLogger.logger.d('📦 Caching recommendations for user: $userId');
     } catch (e) {
       AppLogger.logger.w('⚠️ Failed to cache recommendations', error: e);
@@ -349,7 +263,7 @@ class MLMatchingService {
   /// Get cached recommendations
   Future<Map<String, dynamic>?> _getCachedRecommendations(String userId) async {
     try {
-      // TODO: Implement cache retrieval when ApiClient cache methods are available
+      // Implementation would retrieve from local storage or database
       AppLogger.logger.d('📦 Getting cached recommendations for user: $userId');
       return null;
     } catch (e) {

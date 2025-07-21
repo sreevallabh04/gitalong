@@ -207,7 +207,7 @@ class CommitTooltip extends StatelessWidget {
   }
 }
 
-/// Helper class for generating commit data
+/// Helper class for managing commit data
 class CommitData {
   const CommitData({
     required this.date,
@@ -217,44 +217,27 @@ class CommitData {
   final DateTime date;
   final int commitCount;
 
-  /// Generates sample commit data for the last 53 weeks (like GitHub)
-  static List<CommitData> generateSampleData() {
+  /// Creates empty commit data for the last 53 weeks (GitHub-style)
+  /// In production, this should be replaced with real GitHub API data
+  static List<CommitData> generateEmptyData() {
     final data = <CommitData>[];
     final now = DateTime.now();
     final startDate = now.subtract(const Duration(days: 371)); // ~53 weeks
 
     for (int i = 0; i < 371; i++) {
       final date = startDate.add(Duration(days: i));
-
-      // Generate realistic-looking commit patterns
-      int commits = 0;
-
-      // Weekend penalty (less likely to commit)
-      if (date.weekday == DateTime.saturday ||
-          date.weekday == DateTime.sunday) {
-        commits = _randomCommits(0.3);
-      } else {
-        commits = _randomCommits(0.7);
-      }
-
-      // Add some streaks and breaks
-      if (i % 30 < 5) commits = 0; // Vacation/break periods
-      if (i % 60 > 50) commits *= 2; // Crunch periods
-
-      data.add(CommitData(date: date, commitCount: commits));
+      data.add(CommitData(date: date, commitCount: 0));
     }
 
     return data;
   }
 
-  static int _randomCommits(double probability) {
-    final random = DateTime.now().millisecondsSinceEpoch % 100;
-    if (random > probability * 100) return 0;
-
-    final intensity = (random % 20) / 20.0;
-    if (intensity < 0.5) return 1;
-    if (intensity < 0.8) return 2;
-    if (intensity < 0.95) return (3 + (random % 5));
-    return 10 + (random % 10); // Rare high-activity days
+  /// Creates commit data from real GitHub API response
+  /// This method should be used in production with actual GitHub data
+  static List<CommitData> fromGitHubData(Map<String, dynamic> githubResponse) {
+    final data = <CommitData>[];
+    // Implementation depends on GitHub API response format
+    // This is a placeholder for real implementation
+    return data;
   }
 }

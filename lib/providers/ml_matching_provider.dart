@@ -78,7 +78,7 @@ class MLRecommendationsNotifier
   Future<void> recordSwipe({
     required String swiperId,
     required String targetId,
-    required models.SwipeDirection direction,
+    required SwipeDirection direction,
     String targetType = 'user',
   }) async {
     try {

@@ -3,16 +3,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:convert';
 import '../models/models.dart';
 import '../core/utils/logger.dart';
-import '../core/utils/safe_query.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/services.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:math';
 
@@ -130,7 +124,8 @@ class AuthService {
       AppLogger.logger.e('❌ Unexpected error during email sign-in',
           error: e, stackTrace: stackTrace);
       await _trackAuthEvent('email_sign_in_error', email, error: e.toString());
-      throw AuthException('An unexpected error occurred. Please try again.',
+      throw const AuthException(
+          'An unexpected error occurred. Please try again.',
           code: 'unknown-error');
     }
   }
@@ -192,7 +187,8 @@ class AuthService {
       AppLogger.logger.e('❌ Unexpected error during email sign-up',
           error: e, stackTrace: stackTrace);
       await _trackAuthEvent('email_sign_up_error', email, error: e.toString());
-      throw AuthException('An unexpected error occurred. Please try again.',
+      throw const AuthException(
+          'An unexpected error occurred. Please try again.',
           code: 'unknown-error');
     }
   }
@@ -234,7 +230,7 @@ class AuthService {
       AppLogger.logger.e('❌ Unexpected error during Google sign-in',
           error: e, stackTrace: stackTrace);
       await _trackAuthEvent('google_sign_in_error', null, error: e.toString());
-      throw AuthException('Google sign-in failed. Please try again.',
+      throw const AuthException('Google sign-in failed. Please try again.',
           code: 'google-signin-error');
     }
   }
@@ -283,7 +279,7 @@ class AuthService {
       AppLogger.logger.e('❌ Unexpected error during Apple sign-in',
           error: e, stackTrace: stackTrace);
       await _trackAuthEvent('apple_sign_in_error', null, error: e.toString());
-      throw AuthException('Apple sign-in failed. Please try again.',
+      throw const AuthException('Apple sign-in failed. Please try again.',
           code: 'apple-signin-error');
     }
   }
@@ -337,7 +333,7 @@ class AuthService {
     } catch (e, stackTrace) {
       AppLogger.logger.e('❌ Unexpected error sending password reset',
           error: e, stackTrace: stackTrace);
-      throw AuthException(
+      throw const AuthException(
           'Failed to send password reset email. Please try again.',
           code: 'reset-error');
     }
@@ -367,8 +363,161 @@ class AuthService {
     } catch (e, stackTrace) {
       AppLogger.logger.e('❌ Unexpected error deleting account',
           error: e, stackTrace: stackTrace);
-      throw AuthException('Failed to delete account. Please try again.',
+      throw const AuthException('Failed to delete account. Please try again.',
           code: 'delete-error');
+    }
+  }
+
+  /// Get current user profile from Firestore
+  Future<UserModel> getCurrentUserProfile() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw const AuthException('No user is currently signed in',
+            code: 'no-user');
+      }
+
+      final doc = await _firestore.collection('users').doc(user.uid).get();
+
+      if (!doc.exists) {
+        // Create default profile if it doesn't exist
+        return await createDefaultUserProfile();
+      }
+
+      final data = doc.data()!;
+      return UserModel.fromJson(data);
+    } catch (e, stackTrace) {
+      AppLogger.logger.e('❌ Error getting current user profile',
+          error: e, stackTrace: stackTrace);
+      throw const AuthException('Failed to get user profile. Please try again.',
+          code: 'profile-error');
+    }
+  }
+
+  /// Create or update user profile
+  Future<UserModel> upsertUserProfile({
+    required String name,
+    required UserRole role,
+    String? bio,
+    String? githubUrl,
+    List<String> skills = const [],
+    String? avatarUrl,
+  }) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw const AuthException('No user is currently signed in',
+            code: 'no-user');
+      }
+
+      final userData = {
+        'uid': user.uid,
+        'email': user.email,
+        'name': name,
+        'role': role.name,
+        'bio': bio ?? '',
+        'githubUrl': githubUrl,
+        'skills': skills,
+        'avatarUrl': avatarUrl ?? user.photoURL,
+        'isProfileComplete': true,
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      await _firestore.collection('users').doc(user.uid).set(
+            userData,
+            SetOptions(merge: true),
+          );
+
+      AppLogger.logger.auth('✅ User profile updated successfully');
+      return UserModel.fromJson(userData);
+    } catch (e, stackTrace) {
+      AppLogger.logger
+          .e('❌ Error updating user profile', error: e, stackTrace: stackTrace);
+      throw const AuthException(
+          'Failed to update user profile. Please try again.',
+          code: 'profile-update-error');
+    }
+  }
+
+  /// Create default user profile for new users
+  Future<UserModel> createDefaultUserProfile() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw const AuthException('No user is currently signed in',
+            code: 'no-user');
+      }
+
+      final displayName =
+          user.displayName ?? user.email?.split('@')[0] ?? 'User';
+
+      final userData = {
+        'uid': user.uid,
+        'email': user.email,
+        'name': displayName,
+        'role': UserRole.contributor.name,
+        'bio': 'New GitAlong user',
+        'githubUrl': null,
+        'skills': <String>[],
+        'avatarUrl': user.photoURL,
+        'isProfileComplete': false,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      await _firestore.collection('users').doc(user.uid).set(userData);
+
+      AppLogger.logger
+          .auth('✅ Default user profile created for: ${user.email}');
+      return UserModel.fromJson(userData);
+    } catch (e, stackTrace) {
+      AppLogger.logger.e('❌ Error creating default user profile',
+          error: e, stackTrace: stackTrace);
+      throw const AuthException(
+          'Failed to create user profile. Please try again.',
+          code: 'profile-creation-error');
+    }
+  }
+
+  /// Sign in with GitHub (mobile implementation)
+  Future<UserCredential> signInWithGitHubMobile() async {
+    try {
+      AppLogger.logger.auth('🔐 Attempting GitHub sign-in...');
+
+      // For now, we'll use a simplified GitHub OAuth flow
+      // In production, you would implement proper GitHub OAuth
+
+      // Create a custom token or use existing authentication
+      // This is a placeholder implementation
+
+      throw const AuthException(
+          'GitHub sign-in is not yet implemented. Please use email or Google sign-in.',
+          code: 'github-not-implemented');
+    } catch (e, stackTrace) {
+      AppLogger.logger
+          .e('❌ GitHub sign-in failed', error: e, stackTrace: stackTrace);
+      if (e is AuthException) rethrow;
+      throw const AuthException('GitHub sign-in failed. Please try again.',
+          code: 'github-signin-error');
+    }
+  }
+
+  /// Reload current user data
+  Future<void> reloadUser() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw const AuthException('No user is currently signed in',
+            code: 'no-user');
+      }
+
+      await user.reload();
+      AppLogger.logger.auth('✅ User data reloaded successfully');
+    } catch (e, stackTrace) {
+      AppLogger.logger
+          .e('❌ Error reloading user data', error: e, stackTrace: stackTrace);
+      throw const AuthException('Failed to reload user data. Please try again.',
+          code: 'reload-error');
     }
   }
 

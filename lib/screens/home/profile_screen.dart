@@ -1202,7 +1202,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         AppLogger.logger.e('❌ Image picker already active', error: e);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
+            const SnackBar(
                 content: Text('Image picker is already open. Please wait.')),
           );
         }

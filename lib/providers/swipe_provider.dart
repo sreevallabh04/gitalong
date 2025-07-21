@@ -2,7 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 
 // Simple stub swipe provider to unblock build
-final swipeProvider = StateNotifierProvider<SwipeNotifier, AsyncValue<List<UserModel>>>((ref) {
+final swipeProvider =
+    StateNotifierProvider<SwipeNotifier, AsyncValue<List<UserModel>>>((ref) {
   return SwipeNotifier();
 });
 
@@ -35,13 +36,26 @@ class SwipeNotifier extends StateNotifier<AsyncValue<List<UserModel>>> {
 
   Future<void> loadRecommendations(String userId) async {
     state = const AsyncValue.loading();
-    // TODO: Implement actual recommendation loading
-    await Future.delayed(const Duration(milliseconds: 500));
-    state = const AsyncValue.data([]);
+
+    try {
+      // Integrate with ML backend or user service to get real recommendations
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // For now, return empty list until ML backend is fully integrated
+      state = const AsyncValue.data([]);
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+    }
   }
 
   Future<void> recordSwipe(String userId, bool isLike) async {
-    // TODO: Implement actual swipe recording
-    await Future.delayed(const Duration(milliseconds: 100));
+    try {
+      // Record swipe with analytics or ML service
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      // Implementation will be added when swipe recording API is ready
+    } catch (error) {
+      // Handle error silently for now
+    }
   }
 }
