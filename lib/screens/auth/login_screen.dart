@@ -148,7 +148,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     try {
       AppLogger.logger.auth('🔐 Attempting email sign-in...');
 
-      await ref.read(authServiceProvider).signInWithEmailAndPassword(
+      await ref.read(enhancedAuthServiceProvider).signInWithEmailAndPassword(
             email: _emailController.text.trim(),
             password: _passwordController.text,
           );
@@ -182,7 +182,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       }
 
       final userCredential =
-          await ref.read(authServiceProvider).signInWithGitHubMobile();
+          await ref.read(enhancedAuthServiceProvider).signInWithGitHubMobile();
 
       AppLogger.logger.auth('✅ GitHub sign-in successful');
       AppLogger.logger.auth('👤 User: ${userCredential.user?.email}');
@@ -190,7 +190,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
       // Ensure user profile is created
       try {
-        await ref.read(authServiceProvider).getCurrentUserProfile();
+        await ref.read(enhancedAuthServiceProvider).getCurrentUserProfile();
         AppLogger.logger.auth('✅ User profile ensured/created');
       } catch (profileError) {
         AppLogger.logger
@@ -228,14 +228,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       }
 
       final userCredential =
-          await ref.read(authServiceProvider).signInWithGoogle();
+          await ref.read(enhancedAuthServiceProvider).signInWithGoogle();
 
       AppLogger.logger.auth('✅ Google sign-in successful');
       AppLogger.logger.auth('👤 User: ${userCredential.user?.email}');
 
       // Ensure user profile is created
       try {
-        await ref.read(authServiceProvider).getCurrentUserProfile();
+        await ref.read(enhancedAuthServiceProvider).getCurrentUserProfile();
         AppLogger.logger.auth('✅ User profile ensured/created');
       } catch (profileError) {
         AppLogger.logger
@@ -382,7 +382,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 _showErrorDialog('Error', 'Please enter your email address.');
                 return;
               }
-              
+
               Navigator.of(context).pop();
               await _sendPasswordResetEmail(email);
             },
@@ -402,7 +402,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
   Future<void> _sendPasswordResetEmail(String email) async {
     try {
-      await ref.read(authServiceProvider).sendPasswordResetEmail(email);
+      await ref.read(enhancedAuthServiceProvider).sendPasswordResetEmail(email);
       _showErrorDialog(
         'Reset Link Sent',
         'Check your email for password reset instructions.',

@@ -45,6 +45,10 @@ class UserModel with _$UserModel {
     String? authMethod,
     bool? isEmailVerified,
     bool? isProfileComplete,
+    // Security and profile enhancements
+    Map<String, dynamic>? security,
+    Map<String, dynamic>? privacy,
+    Map<String, dynamic>? statistics,
   }) = _UserModel;
 
   factory UserModel.fromJson(Map<String, dynamic> json) =>

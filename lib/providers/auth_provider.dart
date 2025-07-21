@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
+import '../services/enhanced_auth_service.dart';
 import '../services/firestore_service.dart';
 import '../models/user_model.dart';
 import '../core/utils/logger.dart';
@@ -23,6 +24,23 @@ final authServiceProvider = Provider<AuthService>((ref) {
   } catch (e, stackTrace) {
     AppLogger.logger.e(
       '❌ Failed to create AuthService',
+      error: e,
+      stackTrace: stackTrace,
+    );
+    rethrow;
+  }
+});
+
+// Enhanced Auth service provider - for advanced security features
+final enhancedAuthServiceProvider = Provider<EnhancedAuthService>((ref) {
+  AppLogger.logger.auth('🔧 Creating EnhancedAuthService instance');
+  try {
+    final authService = EnhancedAuthService();
+    AppLogger.logger.auth('✅ EnhancedAuthService created successfully');
+    return authService;
+  } catch (e, stackTrace) {
+    AppLogger.logger.e(
+      '❌ Failed to create EnhancedAuthService',
       error: e,
       stackTrace: stackTrace,
     );

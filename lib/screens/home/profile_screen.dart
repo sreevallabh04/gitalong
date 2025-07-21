@@ -13,6 +13,7 @@ import '../../models/models.dart';
 import '../../widgets/profile/role_switch_card.dart';
 import '../../widgets/profile/stats_card.dart';
 import '../../widgets/profile/project_preview_card.dart';
+import '../../widgets/profile/enhanced_security_widget.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../../core/utils/accessibility_utils.dart';
@@ -259,6 +260,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 .slideY(begin: 0.3, curve: Curves.easeOutCubic),
           ),
         ],
+
+        const SliverToBoxAdapter(child: SizedBox(height: 24)),
+
+        // Enhanced Security Section
+        SliverToBoxAdapter(
+          child: EnhancedProfileSecurityWidget(userProfile: userProfile)
+              .animate(controller: _contentController)
+              .fadeIn(duration: 600.ms, delay: 450.ms)
+              .slideY(begin: 0.3, curve: Curves.easeOutCubic),
+        ),
 
         const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
