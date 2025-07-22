@@ -15,21 +15,7 @@ final firestoreServiceProvider = Provider<FirestoreService>((ref) {
 });
 
 // Auth service provider - lazy initialization to prevent early Firebase access
-final authServiceProvider = Provider<AuthService>((ref) {
-  AppLogger.logger.auth('🔧 Creating AuthService instance');
-  try {
-    final authService = AuthService();
-    AppLogger.logger.auth('✅ AuthService created successfully');
-    return authService;
-  } catch (e, stackTrace) {
-    AppLogger.logger.e(
-      '❌ Failed to create AuthService',
-      error: e,
-      stackTrace: stackTrace,
-    );
-    rethrow;
-  }
-});
+final authServiceProvider = Provider<AuthService>((ref) => AuthService());
 
 // Enhanced Auth service provider - for advanced security features
 final enhancedAuthServiceProvider = Provider<EnhancedAuthService>((ref) {

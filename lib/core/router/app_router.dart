@@ -12,6 +12,8 @@ import '../../screens/splash_screen.dart';
 import '../../screens/project/project_upload_screen.dart';
 import '../../screens/error/route_error_screen.dart';
 import '../../screens/profile/public_profile_screen.dart';
+// Added AuthScreen import
+import '../../screens/auth/signup_screen.dart'; // Add this import
 
 // Providers
 import '../../providers/auth_provider.dart';
@@ -745,6 +747,13 @@ final routerProvider = Provider<GoRouter>((ref) {
 
           return PublicProfileScreen(username: username);
         },
+      ),
+
+      // Add this route to the GoRouter routes list:
+      GoRoute(
+        path: '/signup',
+        name: 'signup',
+        builder: (context, state) => const SignupScreen(),
       ),
 
       // ========================================================================

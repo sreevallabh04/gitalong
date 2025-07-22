@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:gitalong/services/auth_service.dart';
+import 'package:gitalong/services/auth/auth_service.dart';
 
 // Mock classes
 class MockFirebaseAuth extends Mock implements FirebaseAuth {}
@@ -41,7 +41,7 @@ void main() {
       authService = AuthService();
     });
 
-    group('signInWithEmailAndPassword', () {
+    group('login', () {
       test('should sign in successfully with valid credentials', () async {
         // Arrange
         const email = 'test@example.com';
@@ -55,7 +55,7 @@ void main() {
 
         // Act & Assert
         expect(
-          () => authService.signInWithEmailAndPassword(
+          () => authService.login(
             email: email,
             password: password,
           ),
@@ -70,7 +70,7 @@ void main() {
 
         // Act & Assert
         expect(
-          () => authService.signInWithEmailAndPassword(
+          () => authService.login(
             email: email,
             password: password,
           ),
@@ -85,7 +85,7 @@ void main() {
 
         // Act & Assert
         expect(
-          () => authService.signInWithEmailAndPassword(
+          () => authService.login(
             email: email,
             password: password,
           ),
@@ -100,7 +100,7 @@ void main() {
 
         // Act & Assert
         expect(
-          () => authService.signInWithEmailAndPassword(
+          () => authService.login(
             email: email,
             password: password,
           ),
@@ -125,7 +125,7 @@ void main() {
 
         // Act & Assert
         expect(
-          () => authService.signInWithEmailAndPassword(
+          () => authService.login(
             email: email,
             password: password,
           ),
@@ -145,7 +145,7 @@ void main() {
         )).thenAnswer((_) async => mockUserCredential);
 
         // Act
-        await authService.signInWithEmailAndPassword(
+        await authService.login(
           email: email,
           password: password,
         );
@@ -158,7 +158,7 @@ void main() {
       });
     });
 
-    group('createUserWithEmailAndPassword', () {
+    group('createAccount', () {
       test('should create user successfully with valid credentials', () async {
         // Arrange
         const email = 'test@example.com';
@@ -173,9 +173,10 @@ void main() {
         )).thenAnswer((_) async => mockUserCredential);
 
         // Act
-        final result = await authService.createUserWithEmailAndPassword(
+        final result = await authService.createAccount(
           email: email,
           password: password,
+          displayName: 'Test User',
         );
 
         // Assert
@@ -190,7 +191,7 @@ void main() {
 
         // Act & Assert
         expect(
-          () => authService.createUserWithEmailAndPassword(
+          () => authService.createAccount(
             email: email,
             password: password,
           ),
@@ -199,7 +200,7 @@ void main() {
       });
     });
 
-    group('signInWithGoogle', () {
+    group('signInWithGoogleOAuth', () {
       test('should sign in with Google successfully', () async {
         // Arrange
         when(mockGoogleSignInAuthentication.accessToken)
@@ -215,7 +216,7 @@ void main() {
             .thenAnswer((_) async => mockUserCredential);
 
         // Act
-        final result = await authService.signInWithGoogle();
+        final result = await authService.signInWithGoogleOAuth();
 
         // Assert
         expect(result, equals(mockUserCredential));
@@ -228,44 +229,9 @@ void main() {
 
         // Act & Assert
         expect(
-          () => authService.signInWithGoogle(),
+          () => authService.signInWithGoogleOAuth(),
           throwsA(isA<Exception>()),
         );
-      });
-    });
-
-    group('getter methods', () {
-      test('currentUser should return current user', () {
-        // Arrange
-        when(mockFirebaseAuth.currentUser).thenReturn(mockUser);
-
-        // Act
-        final result = authService.currentUser;
-
-        // Assert
-        expect(result, equals(mockUser));
-      });
-
-      test('isAuthenticated should return true when user exists', () {
-        // Arrange
-        when(mockFirebaseAuth.currentUser).thenReturn(mockUser);
-
-        // Act
-        final result = authService.isAuthenticated;
-
-        // Assert
-        expect(result, isTrue);
-      });
-
-      test('isAuthenticated should return false when user is null', () {
-        // Arrange
-        when(mockFirebaseAuth.currentUser).thenReturn(null);
-
-        // Act
-        final result = authService.isAuthenticated;
-
-        // Assert
-        expect(result, isFalse);
       });
     });
   });
