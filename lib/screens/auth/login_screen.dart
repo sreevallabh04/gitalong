@@ -9,7 +9,7 @@ import '../../widgets/common/accessible_button.dart';
 import '../../widgets/common/accessible_form_field.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import '../../services/auth_service.dart' as auth_service;
+import '../../services/auth_service.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -271,7 +271,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   }
 
   String _getErrorMessage(dynamic error) {
-    if (error is auth_service.AuthException) {
+    if (error is AuthException) {
       return error.message;
     }
 

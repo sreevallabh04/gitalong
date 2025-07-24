@@ -194,6 +194,7 @@ void main() {
           () => authService.createAccount(
             email: email,
             password: password,
+            displayName: 'Test User',
           ),
           throwsException,
         );
