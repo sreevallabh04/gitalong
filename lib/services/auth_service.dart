@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_model.dart';
 import '../core/utils/logger.dart';
 
@@ -79,6 +81,78 @@ class AuthService {
     }
   }
 
+  Future<UserCredential> signInWithApple() async {
+    try {
+      AppLogger.logger.auth('🍎 Signing in with Apple...');
+
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+
+      final oauthCredential = OAuthProvider('apple.com').credential(
+        idToken: credential.identityToken,
+        accessToken: credential.authorizationCode,
+      );
+
+      final result = await _auth.signInWithCredential(oauthCredential);
+      AppLogger.logger.auth('✅ Apple sign-in successful');
+      return result;
+    } on FirebaseAuthException catch (e) {
+      AppLogger.logger.e('❌ Apple sign-in failed', error: e);
+      throw AuthException(_getErrorMessage(e), code: e.code);
+    } catch (e) {
+      AppLogger.logger.e('❌ Apple sign-in failed', error: e);
+      throw AuthException('Apple sign-in failed: ${e.toString()}');
+    }
+  }
+
+  Future<UserCredential> signInWithGoogle() async {
+    try {
+      AppLogger.logger.auth('🔍 Signing in with Google...');
+
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) {
+        throw AuthException('Google sign-in was cancelled');
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final result = await _auth.signInWithCredential(credential);
+      AppLogger.logger.auth('✅ Google sign-in successful');
+      return result;
+    } on FirebaseAuthException catch (e) {
+      AppLogger.logger.e('❌ Google sign-in failed', error: e);
+      throw AuthException(_getErrorMessage(e), code: e.code);
+    } catch (e) {
+      AppLogger.logger.e('❌ Google sign-in failed', error: e);
+      throw AuthException('Google sign-in failed: ${e.toString()}');
+    }
+  }
+
+  Future<UserCredential> signInWithGitHubMobile() async {
+    try {
+      AppLogger.logger.auth('🐙 Signing in with GitHub...');
+
+      // For mobile, we'll use a simplified approach
+      // In a real app, you'd implement proper OAuth flow
+      throw AuthException('GitHub sign-in not implemented for mobile yet');
+    } on FirebaseAuthException catch (e) {
+      AppLogger.logger.e('❌ GitHub sign-in failed', error: e);
+      throw AuthException(_getErrorMessage(e), code: e.code);
+    } catch (e) {
+      AppLogger.logger.e('❌ GitHub sign-in failed', error: e);
+      throw AuthException('GitHub sign-in failed: ${e.toString()}');
+    }
+  }
+
   Future<UserModel?> getCurrentUserProfile() async {
     try {
       if (!isAuthenticated) return null;
@@ -110,7 +184,7 @@ class AuthService {
 
       final user = currentUser!;
       final userModel = UserModel(
-        id: user.uid,
+        uid: user.uid,
         email: user.email!,
         name: name,
         displayName: name,
@@ -120,8 +194,7 @@ class AuthService {
         skills: skills ?? [],
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
-        isActive: true,
-        emailVerified: user.emailVerified,
+        isEmailVerified: user.emailVerified,
       );
 
       await _firestore
@@ -147,6 +220,18 @@ class AuthService {
       AppLogger.logger.auth('✅ User role updated');
     } catch (e) {
       AppLogger.logger.e('❌ Failed to update user role', error: e);
+      rethrow;
+    }
+  }
+
+  Future<void> reloadUser() async {
+    try {
+      if (currentUser != null) {
+        await currentUser!.reload();
+        AppLogger.logger.auth('✅ User reloaded successfully');
+      }
+    } catch (e) {
+      AppLogger.logger.e('❌ Failed to reload user', error: e);
       rethrow;
     }
   }

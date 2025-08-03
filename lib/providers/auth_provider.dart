@@ -95,7 +95,11 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
           await _ref.read(authServiceProvider).getCurrentUserProfile();
       state = AsyncValue.data(profile);
 
-      AppLogger.logger.d('✅ Profile loaded: [32m${profile.name}[0m');
+      if (profile != null) {
+        AppLogger.logger.d('✅ Profile loaded: [32m${profile.name ?? 'Unknown'}[0m');
+      } else {
+        AppLogger.logger.d('✅ Profile loaded: null (no profile found)');
+      }
     } catch (error, stackTrace) {
       AppLogger.logger
           .e('❌ Error loading profile', error: error, stackTrace: stackTrace);

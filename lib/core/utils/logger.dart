@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
-import 'package:stack_trace/stack_trace.dart';
 
 // Add log level enum
 enum LogLevel { debug, info, warning, error }
@@ -124,10 +123,8 @@ class AppLogPrinter extends LogPrinter {
 
     // Stack trace
     if (event.stackTrace != null) {
-      final trace = Trace.from(event.stackTrace!);
-      final formatted = trace.terse.toString();
       output.add('📍 Stack trace:');
-      output.addAll(formatted.split('\n'));
+      output.addAll(event.stackTrace.toString().split('\n'));
     }
 
     // Separator

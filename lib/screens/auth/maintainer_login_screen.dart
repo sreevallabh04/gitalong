@@ -41,8 +41,8 @@ class _MaintainerLoginScreenState extends ConsumerState<MaintainerLoginScreen> {
       final authService = ref.read(authServiceProvider);
       try {
         final credential = await authService.signInWithEmailAndPassword(
-          email: email,
-          password: password,
+          email,
+          password,
         );
         final user = credential.user;
         if (user == null) throw Exception('No user found');
