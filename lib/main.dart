@@ -17,6 +17,7 @@ import 'providers/web_backend_provider.dart';
 import 'core/router/app_router.dart';
 import 'core/config/app_theme.dart';
 import 'core/theme/github_theme.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 final githubDarkTheme = ThemeData(
   brightness: Brightness.dark,
@@ -120,7 +121,12 @@ void main() async {
     await FirebaseConfig.initialize();
     AppLogger.logger.success('✅ Firebase initialized successfully');
 
+    // Set up Firebase auth error handler
+    _setupFirebaseAuthErrorHandler();
+
     // Initialize Firebase App Check for production security
+    // Temporarily disabled until API is enabled in console
+    /*
     try {
       AppLogger.logger.i('🔒 Initializing Firebase App Check...');
       await FirebaseConfig.initializeAppCheck();
@@ -128,6 +134,9 @@ void main() async {
     } catch (e) {
       AppLogger.logger.w('⚠️ Firebase App Check initialization failed: $e');
     }
+    */
+    AppLogger.logger
+        .w('⚠️ Firebase App Check disabled - enable API in console first');
 
     // Initialize web backend service
     final container = ProviderContainer();
@@ -367,4 +376,31 @@ class AppProviderObserver extends ProviderObserver {
       stackTrace: stackTrace,
     );
   }
+}
+
+/// Setup Firebase auth error handler to detect credential invalidation
+void _setupFirebaseAuthErrorHandler() {
+  FirebaseAuth.instance.authStateChanges().listen(
+    (User? user) {
+      if (user != null) {
+        AppLogger.logger.d('Auth state: User signed in (${user.email})');
+      } else {
+        AppLogger.logger.d('Auth state: User signed out');
+      }
+    },
+    onError: (error) {
+      AppLogger.logger.e('Firebase Auth Error: $error');
+
+      // Handle specific auth errors
+      if (error.toString().contains('credential is no longer valid') ||
+          error.toString().contains('FirebaseAuthInvalidUserException')) {
+        AppLogger.logger.w('🔒 Invalid credentials detected, forcing sign out');
+
+        // Force sign out to clear invalid state
+        FirebaseAuth.instance.signOut().catchError((e) {
+          AppLogger.logger.e('Error during forced sign out: $e');
+        });
+      }
+    },
+  );
 }

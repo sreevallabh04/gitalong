@@ -1173,22 +1173,62 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       if (pickedFile == null) return;
       if (mounted) setState(() => _isLoading = true);
       try {
+        // Create a safe reference with fallback error handling
+        final userId = userProfile.id ?? 'unknown';
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final fileName = '${userId}_$timestamp.jpg';
+
         final storageRef = FirebaseStorage.instance
             .ref()
             .child('profile_pictures')
-            .child('${userProfile.id}.jpg');
-        await storageRef.putData(await pickedFile.readAsBytes());
-        final downloadUrl = await storageRef.getDownloadURL();
+            .child(fileName);
+
+        AppLogger.logger.d('📤 Uploading profile picture: $fileName');
+
+        // Upload with metadata
+        final uploadTask = storageRef.putData(
+          await pickedFile.readAsBytes(),
+          SettableMetadata(
+            contentType: 'image/jpeg',
+            customMetadata: {
+              'userId': userId,
+              'uploadedAt': timestamp.toString(),
+            },
+          ),
+        );
+
+        // Wait for upload completion
+        final snapshot = await uploadTask;
+        final downloadUrl = await snapshot.ref.getDownloadURL();
+
+        AppLogger.logger.success('✅ Profile picture uploaded: $downloadUrl');
+
         // Update user profile with new photoURL
         await ref.read(userProfileProvider.notifier).updateProfile(
               userProfile.copyWith(photoURL: downloadUrl),
             );
-        AppLogger.logger.success('✅ Profile picture updated');
+        AppLogger.logger.success('✅ Profile picture updated in database');
       } on FirebaseException catch (e) {
         AppLogger.logger.e('❌ Firebase Storage error', error: e);
         if (mounted) {
+          String userFriendlyMessage = 'Failed to upload profile picture';
+          if (e.code == 'storage/object-not-found') {
+            userFriendlyMessage = 'Storage path not found. Please try again.';
+          } else if (e.code == 'storage/unauthorized') {
+            userFriendlyMessage =
+                'Not authorized to upload images. Please sign in again.';
+          } else if (e.code == 'storage/canceled') {
+            userFriendlyMessage = 'Upload was canceled. Please try again.';
+          } else if (e.code == 'storage/unknown') {
+            userFriendlyMessage =
+                'Unknown storage error. Please check your connection.';
+          }
+
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Storage error: ${e.message ?? e.code}')),
+            SnackBar(
+              content: Text(userFriendlyMessage),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
           );
         }
       } on PlatformException catch (e) {

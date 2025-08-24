@@ -2,406 +2,139 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // ============================================================================
-    // PRODUCTION FIRESTORE RULES FOR GITALONG - ENHANCED SECURITY
-    // 🔐 Security Level: Production (Strict)
-    // 🎯 Designed for: Production Deployment with Enhanced Security
-    // 📝 Last Updated: 2025-01-03
-    // 🛡️ Features: Data validation, injection prevention, rate limiting awareness
-    // ============================================================================
-    
-    // ============================================================================
-    // 🛡️ SECURITY FUNCTIONS
-    // ============================================================================
-    function isValidEmail(email) {
-      return email is string && email.matches('.*@.*\\..*');
-    }
-    
-    function isValidUserId(userId) {
-      return userId is string && userId.size() > 0 && userId.size() <= 128;
-    }
-    
-    function isValidString(text, minLen, maxLen) {
-      return text is string && text.size() >= minLen && text.size() <= maxLen;
-    }
-    
-    function isValidRole(role) {
-      return role in ['contributor', 'maintainer'];
-    }
-    
-    function isEmailVerified() {
-      return request.auth.token.email_verified == true;
-    }
-    
-    // ============================================================================
-    // 👤 USER PROFILES COLLECTION - ENHANCED SECURITY WITH USERNAME SUPPORT
-    // ============================================================================
+    // Users collection - users can read/write their own profile
     match /users/{userId} {
-      // TEMPORARY: Allow all authenticated, email-verified users to read all user profiles for development
-      allow read: if request.auth != null && isEmailVerified();
-      // Strict user ID validation for write
-      allow write: if request.auth != null 
-        && request.auth.uid == userId 
-        && isValidUserId(userId)
-        && isEmailVerified()
-        && validateUserData();
-      
-      // Allow reading basic profile info for matching and search (with restrictions)
-      allow read: if request.auth != null 
-        && isEmailVerified()
-        && userId != request.auth.uid; // Prevent self-reading via this rule
-      
-      // Enhanced data validation for user creation/updates with username support
-      allow write: if request.auth != null 
-        && request.auth.uid == userId
-        && isEmailVerified()
-        && validateUserData();
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null; // Allow other users to read profiles for search/messaging
     }
     
-    // Allow users to read/write their own recent_searches
-    match /users/{userId}/recent_searches/{docId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId && isEmailVerified();
-    }
-    // Allow authenticated users to read/write follows
-    match /follows/{docId} {
-      allow read, write: if request.auth != null && isEmailVerified();
+    // User's subcollections
+    match /users/{userId}/{subcollection=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // ============================================================================
-    // 🔍 USERNAME SEARCH COLLECTION - FOR UNIQUENESS VALIDATION
-    // ============================================================================
-    match /usernames/{username} {
-      // Allow reading for username uniqueness checks
-      allow read: if request.auth != null && isEmailVerified();
-      
-      // Allow creating username claims for authenticated users
-      allow create: if request.auth != null 
-        && isEmailVerified()
-        && validateUsernameData();
-      
-      // Allow updating own username claims
-      allow update: if request.auth != null 
-        && isEmailVerified()
-        && resource.data.user_id == request.auth.uid
-        && validateUsernameData();
-      
-      // Allow deleting own username claims
-      allow delete: if request.auth != null 
-        && resource.data.user_id == request.auth.uid;
+    // Recent searches - users can manage their own searches
+    match /users/{userId}/recent_searches/{searchId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
-    function validateUsernameData() {
-      let data = request.resource.data;
-      return data.keys().hasAll(['user_id', 'username'])
-        && data.user_id == request.auth.uid
-        && isValidUsername(data.username);
+    // User projects
+    match /users/{userId}/projects/{projectId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
-    function isValidUsername(username) {
-      return username is string 
-        && username.size() >= 3 
-        && username.size() <= 30
-        && username.matches('^[a-z0-9._]+$')
-        && !username.matches('^[._].*') // Cannot start with . or _
-        && !username.matches('.*[._]$') // Cannot end with . or _
-        && !username.matches('.*[._]{2,}.*') // No consecutive . or _
-        && !isReservedUsername(username);
+    // Welcome emails - allow authenticated users to read/write their own emails
+    match /welcome_emails/{emailId} {
+      allow read, write: if request.auth != null && 
+        (resource == null || resource.data.user_id == request.auth.uid);
     }
     
-    function isReservedUsername(username) {
-      return username in ['admin', 'administrator', 'root', 'user', 'gitalong', 
-                          'api', 'www', 'mail', 'email', 'support', 'help', 
-                          'about', 'contact', 'team', 'official', 'verified', 
-                          'staff', 'moderator', 'mod', 'bot', 'system', 'service',
-                          'null', 'undefined', 'test', 'demo', 'example', 'sample',
-                          'placeholder', 'temp', 'temporary', 'github', 'gitlab',
-                          'bitbucket', 'google', 'facebook', 'twitter', 'instagram',
-                          'linkedin', 'discord', 'slack', 'microsoft', 'apple'];
+    // Email analytics - allow authenticated users to write analytics
+    match /email_analytics/{analyticsId} {
+      allow read, write: if request.auth != null;
     }
     
-    function validateUserData() {
-      let data = request.resource.data;
-      return data.keys().hasAll(['id', 'email', 'role'])
-        && data.id == request.auth.uid
-        && isValidEmail(data.email)
-        && data.email == request.auth.token.email
-        && isValidRole(data.role)
-        && (data.name == null || isValidString(data.name, 1, 100))
-        && (data.bio == null || isValidString(data.bio, 0, 500))
-        && (data.github_url == null || data.github_url.matches('https://github\\.com/.*'))
-        && (data.skills == null || (data.skills is list && data.skills.size() <= 10))
-        && (data.username == null || isValidUsername(data.username));
-    }
-    
-    // ============================================================================
-    // 📁 PROJECTS COLLECTION - ENHANCED SECURITY
-    // ============================================================================
-    match /projects/{projectId} {
-      // Project owners can read/write their projects with validation
-      allow read, write: if request.auth != null 
-        && isEmailVerified()
-        && isValidUserId(resource.data.owner_id)
-        && request.auth.uid == resource.data.owner_id;
-      
-      // All authenticated users can read active public projects
-      allow read: if request.auth != null 
-        && isEmailVerified()
-        && resource.data.status == 'active'
-        && resource.data.is_public == true;
-      
-      // Enhanced project creation validation
-      allow create: if request.auth != null 
-        && isEmailVerified()
-        && request.auth.uid == request.resource.data.owner_id
-        && validateProjectData();
-    }
-    
-    function validateProjectData() {
-      let data = request.resource.data;
-      return data.keys().hasAll(['title', 'description', 'repo_url', 'owner_id'])
-        && isValidString(data.title, 1, 200)
-        && isValidString(data.description, 1, 2000)
-        && data.repo_url.matches('https://github\\.com/.*')
-        && data.owner_id == request.auth.uid
-        && data.status in ['active', 'paused', 'completed']
-        && (data.skills_required == null || (data.skills_required is list && data.skills_required.size() <= 20));
-    }
-    
-    // ============================================================================
-    // 👆 SWIPES COLLECTION - ENHANCED SECURITY
-    // ============================================================================
-    match /swipes/{swipeId} {
-      // Users can create their own swipes with validation
-      allow create: if request.auth != null 
-        && isEmailVerified()
-        && request.auth.uid == request.resource.data.swiper_id
-        && validateSwipeData();
-      
-      // Users can read their own swipes or swipes targeting them
-      allow read: if request.auth != null 
-        && isEmailVerified()
-        && (request.auth.uid == resource.data.swiper_id || request.auth.uid == resource.data.target_id);
-      
-      // No update/delete allowed (immutable for data integrity)
-    }
-    
-    function validateSwipeData() {
-      let data = request.resource.data;
-      return data.keys().hasAll(['swiper_id', 'target_id', 'status'])
-        && data.swiper_id == request.auth.uid
-        && isValidUserId(data.target_id)
-        && data.swiper_id != data.target_id // Prevent self-swiping
-        && data.status in ['pending', 'accepted', 'rejected'];
-    }
-    
-    // ============================================================================
-    // 💕 MATCHES COLLECTION - ENHANCED SECURITY
-    // ============================================================================
-    match /matches/{matchId} {
-      // Users can read matches they're part of
-      allow read: if request.auth != null 
-        && isEmailVerified()
-        && (request.auth.uid == resource.data.contributor_id 
-            || request.auth.uid == resource.data.project_owner_id);
-      
-      // Users can update match status if they're part of the match and data is valid
-      allow update: if request.auth != null 
-        && isEmailVerified()
-        && (request.auth.uid == resource.data.contributor_id 
-            || request.auth.uid == resource.data.project_owner_id)
-        && validateMatchUpdate();
-      
-      // No create/delete from client (handled by Cloud Functions)
-    }
-    
-    function validateMatchUpdate() {
-      let oldData = resource.data;
-      let newData = request.resource.data;
-      // Only allow status updates and message count increments
-      return newData.contributor_id == oldData.contributor_id
-        && newData.project_id == oldData.project_id
-        && newData.project_owner_id == oldData.project_owner_id
-        && newData.created_at == oldData.created_at
-        && newData.status in ['active', 'archived', 'blocked'];
-    }
-    
-    // ============================================================================
-    // 💬 MESSAGES COLLECTION - ENHANCED SECURITY
-    // ============================================================================
+    // Messages - users can read/write messages they're involved in
     match /messages/{messageId} {
-      // Users can read messages they sent or received
-      allow read: if request.auth != null 
-        && isEmailVerified()
-        && (request.auth.uid == resource.data.sender_id 
-            || request.auth.uid == resource.data.receiver_id);
-      
-      // Users can create messages with validation
-      allow create: if request.auth != null 
-        && isEmailVerified()
-        && request.auth.uid == request.resource.data.sender_id
-        && validateMessageData();
-      
-      // No update/delete from client (messages are immutable)
+      allow read, write: if request.auth != null && 
+        (resource == null || 
+         request.auth.uid == resource.data.senderId || 
+         request.auth.uid == resource.data.receiverId);
     }
     
-    function validateMessageData() {
-      let data = request.resource.data;
-      return data.keys().hasAll(['sender_id', 'receiver_id', 'content'])
-        && data.sender_id == request.auth.uid
-        && isValidUserId(data.receiver_id)
-        && data.sender_id != data.receiver_id // Prevent self-messaging
-        && isValidString(data.content, 1, 1000)
-        && data.timestamp == request.time;
+    // Conversations - users can access conversations they're part of
+    match /conversations/{conversationId} {
+      allow read, write: if request.auth != null && 
+        (resource == null ||
+         request.auth.uid in resource.data.participants);
     }
     
-    // ============================================================================
-    // 📧 EMAIL COLLECTIONS - ENHANCED SECURITY
-    // ============================================================================
-    match /welcome_emails/{docId} {
-      // Allow authenticated users to create welcome email records for themselves only
-      allow create: if request.auth != null 
-        && isEmailVerified()
-        && request.resource.data.user_id == request.auth.uid
-        && validateWelcomeEmailData();
-      
-      // Allow reading own welcome email records
-      allow read: if request.auth != null 
-        && resource.data.user_id == request.auth.uid;
+    // Conversation messages
+    match /conversations/{conversationId}/messages/{messageId} {
+      allow read, write: if request.auth != null;
     }
     
-    function validateWelcomeEmailData() {
-      let data = request.resource.data;
-      return data.keys().hasAll(['user_id', 'email', 'type'])
-        && data.user_id == request.auth.uid
-        && data.email == request.auth.token.email
-        && data.type in ['welcome', 'welcome_verified'];
+    // Projects - public read, authenticated write for own projects
+    match /projects/{projectId} {
+      allow read: if true; // Public read access for project discovery
+      allow write: if request.auth != null && 
+        (resource == null || request.auth.uid == resource.data.ownerId);
     }
     
-    match /email_errors/{docId} {
-      // Allow authenticated users to create error records for themselves only
-      allow create: if request.auth != null 
-        && request.resource.data.user_id == request.auth.uid;
-      
-      // Allow reading own error records
-      allow read: if request.auth != null 
-        && resource.data.user_id == request.auth.uid;
+    // Project collaborators
+    match /projects/{projectId}/collaborators/{collaboratorId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        (resource == null || request.auth.uid == resource.data.userId);
     }
     
-    match /email_notifications/{docId} {
-      // Allow creation of email notifications with validation
-      allow create: if request.auth != null 
-        && isEmailVerified()
-        && validateEmailNotificationData();
-      
-      // Allow reading own email notification records
-      allow read: if request.auth != null 
-        && (resource.data.user_id == request.auth.uid 
-            || resource.data.email == request.auth.token.email);
+    // GitHub data - users can manage their own GitHub data
+    match /github_data/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
-    function validateEmailNotificationData() {
-      let data = request.resource.data;
-      return data.keys().hasAll(['email', 'type'])
-        && isValidEmail(data.email)
-        && data.type in ['verification_reminder', 'notification']
-        && (data.user_id == null || data.user_id == request.auth.uid);
+    // Search results - authenticated users can read search results
+    match /search_results/{searchId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
     }
     
-    // ============================================================================
-    // 🤖 ML RECOMMENDATIONS COLLECTION - ENHANCED SECURITY
-    // ============================================================================
-    match /recommendations/{userId} {
-      // Users can only read their own recommendations
-      allow read: if request.auth != null 
-        && isEmailVerified()
-        && request.auth.uid == userId
-        && isValidUserId(userId);
-      
-      // No write access from client (handled by backend services)
+    // Notifications - users can manage their own notifications
+    match /notifications/{notificationId} {
+      allow read, write: if request.auth != null && 
+        (resource == null || request.auth.uid == resource.data.userId);
     }
     
-    // ============================================================================
-    // 🏥 HEALTH CHECK COLLECTION - RATE LIMITED
-    // ============================================================================
-    match /_health_check/{docId} {
-      // Allow limited health checks (rate limiting should be handled at app level)
-      allow read, write: if true;
+    // User activity/analytics
+    match /user_activity/{activityId} {
+      allow read, write: if request.auth != null && 
+        (resource == null || request.auth.uid == resource.data.userId);
     }
     
-    match /_email_health_check/{docId} {
-      // Allow email service health checks
-      allow read, write: if true;
+    // Skills and interests - public read, authenticated write
+    match /skills/{skillId} {
+      allow read: if true;
+      allow write: if request.auth != null;
     }
     
-    // ============================================================================
-    // 📊 ANALYTICS COLLECTION - READ-ONLY FOR USERS
-    // ============================================================================
-    match /analytics/{docId} {
-      // Read-only access for authenticated users to their own analytics
-      allow read: if request.auth != null 
-        && isEmailVerified()
-        && resource.data.user_id == request.auth.uid;
-      
-      // No write access from client
+    match /interests/{interestId} {
+      allow read: if true;
+      allow write: if request.auth != null;
     }
     
-    match /email_analytics/{docId} {
-      // Read-only access for authenticated users to their own email analytics
-      allow read: if request.auth != null 
-        && isEmailVerified()
-        && resource.data.user_id == request.auth.uid;
+    // Reports and feedback
+    match /reports/{reportId} {
+      allow read, write: if request.auth != null;
     }
     
-    // ============================================================================
-    // 🛎️ USER NOTIFICATIONS COLLECTION - ENHANCED SECURITY
-    // ============================================================================
-    match /user_notifications/{docId} {
-      // Allow authenticated users to create notification records for themselves
-      allow create: if request.auth != null 
-        && isEmailVerified()
-        && request.auth.uid == request.resource.data.user_id
-        && validateNotificationData();
-      
-      // Allow reading and updating own notification records
-      allow read, update: if request.auth != null 
-        && isEmailVerified()
-        && request.auth.uid == resource.data.user_id;
+    // App metadata - public read, admin write only
+    match /app_metadata/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null && 
+        request.auth.token.admin == true;
     }
     
-    function validateNotificationData() {
-      let data = request.resource.data;
-      return data.keys().hasAll(['user_id', 'type', 'title'])
-        && data.user_id == request.auth.uid
-        && isValidString(data.title, 1, 200)
-        && data.type in ['welcome', 'match', 'message', 'system']
-        && (data.message == null || isValidString(data.message, 0, 1000));
+    // Rate limiting and security
+    match /rate_limits/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // ============================================================================
-    // 🔒 ADMIN COLLECTIONS - RESTRICTED ACCESS
-    // ============================================================================
-    match /admin_notifications/{docId} {
-      // No client access - admin only via Cloud Functions
-      allow read, write: if false;
+    // Catch-all for any other collections - require authentication
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
-    
-    match /maintainer_requests/{docId} {
-      // Allow creation of maintainer requests with validation
-      allow create: if request.auth != null 
-        && isEmailVerified()
-        && validateMaintainerRequest();
-      
-      // Allow users to read their own requests
-      allow read: if request.auth != null 
-        && resource.data.user_id == request.auth.uid;
-    }
-    
-    function validateMaintainerRequest() {
-      let data = request.resource.data;
-      return data.keys().hasAll(['email', 'user_id'])
-        && data.email == request.auth.token.email
-        && data.user_id == request.auth.uid
-        && data.status == 'pending';
-    }
+  }
+  
+  // Functions to help with rules
+  function isAuthenticated() {
+    return request.auth != null;
+  }
+  
+  function isOwner(userId) {
+    return request.auth != null && request.auth.uid == userId;
+  }
+  
+  function isParticipant(participants) {
+    return request.auth != null && request.auth.uid in participants;
   }
 } 

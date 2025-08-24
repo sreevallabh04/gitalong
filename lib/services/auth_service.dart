@@ -1,4 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
@@ -26,7 +25,43 @@ class AuthService {
   // Current user getters
   User? get currentUser => _auth.currentUser;
   bool get isAuthenticated => _auth.currentUser != null;
-  Stream<User?> get authStateChanges => _auth.authStateChanges();
+  // Auth state stream with error handling
+  Stream<User?> get authStateChanges =>
+      _auth.authStateChanges().handleError((error) {
+        AppLogger.logger.e('Auth state change error: $error');
+        if (error.toString().contains('credential is no longer valid')) {
+          // Force sign out on invalid credentials
+          signOut();
+        }
+      });
+
+  // Token refresh method
+  Future<bool> refreshUserToken() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return false;
+
+      AppLogger.logger.d('🔄 Refreshing user token...');
+      await user.getIdToken(true); // Force refresh
+      AppLogger.logger.success('✅ Token refreshed successfully');
+      return true;
+    } catch (e) {
+      AppLogger.logger.e('❌ Failed to refresh token: $e');
+      if (e.toString().contains('credential is no longer valid')) {
+        await signOut();
+      }
+      return false;
+    }
+  }
+
+  // Check and handle auth errors
+  Future<void> handleAuthError(dynamic error) async {
+    if (error.toString().contains('credential is no longer valid') ||
+        error.toString().contains('FirebaseAuthInvalidUserException')) {
+      AppLogger.logger.w('🔒 Invalid credentials detected, signing out user');
+      await signOut();
+    }
+  }
 
   // Authentication methods
   Future<UserCredential> signInWithEmailAndPassword(
@@ -115,7 +150,7 @@ class AuthService {
 
       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
       if (googleUser == null) {
-        throw AuthException('Google sign-in was cancelled');
+        throw const AuthException('Google sign-in was cancelled');
       }
 
       final GoogleSignInAuthentication googleAuth =
@@ -143,7 +178,8 @@ class AuthService {
 
       // For mobile, we'll use a simplified approach
       // In a real app, you'd implement proper OAuth flow
-      throw AuthException('GitHub sign-in not implemented for mobile yet');
+      throw const AuthException(
+          'GitHub sign-in not implemented for mobile yet');
     } on FirebaseAuthException catch (e) {
       AppLogger.logger.e('❌ GitHub sign-in failed', error: e);
       throw AuthException(_getErrorMessage(e), code: e.code);
@@ -178,7 +214,7 @@ class AuthService {
   }) async {
     try {
       if (!isAuthenticated) {
-        throw AuthException('User not authenticated',
+        throw const AuthException('User not authenticated',
             code: 'not-authenticated');
       }
 
@@ -257,6 +293,3 @@ class AuthService {
     }
   }
 }
-
-/// Provider for the auth service
-final authServiceProvider = Provider<AuthService>((ref) => AuthService());

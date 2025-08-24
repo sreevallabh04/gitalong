@@ -342,12 +342,15 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
                         size: 16,
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        'Swipe right to start conversations',
-                        style: GoogleFonts.jetBrainsMono(
-                          fontSize: 14,
-                          color: const Color(0xFF7D8590),
-                          fontWeight: FontWeight.w500,
+                      Expanded(
+                        child: Text(
+                          'Swipe right to start conversations',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 14,
+                            color: const Color(0xFF7D8590),
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ],

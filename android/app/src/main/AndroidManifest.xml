@@ -1,8 +1,22 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Internet permission -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Network state permission -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Wake lock permission for Firebase -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Foreground service permission for background Firebase operations -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- Access WiFi state for better network handling -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    
     <application
         android:label="gitalong"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:enableOnBackInvokedCallback="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"

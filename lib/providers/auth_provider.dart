@@ -96,7 +96,8 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
       state = AsyncValue.data(profile);
 
       if (profile != null) {
-        AppLogger.logger.d('✅ Profile loaded: [32m${profile.name ?? 'Unknown'}[0m');
+        AppLogger.logger
+            .d('✅ Profile loaded: [32m${profile.name ?? 'Unknown'}[0m');
       } else {
         AppLogger.logger.d('✅ Profile loaded: null (no profile found)');
       }
@@ -286,6 +287,13 @@ final authStateProvider = StreamProvider<User?>((ref) {
       if (user != null) {
         // Check if email was just verified and trigger welcome email
         await _checkEmailVerificationAndTriggerWelcome(user);
+
+        // Refresh token periodically to prevent invalidation
+        try {
+          await authService.refreshUserToken();
+        } catch (e) {
+          AppLogger.logger.w('Token refresh failed: $e');
+        }
       }
       return user;
     }).handleError((error, stackTrace) {

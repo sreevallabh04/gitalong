@@ -97,10 +97,14 @@ class FirebaseConfig {
 
       final firestore = FirebaseFirestore.instance;
 
-      // Configure Firestore settings for production
+      // Configure Firestore settings for production with better network handling
       const settings = Settings(
         persistenceEnabled: true,
         cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+        // Enable better offline support
+        sslEnabled: true,
+        // Optimize for mobile networks
+        host: null, // Use default host with better routing
       );
 
       firestore.settings = settings;
@@ -473,7 +477,7 @@ class FirebaseConfig {
   static Future<void> initializeAppCheck() async {
     try {
       AppLogger.logger.i('🔒 Initializing Firebase App Check...');
-      
+
       if (kDebugMode) {
         // In debug mode, use debug provider
         AppLogger.logger.d('🔧 Debug mode: Using debug App Check provider');
@@ -484,14 +488,16 @@ class FirebaseConfig {
         );
       } else {
         // In production, use proper providers
-        AppLogger.logger.d('🔒 Production mode: Using production App Check providers');
+        AppLogger.logger
+            .d('🔒 Production mode: Using production App Check providers');
         await FirebaseAppCheck.instance.activate(
           androidProvider: AndroidProvider.playIntegrity,
           appleProvider: AppleProvider.appAttest,
-          webProvider: ReCaptchaV3Provider('6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'), // Test key - replace with real one
+          webProvider: ReCaptchaV3Provider(
+              '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'), // Test key - replace with real one
         );
       }
-      
+
       AppLogger.logger.success('✅ Firebase App Check initialized successfully');
     } catch (e, stackTrace) {
       AppLogger.logger.e(
