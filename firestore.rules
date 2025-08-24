@@ -115,8 +115,23 @@ service cloud.firestore {
     }
     
     // Rate limiting and security
-    match /rate_limits/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    match /rate_limits/{limitId} {
+      allow read, write: if request.auth != null && 
+        (resource == null || resource.data.identifier == request.auth.token.email);
+    }
+    
+    // Security events
+    match /security_events/{eventId} {
+      allow read, write: if request.auth != null && 
+        (resource == null || resource.data.userId == request.auth.uid);
+    }
+    
+    // Swipes - users can manage their own swipes and see swipes on their profiles
+    match /swipes/{swipeId} {
+      allow read, write: if request.auth != null && 
+        (resource == null || 
+         resource.data.swiper_id == request.auth.uid || 
+         resource.data.swiped_id == request.auth.uid);
     }
     
     // Catch-all for any other collections - require authentication
