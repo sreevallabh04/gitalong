@@ -98,6 +98,11 @@ void main() async {
     // Ensure Flutter binding is initialized
     WidgetsFlutterBinding.ensureInitialized();
 
+    // Remove splash screen immediately for faster startup
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    });
+
     // Initialize logging first - critical for production debugging
     AppLogger.initialize();
     AppLogger.logger.i('🚀 Starting GitAlong app initialization...');

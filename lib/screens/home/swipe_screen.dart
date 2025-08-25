@@ -33,7 +33,8 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
   late AnimationController _likeAnimationController;
   late AnimationController _passAnimationController;
 
-  late Animation<double> _matchScaleAnimation;
+  // Animation for match celebrations (future implementation)
+  // late Animation<double> _matchScaleAnimation;
   late Animation<double> _likeScaleAnimation;
   late Animation<double> _passScaleAnimation;
 
@@ -64,7 +65,8 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
       vsync: this,
     );
 
-    _matchScaleAnimation = Tween<double>(
+    // Match scale animation for celebration effects
+    final matchScaleAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
     ).animate(CurvedAnimation(

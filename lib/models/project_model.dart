@@ -46,6 +46,11 @@ class ProjectModel {
     this.isPublic = true,
   });
 
+  /// Create ProjectModel from Firestore document
+  factory ProjectModel.fromFirestore(Map<String, dynamic> json) {
+    return ProjectModel.fromJson(json);
+  }
+
   /// Create ProjectModel from JSON with safe parsing
   factory ProjectModel.fromJson(Map<String, dynamic> json) {
     try {

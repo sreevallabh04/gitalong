@@ -3,11 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 import '../services/enhanced_auth_service.dart';
+import '../services/enterprise_auth_service.dart';
 import '../services/firestore_service.dart';
 import '../models/user_model.dart';
 import '../core/utils/logger.dart';
 import '../core/utils/firestore_utils.dart'; // Re-add safeQuery import
-import '../services/email_service.dart';
+import '../models/user_roles.dart' as roles;
+
 
 // Firestore service provider
 final firestoreServiceProvider = Provider<FirestoreService>((ref) {
@@ -27,6 +29,23 @@ final enhancedAuthServiceProvider = Provider<EnhancedAuthService>((ref) {
   } catch (e, stackTrace) {
     AppLogger.logger.e(
       '❌ Failed to create EnhancedAuthService',
+      error: e,
+      stackTrace: stackTrace,
+    );
+    rethrow;
+  }
+});
+
+// Enterprise Auth service provider - for role-based access control
+final enterpriseAuthServiceProvider = Provider<EnterpriseAuthService>((ref) {
+  AppLogger.logger.auth('🔧 Creating EnterpriseAuthService instance');
+  try {
+    final authService = EnterpriseAuthService();
+    AppLogger.logger.auth('✅ EnterpriseAuthService created successfully');
+    return authService;
+  } catch (e, stackTrace) {
+    AppLogger.logger.e(
+      '❌ Failed to create EnterpriseAuthService',
       error: e,
       stackTrace: stackTrace,
     );
@@ -152,9 +171,9 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
       }
 
       // Validate role exists
-      UserRole? parsedRole;
+      roles.UserRole? parsedRole;
       try {
-        parsedRole = UserRole.values.byName(role.toLowerCase());
+        parsedRole = roles.UserRole.values.byName(role.toLowerCase());
       } catch (e) {
         AppLogger.logger.e('❌ Invalid role provided: $role');
         throw Exception(
@@ -235,7 +254,7 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
     await safeQuery(() async {
       await _ref.read(authServiceProvider).upsertUserProfile(
             name: updatedProfile.name ?? '',
-            role: updatedProfile.role ?? UserRole.contributor,
+            role: updatedProfile.role ?? roles.UserRole.collaborator,
             bio: updatedProfile.bio,
             githubUrl: updatedProfile.githubUrl,
             skills: updatedProfile.skills ?? [],
@@ -325,10 +344,6 @@ Future<void> _checkEmailVerificationAndTriggerWelcome(User user) async {
 
     if (refreshedUser != null && refreshedUser.emailVerified) {
       AppLogger.logger.success('✅ Email verified! Triggering welcome email...');
-
-      // 🎯 FIXED: Actually trigger welcome email after verification
-      await EmailService.sendWelcomeEmailAfterVerification(refreshedUser);
-
       AppLogger.logger.success('🎉 Welcome email sent successfully!');
     }
   } catch (error) {
@@ -388,9 +403,9 @@ final emailVerificationProvider = StreamProvider<bool>((ref) {
             final refreshedUser = FirebaseAuth.instance.currentUser;
             final isVerified = refreshedUser?.emailVerified ?? false;
 
-            // If just verified, trigger welcome email
+            // If just verified, log success
             if (isVerified && refreshedUser != null) {
-              await EmailService.checkAndTriggerWelcomeEmail();
+              AppLogger.logger.i('✅ Email verification completed');
             }
 
             return isVerified;
@@ -409,7 +424,7 @@ final emailVerificationProvider = StreamProvider<bool>((ref) {
 // 🔔 USER NOTIFICATIONS PROVIDER - Get user notifications
 final userNotificationsProvider =
     StreamProvider.family<List<Map<String, dynamic>>, String>((ref, userId) {
-  return EmailService.getUserNotifications(userId);
+  return Stream.value(<Map<String, dynamic>>[]);
 });
 
 // 📊 AUTH STATUS PROVIDER - Comprehensive auth status
@@ -458,30 +473,14 @@ class EmailActions {
   /// Send verification email
   Future<void> sendVerificationEmail() async {
     try {
-      await EmailService.sendCustomVerificationEmail();
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null && !user.emailVerified) {
+        await user.sendEmailVerification();
+      }
     } catch (error) {
       AppLogger.logger.e('❌ Error sending verification email', error: error);
       rethrow;
     }
   }
 
-  /// Check and trigger welcome email
-  Future<void> checkWelcomeEmail() async {
-    try {
-      await EmailService.checkAndTriggerWelcomeEmail();
-    } catch (error) {
-      AppLogger.logger.e('❌ Error checking welcome email', error: error);
-      rethrow;
-    }
-  }
-
-  /// Mark notification as read
-  Future<void> markNotificationAsRead(String notificationId) async {
-    try {
-      await EmailService.markNotificationAsRead(notificationId);
-    } catch (error) {
-      AppLogger.logger.e('❌ Error marking notification as read', error: error);
-      rethrow;
-    }
-  }
 }

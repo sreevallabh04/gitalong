@@ -1,5 +1,5 @@
 name: gitalong
-description: "A new Flutter project for GitAlong - Find your perfect open source match"
+description: "GitAlong - The Ultimate Developer Networking Platform. Connect, collaborate, and build amazing projects together."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -144,23 +144,29 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/icons/app_icon.jpg"
+  image_path: "assets/app_icon/app_icon.jpg"
   web:
     generate: true
-    image_path: "assets/icons/app_icon.jpg"
+    image_path: "assets/app_icon/app_icon.jpg"
     background_color: "#0D1117"
     theme_color: "#238636"
   windows:
     generate: true
-    image_path: "assets/icons/app_icon.jpg"
+    image_path: "assets/app_icon/app_icon.jpg"
     icon_size: 48
   macos:
     generate: true
-    image_path: "assets/icons/app_icon.jpg"
+    image_path: "assets/app_icon/app_icon.jpg"
 
 flutter_native_splash:
   color: "#0D1117"
   image: assets/images/splash.png
   android: true
   ios: true
-  web: true 
+  web: true
+  android_12:
+    image: assets/images/splash.png
+    color: "#0D1117"
+  # Faster splash removal
+  android_gravity: center
+  ios_content_mode: center 

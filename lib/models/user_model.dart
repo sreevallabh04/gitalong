@@ -1,10 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'user_roles.dart' as roles;
 
-enum UserRole {
-  contributor,
-  maintainer,
-}
 
 @immutable
 class UserModel {
@@ -28,7 +25,7 @@ class UserModel {
   final String? avatarUrl;
   final String? githubUrl;
   final String? githubUsername;
-  final UserRole? role;
+  final roles.UserRole? role;
   final List<String>? skills;
   final List<String>? interests;
   final int? followers;
@@ -108,7 +105,7 @@ class UserModel {
       githubUrl: json['githubUrl'] as String?,
       githubUsername: json['githubUsername'] as String?,
       role: json['role'] != null
-          ? UserRole.values.byName(json['role'] as String)
+          ? roles.UserRole.values.byName(json['role'] as String)
           : null,
       skills: (json['skills'] as List<dynamic>?)?.cast<String>(),
       interests: (json['interests'] as List<dynamic>?)?.cast<String>(),
@@ -189,7 +186,7 @@ class UserModel {
     String? avatarUrl,
     String? githubUrl,
     String? githubUsername,
-    UserRole? role,
+    roles.UserRole? role,
     List<String>? skills,
     List<String>? interests,
     int? followers,

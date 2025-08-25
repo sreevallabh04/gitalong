@@ -18,6 +18,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../../core/utils/accessibility_utils.dart';
 import '../../widgets/common/accessible_button.dart';
+import '../../models/user_roles.dart' as roles;
 import 'package:flutter/services.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -220,7 +221,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: RoleSwitchCard(
-              currentRole: userProfile.role ?? UserRole.contributor,
+              currentRole: userProfile.role ?? roles.UserRole.collaborator,
               onRoleChanged: _handleRoleSwitch,
               isLoading: _isLoading,
             )
@@ -243,7 +244,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
         // Role-specific Content
-        if (userProfile.role == UserRole.maintainer) ...[
+        if (userProfile.role == roles.UserRole.maintainer) ...[
           // Maintainer Section
           SliverToBoxAdapter(
             child: _buildMaintainerSection(userProfile)
@@ -300,13 +301,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
-                    colors: userProfile.role == UserRole.maintainer
+                    colors: userProfile.role == roles.UserRole.maintainer
                         ? [const Color(0xFF8B5CF6), const Color(0xFFEC4899)]
                         : [const Color(0xFF1F6FEB), const Color(0xFF238636)],
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: (userProfile.role == UserRole.maintainer
+                      color: (userProfile.role == roles.UserRole.maintainer
                               ? const Color(0xFF8B5CF6)
                               : const Color(0xFF1F6FEB))
                           .withValues(alpha: 0.4),
@@ -386,14 +387,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: userProfile.role == UserRole.maintainer
+                    colors: userProfile.role == roles.UserRole.maintainer
                         ? [const Color(0xFF8B5CF6), const Color(0xFFEC4899)]
                         : [const Color(0xFF1F6FEB), const Color(0xFF238636)],
                   ),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  userProfile.role == UserRole.maintainer
+                  userProfile.role == roles.UserRole.maintainer
                       ? 'MAINTAINER'
                       : 'CONTRIBUTOR',
                   style: GoogleFonts.jetBrainsMono(
@@ -1060,7 +1061,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     );
   }
 
-  Future<void> _handleRoleSwitch(UserRole newRole) async {
+  Future<void> _handleRoleSwitch(roles.UserRole newRole) async {
     setState(() => _isLoading = true);
     _roleSwitchController.forward();
 

@@ -5,10 +5,11 @@ import 'package:logger/logger.dart';
 enum LogLevel { debug, info, warning, error }
 
 class AppLogger {
-  static late Logger _logger;
+  static Logger? _logger;
   static final List<LogEvent> _logHistory = [];
   static const int maxLogHistory = 1000;
   static List<LogEvent> get logHistory => List.unmodifiable(_logHistory);
+  static bool _isInitialized = false;
 
   static LogLevel logLevel = const bool.fromEnvironment('dart.vm.product')
       ? LogLevel.warning
@@ -41,15 +42,24 @@ class AppLogger {
   }
 
   static void initialize() {
-    _logger = Logger(
-      printer: AppLogPrinter(),
-      output: AppLogOutput(),
-      filter: AppLogFilter(),
-      level: kDebugMode ? Level.debug : Level.info,
-    );
+    if (!_isInitialized) {
+      _logger = Logger(
+        printer: AppLogPrinter(),
+        output: AppLogOutput(),
+        filter: AppLogFilter(),
+        level: kDebugMode ? Level.debug : Level.info,
+      );
+      _isInitialized = true;
+    }
   }
 
-  static Logger get logger => _logger;
+  static Logger get logger {
+    if (!_isInitialized || _logger == null) {
+      // Auto-initialize with default settings for tests
+      initialize();
+    }
+    return _logger!;
+  }
 
   static void clearHistory() {
     _logHistory.clear();
@@ -227,5 +237,5 @@ extension LoggerExtension on Logger {
   }
 }
 
-// Static logger instance for easy access
-final logger = AppLogger.logger;
+// Static logger instance for easy access (lazy initialization)
+Logger get logger => AppLogger.logger;

@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_model.dart';
+import '../models/user_roles.dart' as roles;
 import '../core/utils/logger.dart';
 
 /// Custom exception for authentication errors
@@ -207,7 +208,7 @@ class AuthService {
 
   Future<UserModel> upsertUserProfile({
     required String name,
-    required UserRole role,
+    required roles.UserRole role,
     String? bio,
     String? githubUrl,
     List<String>? skills,

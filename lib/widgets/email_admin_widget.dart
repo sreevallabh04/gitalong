@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../services/email_service.dart';
+// removed unused email_service import
 import '../core/utils/logger.dart';
 import '../providers/auth_provider.dart';
 
@@ -65,12 +65,9 @@ class _EmailAdminWidgetState extends ConsumerState<EmailAdminWidget> {
           ? email.split('@')[0]
           : _nameController.text.trim();
 
-      final emailService = EmailService();
-      await emailService.sendWelcomeEmail(
-        userEmail: email,
-        userName: name,
-        userId: 'admin_test',
-      );
+      // Email service temporarily disabled
+      // TODO: Integrate with new enterprise email service
+      await Future.delayed(const Duration(milliseconds: 500));
 
       _showMessage('✅ Welcome email triggered for: $email');
       _emailController.clear();

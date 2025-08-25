@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../models/user_roles.dart' as roles;
 import '../../models/models.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -27,7 +28,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final TextEditingController _bioController = TextEditingController();
   final TextEditingController _githubController = TextEditingController();
 
-  UserRole _selectedRole = UserRole.contributor;
+  roles.UserRole _selectedRole = roles.UserRole.collaborator;
   final List<String> _selectedSkills = [];
   int _currentPage = 0;
   bool _isLoading = false;
@@ -199,7 +200,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       ref.invalidate(userProfileProvider);
 
       if (createdProfile != null &&
-          createdProfile.role == UserRole.maintainer) {
+          createdProfile.role == roles.UserRole.maintainer) {
         if (mounted) {
           context.go('/maintainer'); // Use GoRouter for navigation
         }
@@ -387,14 +388,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           ),
           const SizedBox(height: 48),
           _buildRoleCard(
-            role: UserRole.contributor,
+            role: roles.UserRole.collaborator,
             title: 'Contributor',
             description: 'I want to contribute to open source projects',
             icon: Icons.code_rounded,
           ),
           const SizedBox(height: 16),
           _buildRoleCard(
-            role: UserRole.maintainer,
+            role: roles.UserRole.maintainer,
             title: 'Maintainer',
             description: 'I have projects that need contributors',
             icon: Icons.people_rounded,
@@ -405,7 +406,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Widget _buildRoleCard({
-    required UserRole role,
+    required roles.UserRole role,
     required String title,
     required String description,
     required IconData icon,

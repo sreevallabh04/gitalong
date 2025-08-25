@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../providers/auth_provider.dart';
-import '../services/email_service.dart';
+// removed unused email_service import
 import '../core/utils/logger.dart';
 
 /// 🎨 Beautiful Email Verification Banner - Production Grade
@@ -354,7 +355,9 @@ class _EmailVerificationBannerState
       AppLogger.logger.i('📧 Resending verification email to: $email');
 
       // Use our custom email service instead of Firebase default
-      await EmailService.sendCustomVerificationEmail();
+      // Send verification email using Firebase Auth
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) await user.sendEmailVerification();
 
       // Show success feedback
       if (mounted) {

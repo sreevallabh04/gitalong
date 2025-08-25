@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/models.dart';
+import '../models/user_roles.dart' as roles;
 
 /// User card widget for displaying user information
 class UserCard extends StatelessWidget {
@@ -71,7 +72,7 @@ class UserCard extends StatelessWidget {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: user.role == UserRole.maintainer
+                            color: user.role == roles.UserRole.maintainer
                                 ? Colors.orange[100]
                                 : Colors.blue[100],
                             borderRadius: BorderRadius.circular(12),
@@ -81,7 +82,7 @@ class UserCard extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
-                              color: user.role == UserRole.maintainer
+                              color: user.role == roles.UserRole.maintainer
                                   ? Colors.orange[800]
                                   : Colors.blue[800],
                             ),
