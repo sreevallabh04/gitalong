@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
-import '../core/auth/google_sign_in_wrapper.dart';
 import '../models/user_model.dart';
 import '../models/user_roles.dart' as roles;
 import '../core/utils/logger.dart';
@@ -142,22 +141,6 @@ class AuthService {
     } catch (e) {
       AppLogger.logger.e('❌ Apple sign-in failed', error: e);
       throw AuthException('Apple sign-in failed: ${e.toString()}');
-    }
-  }
-
-  Future<UserCredential> signInWithGoogle() async {
-    try {
-      AppLogger.logger.auth('🔍 Signing in with Google...');
-
-      final result = await GoogleSignInWrapper.signInWithGoogle();
-      AppLogger.logger.auth('✅ Google sign-in successful');
-      return result;
-    } on FirebaseAuthException catch (e) {
-      AppLogger.logger.e('❌ Google sign-in failed', error: e);
-      throw AuthException(_getErrorMessage(e), code: e.code);
-    } catch (e) {
-      AppLogger.logger.e('❌ Google sign-in failed', error: e);
-      throw AuthException('Google sign-in failed: ${e.toString()}');
     }
   }
 

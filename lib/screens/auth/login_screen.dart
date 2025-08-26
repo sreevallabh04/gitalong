@@ -211,51 +211,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     }
   }
 
-  Future<void> _signInWithGoogle() async {
-    setState(() => _isLoading = true);
-
-    try {
-      AppLogger.logger.auth('🔐 Starting Google sign-in process...');
-
-      if (_isTestMode) {
-        // Simulate Google sign-in for testing
-        AppLogger.logger.auth('🧪 Test mode: Simulating Google sign-in...');
-        await Future.delayed(const Duration(seconds: 2));
-        AppLogger.logger
-            .auth('✅ Test mode: Google sign-in simulation successful');
-        _navigateToHome();
-        return;
-      }
-
-      final userCredential =
-          await ref.read(enhancedAuthServiceProvider).signInWithGoogle();
-
-      AppLogger.logger.auth('✅ Google sign-in successful');
-      AppLogger.logger.auth('👤 User: ${userCredential.user?.email}');
-
-      // Ensure user profile is created
-      try {
-        await ref.read(enhancedAuthServiceProvider).getCurrentUserProfile();
-        AppLogger.logger.auth('✅ User profile ensured/created');
-      } catch (profileError) {
-        AppLogger.logger
-            .e('❌ Failed to create user profile', error: profileError);
-        _showErrorDialog('Profile Error',
-            'Failed to create user profile. Please try again.');
-        return;
-      }
-
-      _navigateToHome();
-    } catch (e) {
-      AppLogger.logger.e('❌ Google sign-in failed', error: e);
-      _showErrorDialog('Google Sign-In Failed', _getErrorMessage(e));
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
   void _navigateToHome() {
     if (!mounted) return;
 
@@ -782,67 +737,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
         const SizedBox(height: 24),
 
-        // Google login button
-        Container(
-          width: double.infinity,
-          height: 56,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppColors.border),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: _isLoading ? null : _signInWithGoogle,
-              borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (_isLoading)
-                      const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(AppColors.primary),
-                        ),
-                      )
-                    else ...[
-                      const Icon(
-                        Icons.account_circle,
-                        color: Colors.red,
-                        size: 24,
-                      ),
-                      const SizedBox(width: 12),
-                    ],
-                    Text(
-                      'Continue with Google',
-                      style: GoogleFonts.inter(
-                        color: Colors.black87,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 16),
-
         // GitHub login button with enhanced styling
         Container(
           width: double.infinity,
@@ -1044,4 +938,3 @@ class GitHubCommitHistoryPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-

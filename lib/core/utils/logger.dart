@@ -16,28 +16,30 @@ class AppLogger {
       : LogLevel.debug;
 
   static void d(String message) {
-    if (logLevel.index <= LogLevel.debug.index) {
-      print('[DEBUG] $message');
+    if (logLevel.index <= LogLevel.debug.index && kDebugMode) {
+      if (kDebugMode) print('[DEBUG] $message');
     }
   }
 
   static void i(String message) {
     if (logLevel.index <= LogLevel.info.index) {
-      print('[INFO] $message');
+      if (kDebugMode) print('[INFO] $message');
     }
   }
 
   static void w(String message) {
     if (logLevel.index <= LogLevel.warning.index) {
-      print('[WARN] $message');
+      if (kDebugMode) print('[WARN] $message');
     }
   }
 
   static void e(String message, {Object? error, StackTrace? stackTrace}) {
     if (logLevel.index <= LogLevel.error.index) {
-      print('[ERROR] $message');
-      if (error != null) print('  Error: $error');
-      if (stackTrace != null) print('  StackTrace: $stackTrace');
+      if (kDebugMode) {
+        print('[ERROR] $message');
+        if (error != null) print('  Error: $error');
+        if (stackTrace != null) print('  StackTrace: $stackTrace');
+      }
     }
   }
 
@@ -239,4 +241,3 @@ extension LoggerExtension on Logger {
 
 // Static logger instance for easy access (lazy initialization)
 Logger get logger => AppLogger.logger;
-
