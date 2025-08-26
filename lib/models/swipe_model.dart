@@ -90,3 +90,4 @@ class SwipeModel {
   @override
   int get hashCode => id.hashCode;
 }
+

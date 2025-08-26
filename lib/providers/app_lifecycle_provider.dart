@@ -37,3 +37,4 @@ class AppLifecycleNotifier extends StateNotifier<AppLifecycleState>
     }
   }
 }
+

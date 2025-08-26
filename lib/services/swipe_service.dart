@@ -509,3 +509,4 @@ class SwipeException implements Exception {
   @override
   String toString() => 'SwipeException: $message';
 }
+

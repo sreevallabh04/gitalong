@@ -526,3 +526,4 @@ class _EmailVerificationBannerState
     }
   }
 }
+

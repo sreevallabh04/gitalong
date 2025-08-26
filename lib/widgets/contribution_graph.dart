@@ -355,3 +355,4 @@ class _ContributionGraphState extends State<ContributionGraph>
         );
   }
 }
+

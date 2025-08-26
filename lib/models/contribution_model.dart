@@ -87,3 +87,4 @@ class ContributionModel {
 }
 
 enum ContributionStatus { started, prOpen, merged, closed }
+

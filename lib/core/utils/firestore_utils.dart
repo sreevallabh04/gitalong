@@ -10,3 +10,4 @@ Future<T?> safeQuery<T>(Future<T> Function() query,
     return null;
   }
 }
+

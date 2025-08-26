@@ -239,3 +239,4 @@ extension LoggerExtension on Logger {
 
 // Static logger instance for easy access (lazy initialization)
 Logger get logger => AppLogger.logger;
+

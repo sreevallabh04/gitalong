@@ -58,3 +58,4 @@ enum BadgeType {
   openSourceHero,
   earlyAdopter,
 }
+

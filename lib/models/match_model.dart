@@ -85,3 +85,4 @@ class MatchModel {
   @override
   int get hashCode => id.hashCode;
 }
+

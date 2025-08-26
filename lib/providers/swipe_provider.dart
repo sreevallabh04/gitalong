@@ -59,3 +59,4 @@ class SwipeNotifier extends StateNotifier<AsyncValue<List<UserModel>>> {
     }
   }
 }
+

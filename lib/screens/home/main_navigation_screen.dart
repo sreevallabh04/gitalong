@@ -335,3 +335,4 @@ class _NavigationItem {
     required this.color,
   });
 }
+

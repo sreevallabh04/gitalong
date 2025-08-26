@@ -12,6 +12,8 @@ import 'core/utils/production_config.dart';
 import 'core/analytics/analytics_service.dart';
 import 'config/firebase_config.dart';
 import 'services/notification_service.dart';
+import 'services/firestore_service.dart';
+import 'core/services/haptic_service.dart';
 import 'providers/app_lifecycle_provider.dart';
 import 'providers/web_backend_provider.dart';
 import 'core/router/app_router.dart';
@@ -126,6 +128,9 @@ void main() async {
     await FirebaseConfig.initialize();
     AppLogger.logger.success('✅ Firebase initialized successfully');
 
+    // Ensure Firestore service is initialized globally before any access
+    await FirestoreService.initialize();
+
     // Set up Firebase auth error handler
     _setupFirebaseAuthErrorHandler();
 
@@ -168,9 +173,6 @@ void main() async {
             .w('⚠️ GitHub OAuth credentials missing from .env file');
       }
     } catch (e) {
-      // Initialize dotenv with empty state first
-      dotenv.testLoad(fileInput: '');
-
       // Set default environment variables for development
       dotenv.env['APP_NAME'] = 'GitAlong';
       dotenv.env['ENVIRONMENT'] = 'development';
@@ -206,6 +208,11 @@ void main() async {
     AppLogger.logger.i('🔔 Initializing notification service...');
     await NotificationService().initialize();
     AppLogger.logger.success('✅ Notification service initialized successfully');
+
+    // Initialize haptic feedback service
+    AppLogger.logger.i('🔗 Initializing haptic feedback service...');
+    await HapticService.initialize();
+    AppLogger.logger.success('✅ Haptic feedback service initialized successfully');
 
     // Set up error handling
     _setupErrorHandling();
@@ -409,3 +416,4 @@ void _setupFirebaseAuthErrorHandler() {
     },
   );
 }
+

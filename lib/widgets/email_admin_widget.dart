@@ -419,3 +419,4 @@ class _EmailAdminWidgetState extends ConsumerState<EmailAdminWidget> {
     );
   }
 }
+

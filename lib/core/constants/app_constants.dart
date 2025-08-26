@@ -190,3 +190,4 @@ class AppRegex {
   static final url = RegExp(r'^https?://[^\s/$.?#].[^\s]*$');
   static final phoneNumber = RegExp(r'^\+?[1-9]\d{1,14}$');
 }
+

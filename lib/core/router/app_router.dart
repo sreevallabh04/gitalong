@@ -1746,3 +1746,4 @@ class MainNavigationShell extends StatelessWidget {
     return child;
   }
 }
+

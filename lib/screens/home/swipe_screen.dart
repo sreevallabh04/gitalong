@@ -551,7 +551,7 @@ class GitHubPatternPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = GitHubTheme.borderDefault.withOpacity(0.1)
+      ..color = GitHubTheme.borderDefault.withValues(alpha: 0.1)
       ..strokeWidth = 1
       ..style = PaintingStyle.stroke;
 
@@ -776,3 +776,4 @@ class UserDetailsSheet extends StatelessWidget {
     );
   }
 }
+

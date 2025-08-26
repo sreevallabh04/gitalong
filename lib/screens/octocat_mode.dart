@@ -308,3 +308,4 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
     });
   }
 }
+

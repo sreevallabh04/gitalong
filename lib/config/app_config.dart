@@ -200,3 +200,4 @@ class AppConfig {
   static bool get enableInspector => isDebug;
   static bool get enableDebugBanner => isDebug;
 }
+

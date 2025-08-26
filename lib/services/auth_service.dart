@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+import '../core/auth/google_sign_in_wrapper.dart';
 import '../models/user_model.dart';
 import '../models/user_roles.dart' as roles;
 import '../core/utils/logger.dart';
@@ -149,19 +149,7 @@ class AuthService {
     try {
       AppLogger.logger.auth('🔍 Signing in with Google...');
 
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-      if (googleUser == null) {
-        throw const AuthException('Google sign-in was cancelled');
-      }
-
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      final result = await _auth.signInWithCredential(credential);
+      final result = await GoogleSignInWrapper.signInWithGoogle();
       AppLogger.logger.auth('✅ Google sign-in successful');
       return result;
     } on FirebaseAuthException catch (e) {

@@ -501,3 +501,4 @@ class _GitHubProfileCardState extends State<GitHubProfileCard>
     );
   }
 }
+

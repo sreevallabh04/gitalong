@@ -374,7 +374,7 @@ class AppTheme {
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {
-            return accentColor.withOpacity(0.3);
+            return accentColor.withValues(alpha: 0.3);
             }
           return borderColor;
           }),
@@ -469,7 +469,7 @@ class AppTheme {
         border: Border.all(color: borderColor, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -481,7 +481,7 @@ class AppTheme {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: accentColor.withOpacity(0.3),
+            color: accentColor.withValues(alpha: 0.3),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -489,12 +489,12 @@ class AppTheme {
       );
 
   static BoxDecoration get glassDecoration => BoxDecoration(
-        color: surfaceColor.withOpacity(0.8),
+        color: surfaceColor.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor.withOpacity(0.5), width: 1),
+        border: Border.all(color: borderColor.withValues(alpha: 0.5), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -554,3 +554,4 @@ extension GitAlongThemeContext on BuildContext {
   GitAlongThemeExtension get gitAlongTheme =>
       Theme.of(this).extension<GitAlongThemeExtension>()!;
 }
+
