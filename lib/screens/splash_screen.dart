@@ -273,15 +273,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               animation: _logoController,
               builder: (context, child) {
                 return Transform.scale(
-                  scale: 0.85 + (_logoController.value * 0.15),
+                  scale: 1.05 + (_logoController.value * 0.10),
                   child: Opacity(
                     opacity: _logoController.value,
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(24),
                       child: Image.asset(
                         'assets/app_icon/app_icon.jpg',
-                        width: 120,
-                        height: 120,
+                        width: 140,
+                        height: 140,
                         fit: BoxFit.cover,
                       ),
                     ),
@@ -394,4 +394,3 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     );
   }
 }
-
