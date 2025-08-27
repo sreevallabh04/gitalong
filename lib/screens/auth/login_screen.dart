@@ -5,11 +5,10 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/config/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../core/utils/logger.dart';
-import '../../widgets/common/accessible_button.dart';
-import '../../widgets/common/accessible_form_field.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../services/auth_service.dart';
+import '../../core/services/haptic_service.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -20,13 +19,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen>
     with TickerProviderStateMixin {
-  final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-
   bool _isLoading = false;
-  bool _isPasswordVisible = false;
-  bool _rememberMe = false;
   bool _isTestMode = false; // Test mode flag
 
   late AnimationController _fadeController;
@@ -135,80 +128,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     _slideController.dispose();
     _githubLogoController.dispose();
     _bounceController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
     super.dispose();
-  }
-
-  Future<void> _signInWithEmail() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      AppLogger.logger.auth('🔐 Attempting email sign-in...');
-
-      await ref.read(enhancedAuthServiceProvider).signInWithEmailAndPassword(
-            email: _emailController.text.trim(),
-            password: _passwordController.text,
-          );
-
-      AppLogger.logger.auth('✅ Email sign-in successful');
-      _navigateToHome();
-    } catch (e) {
-      AppLogger.logger.e('❌ Email sign-in failed', error: e);
-      _showErrorDialog('Sign In Failed', _getErrorMessage(e));
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  Future<void> _signInWithGitHub() async {
-    setState(() => _isLoading = true);
-
-    try {
-      AppLogger.logger.auth('🐙 Starting GitHub sign-in process...');
-
-      if (_isTestMode) {
-        // Simulate GitHub sign-in for testing
-        AppLogger.logger.auth('🧪 Test mode: Simulating GitHub sign-in...');
-        await Future.delayed(const Duration(seconds: 2));
-        AppLogger.logger
-            .auth('✅ Test mode: GitHub sign-in simulation successful');
-        _navigateToHome();
-        return;
-      }
-
-      final userCredential =
-          await ref.read(enhancedAuthServiceProvider).signInWithGitHubMobile();
-
-      AppLogger.logger.auth('✅ GitHub sign-in successful');
-      AppLogger.logger.auth('👤 User: ${userCredential.user?.email}');
-      AppLogger.logger.auth('🔑 User ID: ${userCredential.user?.uid}');
-
-      // Ensure user profile is created
-      try {
-        await ref.read(enhancedAuthServiceProvider).getCurrentUserProfile();
-        AppLogger.logger.auth('✅ User profile ensured/created');
-      } catch (profileError) {
-        AppLogger.logger
-            .e('❌ Failed to create user profile', error: profileError);
-        _showErrorDialog('Profile Error',
-            'Failed to create user profile. Please try again.');
-        return;
-      }
-
-      _navigateToHome();
-    } catch (e) {
-      AppLogger.logger.e('❌ GitHub sign-in failed', error: e);
-      _showErrorDialog('GitHub Sign-In Failed', _getErrorMessage(e));
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
   }
 
   void _navigateToHome() {
@@ -257,114 +177,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     }
 
     return 'An unexpected error occurred. Please try again.';
-  }
-
-  void _showForgotPasswordDialog() {
-    if (!mounted) return;
-
-    final emailController = TextEditingController();
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: Row(
-          children: [
-            const Icon(
-              Icons.lock_reset,
-              color: AppColors.primary,
-              size: 24,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Reset Password',
-                style: GoogleFonts.jetBrainsMono(
-                  color: AppColors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Enter your email address to receive a password reset link.',
-              style: GoogleFonts.inter(
-                color: AppColors.muted,
-                fontSize: 16,
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: emailController,
-              decoration: InputDecoration(
-                hintText: 'Enter your email',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                filled: true,
-                fillColor: AppColors.background,
-              ),
-              keyboardType: TextInputType.emailAddress,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(
-              'Cancel',
-              style: GoogleFonts.jetBrainsMono(
-                color: AppColors.muted,
-                fontWeight: FontWeight.w500,
-                fontSize: 16,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () async {
-              final email = emailController.text.trim();
-              if (email.isEmpty) {
-                _showErrorDialog('Error', 'Please enter your email address.');
-                return;
-              }
-
-              Navigator.of(context).pop();
-              await _sendPasswordResetEmail(email);
-            },
-            child: Text(
-              'Send Reset Link',
-              style: GoogleFonts.jetBrainsMono(
-                color: AppColors.primary,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _sendPasswordResetEmail(String email) async {
-    try {
-      await ref.read(enhancedAuthServiceProvider).sendPasswordResetEmail(email);
-      _showErrorDialog(
-        'Reset Link Sent',
-        'Check your email for password reset instructions.',
-      );
-    } catch (e) {
-      _showErrorDialog('Error', _getErrorMessage(e));
-    }
   }
 
   void _showErrorDialog(String title, String message) {
@@ -449,11 +261,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       _buildGitHubHeader(),
 
                       const SizedBox(height: 48),
-
-                      // Login form
-                      _buildLoginForm(),
-
-                      const SizedBox(height: 32),
 
                       // GitHub login button
                       _buildGitHubLoginSection(),
@@ -587,157 +394,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     );
   }
 
-  Widget _buildLoginForm() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Email field
-            AccessibleFormField(
-              label: 'Email',
-              hintText: 'Enter your email address',
-              controller: _emailController,
-              keyboardType: TextInputType.emailAddress,
-              prefixIcon: const Icon(Icons.email_outlined),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter your email';
-                }
-                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                    .hasMatch(value)) {
-                  return 'Please enter a valid email';
-                }
-                return null;
-              },
-            ),
-
-            const SizedBox(height: 16),
-
-            // Password field
-            AccessibleFormField(
-              label: 'Password',
-              hintText: 'Enter your password',
-              controller: _passwordController,
-              obscureText: !_isPasswordVisible,
-              prefixIcon: const Icon(Icons.lock_outlined),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                  color: AppColors.muted,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _isPasswordVisible = !_isPasswordVisible;
-                  });
-                },
-              ),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter your password';
-                }
-                if (value.length < 6) {
-                  return 'Password must be at least 6 characters';
-                }
-                return null;
-              },
-            ),
-
-            const SizedBox(height: 16),
-
-            // Remember me checkbox
-            Row(
-              children: [
-                Checkbox(
-                  value: _rememberMe,
-                  onChanged: (value) {
-                    setState(() {
-                      _rememberMe = value ?? false;
-                    });
-                  },
-                  activeColor: AppColors.primary,
-                ),
-                Flexible(
-                  child: Text(
-                    'Remember me',
-                    style: GoogleFonts.inter(
-                      color: AppColors.white,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                Flexible(
-                  child: TextButton(
-                    onPressed: () {
-                      _showForgotPasswordDialog();
-                    },
-                    child: Text(
-                      'Forgot password?',
-                      style: GoogleFonts.inter(
-                        color: AppColors.primary,
-                        fontSize: 14,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            // Sign in button
-            AccessibleButton(
-              label: 'Sign In',
-              onPressed: _isLoading ? null : _signInWithEmail,
-              isLoading: _isLoading,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildGitHubLoginSection() {
     return Column(
       children: [
-        // Divider
-        Row(
-          children: [
-            const Expanded(child: Divider(color: AppColors.border)),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'OR',
-                style: GoogleFonts.inter(
-                  color: AppColors.muted,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            const Expanded(child: Divider(color: AppColors.border)),
-          ],
-        ),
-
-        const SizedBox(height: 24),
-
-        // GitHub login button with enhanced styling
+        // GitHub login button
         Container(
           width: double.infinity,
           height: 56,
@@ -794,8 +454,43 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             ),
           ),
         ),
+
+        const SizedBox(height: 8),
       ],
     );
+  }
+
+  Future<void> _signInWithGitHub() async {
+    setState(() => _isLoading = true);
+
+    try {
+      AppLogger.logger.auth('🐙 Starting real GitHub OAuth sign-in...');
+
+      // Use the real GitHub OAuth service
+      final userCredential =
+          await ref.read(enhancedAuthServiceProvider).signInWithGitHubMobile();
+
+      AppLogger.logger.auth('✅ GitHub OAuth sign-in successful');
+      AppLogger.logger.auth('👤 User: ${userCredential.user?.email}');
+      AppLogger.logger.auth('🔑 User ID: ${userCredential.user?.uid}');
+
+      // Haptic feedback for successful authentication
+      HapticService.authSuccess();
+
+      // Navigate to home screen
+      _navigateToHome();
+    } catch (e) {
+      AppLogger.logger.e('❌ GitHub OAuth sign-in failed', error: e);
+
+      // Haptic feedback for authentication error
+      HapticService.authError();
+
+      _showErrorDialog('GitHub Sign-In Failed', _getErrorMessage(e));
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   Widget _buildFooter() {

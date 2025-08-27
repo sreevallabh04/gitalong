@@ -146,18 +146,40 @@ class AuthService {
 
   Future<UserCredential> signInWithGitHubMobile() async {
     try {
-      AppLogger.logger.auth('🐙 Signing in with GitHub...');
+      AppLogger.logger.auth('🐙 Starting mock GitHub sign-in...');
 
-      // For mobile, we'll use a simplified approach
-      // In a real app, you'd implement proper OAuth flow
-      throw const AuthException(
-          'GitHub sign-in not implemented for mobile yet');
+      // Simulate network delay
+      await Future.delayed(const Duration(seconds: 2));
+
+      // For mock implementation, we'll create a real Firebase user
+      // This simulates what would happen with actual GitHub OAuth
+      const mockEmail = 'mock.github.user@example.com';
+      final mockPassword = 'mock_password_${DateTime.now().millisecondsSinceEpoch}';
+
+      // Create a temporary account for the mock GitHub user
+      final userCredential = await _auth.createUserWithEmailAndPassword(
+        email: mockEmail,
+        password: mockPassword,
+      );
+
+      if (userCredential.user != null) {
+        // Update the user profile to simulate GitHub data
+        await userCredential.user!.updateDisplayName('Mock GitHub User');
+        await userCredential.user!.updatePhotoURL('https://avatars.githubusercontent.com/u/mock');
+        
+        // Mark email as verified (GitHub emails are typically verified)
+        // Note: In a real implementation, this would be handled by Firebase Auth
+        AppLogger.logger.auth('✅ Mock GitHub user created and configured');
+      }
+
+      AppLogger.logger.auth('✅ Mock GitHub sign-in successful');
+      return userCredential;
     } on FirebaseAuthException catch (e) {
-      AppLogger.logger.e('❌ GitHub sign-in failed', error: e);
+      AppLogger.logger.e('❌ Mock GitHub sign-in failed', error: e);
       throw AuthException(_getErrorMessage(e), code: e.code);
     } catch (e) {
-      AppLogger.logger.e('❌ GitHub sign-in failed', error: e);
-      throw AuthException('GitHub sign-in failed: ${e.toString()}');
+      AppLogger.logger.e('❌ Mock GitHub sign-in failed', error: e);
+      throw AuthException('Mock GitHub sign-in failed: ${e.toString()}');
     }
   }
 

@@ -16,7 +16,7 @@ import 'services/firestore_service.dart';
 import 'core/services/haptic_service.dart';
 import 'providers/app_lifecycle_provider.dart';
 import 'providers/web_backend_provider.dart';
-import 'core/router/app_router.dart';
+import 'core/router/role_based_router.dart';
 import 'core/config/app_theme.dart';
 import 'core/theme/github_theme.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -173,17 +173,12 @@ void main() async {
             .w('⚠️ GitHub OAuth credentials missing from .env file');
       }
     } catch (e) {
-      // Set default environment variables for development
-      dotenv.env['APP_NAME'] = 'GitAlong';
-      dotenv.env['ENVIRONMENT'] = 'development';
-      dotenv.env['ENABLE_ANALYTICS'] = 'true';
-      dotenv.env['ENABLE_DEBUG_LOGGING'] = 'true';
-      dotenv.env['API_TIMEOUT_SECONDS'] = '30';
+      // If .env file loading fails, just log the error and continue
+      AppLogger.logger.w('⚠️ .env file loading failed: $e');
+      AppLogger.logger.d('✅ Using hardcoded environment configuration');
 
-      AppLogger.logger
-          .d('✅ Using default environment configuration (no .env file found)');
-      AppLogger.logger.w(
-          '⚠️ GitHub OAuth credentials not configured - GitHub features will be disabled');
+      // Note: GitHub OAuth credentials are hardcoded in GitHubOAuthService
+      // for this demo version
     }
 
     // Configure system UI overlay style for GitHub theme
@@ -212,7 +207,8 @@ void main() async {
     // Initialize haptic feedback service
     AppLogger.logger.i('🔗 Initializing haptic feedback service...');
     await HapticService.initialize();
-    AppLogger.logger.success('✅ Haptic feedback service initialized successfully');
+    AppLogger.logger
+        .success('✅ Haptic feedback service initialized successfully');
 
     // Set up error handling
     _setupErrorHandling();
@@ -308,7 +304,7 @@ class GitAlongApp extends ConsumerWidget {
     ref.watch(appLifecycleProvider);
 
     // Get the router from provider
-    final router = ref.watch(routerProvider);
+    final router = ref.watch(enterpriseRouterProvider);
 
     return ErrorBoundary(
       child: MaterialApp.router(
@@ -416,4 +412,3 @@ void _setupFirebaseAuthErrorHandler() {
     },
   );
 }
-

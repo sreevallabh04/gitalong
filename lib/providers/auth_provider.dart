@@ -482,6 +482,37 @@ class EmailActions {
       rethrow;
     }
   }
-
 }
+
+// Mock user provider for testing
+final mockUserProvider = StateProvider<Map<String, dynamic>?>((ref) => null);
+
+// Mock auth actions
+class MockAuthActions {
+  final Ref _ref;
+  
+  MockAuthActions(this._ref);
+
+  /// Set mock user data
+  void setMockUser(Map<String, dynamic> mockUser) {
+    _ref.read(mockUserProvider.notifier).state = mockUser;
+    AppLogger.logger.auth('✅ Mock user set: ${mockUser['email']}');
+  }
+
+  /// Get mock user data
+  Map<String, dynamic>? getMockUser() {
+    return _ref.read(mockUserProvider);
+  }
+
+  /// Clear mock user data
+  void clearMockUser() {
+    _ref.read(mockUserProvider.notifier).state = null;
+    AppLogger.logger.auth('🗑️ Mock user cleared');
+  }
+}
+
+// Mock auth actions provider
+final mockAuthActionsProvider = Provider<MockAuthActions>((ref) {
+  return MockAuthActions(ref);
+});
 
