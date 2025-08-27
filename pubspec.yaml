@@ -117,6 +117,7 @@ flutter:
     - assets/images/
     - assets/icons/
     - assets/animations/
+    - assets/app_icon/
     - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see
@@ -161,12 +162,12 @@ flutter_launcher_icons:
 
 flutter_native_splash:
   color: "#0D1117"
-  image: assets/images/splash.png
+  image: assets/app_icon/app_icon.jpg
   android: true
   ios: true
   web: true
   android_12:
-    image: assets/images/splash.png
+    image: assets/app_icon/app_icon.jpg
     color: "#0D1117"
   # Faster splash removal
   android_gravity: center
