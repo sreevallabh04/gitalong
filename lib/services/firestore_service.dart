@@ -1,16 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../models/models.dart';
-import '../core/utils/logger.dart';
 import '../core/monitoring/analytics_service.dart';
 import '../core/monitoring/crashlytics_service.dart';
+import '../core/utils/logger.dart';
+import '../models/models.dart';
 
 /// Custom exception for Firestore authentication errors
 class FirestoreAuthException implements Exception {
-  final String message;
-  final String code;
 
   const FirestoreAuthException(this.message, {required this.code});
+  final String message;
+  final String code;
 
   @override
   String toString() => 'FirestoreAuthException: $message (Code: $code)';
@@ -40,7 +40,7 @@ class FirestoreService {
       AppLogger.logger.i('✅ Firestore initialized successfully');
     } catch (e, stackTrace) {
       AppLogger.logger.e('❌ Failed to initialize Firestore',
-          error: e, stackTrace: stackTrace);
+          error: e, stackTrace: stackTrace,);
       await CrashlyticsService.recordCustomError(
         'FirestoreInitError',
         'Failed to initialize Firestore: $e',
@@ -97,9 +97,7 @@ class FirestoreService {
   }
 
   /// Get user profile by ID (alias for compatibility)
-  static Future<UserModel?> getUserProfile(String userId) async {
-    return await getUser(userId);
-  }
+  static Future<UserModel?> getUserProfile(String userId) async => getUser(userId);
 
   /// Get user profile by ID
   static Future<UserModel?> getUser(String userId) async {
@@ -115,7 +113,7 @@ class FirestoreService {
         return null;
       }
 
-      final user = UserModel.fromJson(doc.data() as Map<String, dynamic>);
+      final user = UserModel.fromJson(doc.data()! as Map<String, dynamic>);
       AppLogger.logger.d('👤 User retrieved: $userId');
 
       return user;
@@ -141,7 +139,7 @@ class FirestoreService {
 
   /// Update user profile
   static Future<void> updateUser(
-      String userId, Map<String, dynamic> updates) async {
+      String userId, Map<String, dynamic> updates,) async {
     if (!_initialized) throw Exception('Firestore not initialized');
 
     final stopwatch = Stopwatch()..start();
@@ -196,12 +194,12 @@ class FirestoreService {
       final swipedUserIds = await getSwipedUserIds(currentUserId);
       final allExcludeIds = [...excludeIds, currentUserId, ...swipedUserIds];
 
-      Query query = users.where('isActive', isEqualTo: true).limit(
-          limit + allExcludeIds.length); // Get extra to account for filtering
+      final query = users.where('isActive', isEqualTo: true).limit(
+          limit + allExcludeIds.length,); // Get extra to account for filtering
 
       final querySnapshot = await query.get();
       final allUsers = querySnapshot.docs
-          .map((doc) => UserModel.fromJson(doc.data() as Map<String, dynamic>))
+          .map((doc) => UserModel.fromJson(doc.data()! as Map<String, dynamic>))
           .where((user) => !allExcludeIds.contains(user.id))
           .take(limit)
           .toList();
@@ -211,7 +209,7 @@ class FirestoreService {
       return allUsers;
     } catch (e, stackTrace) {
       AppLogger.logger.e('❌ Failed to get users for matching',
-          error: e, stackTrace: stackTrace);
+          error: e, stackTrace: stackTrace,);
 
       await CrashlyticsService.recordBusinessError(
         'getUsersForMatching',
@@ -284,7 +282,7 @@ class FirestoreService {
       final swipedProjectIds = await getSwipedProjectIds(userId);
       final allExcludeIds = [...excludeIds, ...swipedProjectIds];
 
-      Query query = projects
+      final query = projects
           .where('isActive', isEqualTo: true)
           .where('ownerId', isNotEqualTo: userId) // Don't show own projects
           .orderBy('ownerId')
@@ -294,7 +292,7 @@ class FirestoreService {
       final querySnapshot = await query.get();
       final availableProjects = querySnapshot.docs
           .map((doc) =>
-              ProjectModel.fromJson(doc.data() as Map<String, dynamic>))
+              ProjectModel.fromJson(doc.data()! as Map<String, dynamic>),)
           .where((project) => !allExcludeIds.contains(project.id))
           .take(limit)
           .toList();
@@ -305,7 +303,7 @@ class FirestoreService {
       return availableProjects;
     } catch (e, stackTrace) {
       AppLogger.logger.e('❌ Failed to get projects for swiping',
-          error: e, stackTrace: stackTrace);
+          error: e, stackTrace: stackTrace,);
 
       await CrashlyticsService.recordBusinessError(
         'getProjectsForSwiping',
@@ -409,7 +407,7 @@ class FirestoreService {
           .get();
 
       final swipeHistory = querySnapshot.docs
-          .map((doc) => SwipeModel.fromJson(doc.data() as Map<String, dynamic>))
+          .map((doc) => SwipeModel.fromJson(doc.data()! as Map<String, dynamic>))
           .toList();
 
       AppLogger.logger
@@ -442,7 +440,7 @@ class FirestoreService {
           .get();
 
       final userMatches = querySnapshot.docs
-          .map((doc) => MatchModel.fromJson(doc.data() as Map<String, dynamic>))
+          .map((doc) => MatchModel.fromJson(doc.data()! as Map<String, dynamic>))
           .toList();
 
       AppLogger.logger
@@ -465,7 +463,7 @@ class FirestoreService {
 
   /// Sync trending GitHub repositories
   static Future<void> syncTrendingProjects(
-      List<ProjectModel> trendingProjects) async {
+      List<ProjectModel> trendingProjects,) async {
     if (!_initialized) throw Exception('Firestore not initialized');
 
     final stopwatch = Stopwatch()..start();
@@ -492,7 +490,7 @@ class FirestoreService {
       );
     } catch (e, stackTrace) {
       AppLogger.logger.e('❌ Failed to sync trending projects',
-          error: e, stackTrace: stackTrace);
+          error: e, stackTrace: stackTrace,);
 
       await CrashlyticsService.recordBusinessError(
         'syncTrendingProjects',
@@ -521,7 +519,7 @@ class FirestoreService {
 
       return querySnapshot.docs
           .map((doc) =>
-              (doc.data() as Map<String, dynamic>)['targetId'] as String)
+              (doc.data()! as Map<String, dynamic>)['targetId'] as String,)
           .toList();
     } catch (e) {
       AppLogger.logger.e('❌ Failed to get swiped user IDs', error: e);
@@ -538,7 +536,7 @@ class FirestoreService {
 
       return querySnapshot.docs
           .map((doc) =>
-              (doc.data() as Map<String, dynamic>)['targetId'] as String)
+              (doc.data()! as Map<String, dynamic>)['targetId'] as String,)
           .toList();
     } catch (e) {
       AppLogger.logger.e('❌ Failed to get swiped project IDs', error: e);
@@ -558,7 +556,7 @@ class FirestoreService {
 
       if (querySnapshot.docs.isNotEmpty) {
         return SwipeModel.fromJson(
-            querySnapshot.docs.first.data() as Map<String, dynamic>);
+            querySnapshot.docs.first.data()! as Map<String, dynamic>,);
       }
 
       return null;
@@ -625,7 +623,7 @@ class FirestoreService {
           .i('🔔 Notification sent to owner $ownerId for project $projectId');
     } catch (e, stackTrace) {
       AppLogger.logger.e('❌ Failed to send swipe notification',
-          error: e, stackTrace: stackTrace);
+          error: e, stackTrace: stackTrace,);
       rethrow;
     }
   }

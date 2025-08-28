@@ -1,16 +1,16 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+
+import '../core/utils/logger.dart';
 import '../models/user_model.dart';
 import '../models/user_roles.dart' as roles;
-import '../core/utils/logger.dart';
 
 /// Custom exception for authentication errors
 class AuthException implements Exception {
+  const AuthException(this.message, {this.code});
   final String message;
   final String? code;
-
-  const AuthException(this.message, {this.code});
 
   @override
   String toString() => 'AuthException($code): $message';
@@ -27,11 +27,11 @@ class AuthService {
   bool get isAuthenticated => _auth.currentUser != null;
   // Auth state stream with error handling
   Stream<User?> get authStateChanges =>
-      _auth.authStateChanges().handleError((error) {
+      _auth.authStateChanges().handleError((error) async {
         AppLogger.logger.e('Auth state change error: $error');
         if (error.toString().contains('credential is no longer valid')) {
           // Force sign out on invalid credentials
-          signOut();
+          await signOut();
         }
       });
 
@@ -55,7 +55,7 @@ class AuthService {
   }
 
   // Check and handle auth errors
-  Future<void> handleAuthError(dynamic error) async {
+  Future<void> handleAuthError(error) async {
     if (error.toString().contains('credential is no longer valid') ||
         error.toString().contains('FirebaseAuthInvalidUserException')) {
       AppLogger.logger.w('🔒 Invalid credentials detected, signing out user');
@@ -65,7 +65,9 @@ class AuthService {
 
   // Authentication methods
   Future<UserCredential> signInWithEmailAndPassword(
-      String email, String password) async {
+    String email,
+    String password,
+  ) async {
     try {
       AppLogger.logger.auth('🔐 Signing in with email: $email');
       final result = await _auth.signInWithEmailAndPassword(
@@ -91,10 +93,11 @@ class AuthService {
     }
   }
 
-  Future<UserCredential> createAccount(
-      {required String email,
-      required String password,
-      String? displayName}) async {
+  Future<UserCredential> createAccount({
+    required String email,
+    required String password,
+    String? displayName,
+  }) async {
     try {
       AppLogger.logger.auth('👤 Creating account for: $email');
 
@@ -154,7 +157,8 @@ class AuthService {
       // For mock implementation, we'll create a real Firebase user
       // This simulates what would happen with actual GitHub OAuth
       const mockEmail = 'mock.github.user@example.com';
-      final mockPassword = 'mock_password_${DateTime.now().millisecondsSinceEpoch}';
+      final mockPassword =
+          'mock_password_${DateTime.now().millisecondsSinceEpoch}';
 
       // Create a temporary account for the mock GitHub user
       final userCredential = await _auth.createUserWithEmailAndPassword(
@@ -165,8 +169,9 @@ class AuthService {
       if (userCredential.user != null) {
         // Update the user profile to simulate GitHub data
         await userCredential.user!.updateDisplayName('Mock GitHub User');
-        await userCredential.user!.updatePhotoURL('https://avatars.githubusercontent.com/u/mock');
-        
+        await userCredential.user!
+            .updatePhotoURL('https://avatars.githubusercontent.com/u/mock');
+
         // Mark email as verified (GitHub emails are typically verified)
         // Note: In a real implementation, this would be handled by Firebase Auth
         AppLogger.logger.auth('✅ Mock GitHub user created and configured');
@@ -208,8 +213,10 @@ class AuthService {
   }) async {
     try {
       if (!isAuthenticated) {
-        throw const AuthException('User not authenticated',
-            code: 'not-authenticated');
+        throw const AuthException(
+          'User not authenticated',
+          code: 'not-authenticated',
+        );
       }
 
       final user = currentUser!;

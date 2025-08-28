@@ -1,23 +1,17 @@
-import '../core/network/api_client.dart';
-import '../models/models.dart' as models;
-import '../core/utils/logger.dart';
-import '../core/config/production_constants.dart';
-import '../providers/ml_matching_provider.dart' show SwipeDirection;
-
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+import '../core/config/production_constants.dart';
+import '../core/network/api_client.dart';
+import '../core/utils/logger.dart';
+import '../models/models.dart' as models;
+import '../providers/ml_matching_provider.dart' show SwipeDirection;
 
 /// Production-ready ML matching service that connects to Python FastAPI backend
 class MLMatchingService {
-  static MLMatchingService? _instance;
-  static MLMatchingService get instance =>
-      _instance ??= MLMatchingService._internal();
-
-  final ApiClient _apiClient = ApiClient.instance;
-  late final String _baseUrl;
 
   MLMatchingService._internal() {
     // Production-ready URL configuration
-    final String? envUrl = dotenv.env['ML_BACKEND_URL'];
+    final envUrl = dotenv.env['ML_BACKEND_URL'];
 
     if (envUrl != null && envUrl.isNotEmpty) {
       _baseUrl = envUrl;
@@ -29,71 +23,164 @@ class MLMatchingService {
     AppLogger.logger
         .d('🧠 ML Matching Service initialized with URL: $_baseUrl');
   }
+  static MLMatchingService? _instance;
+  static MLMatchingService get instance =>
+      _instance ??= MLMatchingService._internal();
 
-  /// Get personalized user recommendations using ML backend
+  final ApiClient _apiClient = ApiClient.instance;
+  late final String _baseUrl;
+
+  /// Get ML-based recommendations
   Future<Map<String, dynamic>> getRecommendations({
     required models.UserModel currentUser,
     List<String> excludeUserIds = const [],
     int maxRecommendations = 20,
-    bool includeAnalytics = true,
-    bool useCache = true,
   }) async {
     try {
-      AppLogger.logger
-          .d('🔍 Getting ML recommendations for user: ${currentUser.id}');
-
-      // Prepare request payload
-      final requestData = {
-        'user_id': currentUser.id ?? '',
-        'user_profile': _userModelToBackendFormat(currentUser),
-        'exclude_user_ids': excludeUserIds,
-        'max_recommendations': maxRecommendations,
-        'include_analytics': includeAnalytics,
-      };
-
-      // Make API call to ML backend
       final response = await _apiClient.post<Map<String, dynamic>>(
-        '$_baseUrl/recommendations',
-        data: requestData,
+        '/ml/recommendations',
+        data: {
+          'user_id': currentUser.uid,
+          'user_data': currentUser.toJson(),
+          'exclude_user_ids': excludeUserIds,
+          'max_recommendations': maxRecommendations,
+        },
         fromJson: (data) => data as Map<String, dynamic>,
       );
 
       if (response.isSuccess) {
-        final mlResponse = response.data!;
-        AppLogger.logger.success('✅ ML recommendations received');
-
-        // Cache successful results for offline access
-        if (useCache) {
-          await _cacheRecommendations(currentUser.id ?? '', mlResponse);
-        }
-
-        return mlResponse;
+        return response.data ?? {};
       } else {
-        throw MLMatchingException(
-          'Failed to get recommendations: ${response.errorMessage}',
-          statusCode: response.statusCode,
-        );
+        AppLogger.logger.e('ML API error: ${response.message}');
+        return _getFallbackRecommendations(currentUser, excludeUserIds, maxRecommendations);
       }
-    } catch (e) {
-      AppLogger.logger.e('❌ Error getting ML recommendations', error: e);
-
-      // Try to return cached results on error
-      if (useCache) {
-        final cachedResults =
-            await _getCachedRecommendations(currentUser.id ?? '');
-        if (cachedResults != null) {
-          AppLogger.logger
-              .w('⚠️ Returning cached recommendations due to error');
-          return cachedResults;
-        }
-      }
-
-      throw MLMatchingException(
-        'Failed to get recommendations: ${e.toString()}',
-        originalError: e,
-      );
+    } on Exception catch (e, stackTrace) {
+      AppLogger.logger.e('Error getting ML recommendations', error: e, stackTrace: stackTrace);
+      return _getFallbackRecommendations(currentUser, excludeUserIds, maxRecommendations);
     }
   }
+
+  /// Get user similarity score
+  Future<double> getUserSimilarity(models.UserModel user1, models.UserModel user2) async {
+    try {
+      final response = await _apiClient.post<Map<String, dynamic>>(
+        '/ml/similarity',
+        data: {
+          'user1': user1.toJson(),
+          'user2': user2.toJson(),
+        },
+        fromJson: (data) => data as Map<String, dynamic>,
+      );
+
+      if (response.isSuccess && response.data != null) {
+        return (response.data!['similarity_score'] as num?)?.toDouble() ?? 0.0;
+      } else {
+        AppLogger.logger.e('ML API error: ${response.message}');
+        return _calculateFallbackSimilarity(user1, user2);
+      }
+    } on Exception catch (e, stackTrace) {
+      AppLogger.logger.e('Error getting user similarity', error: e, stackTrace: stackTrace);
+      return _calculateFallbackSimilarity(user1, user2);
+    }
+  }
+
+  /// Get project recommendations for user
+  Future<List<models.ProjectModel>> getProjectRecommendations({
+    required models.UserModel user,
+    List<String> excludeProjectIds = const [],
+    int maxRecommendations = 10,
+  }) async {
+    try {
+      final response = await _apiClient.post<Map<String, dynamic>>(
+        '/ml/project-recommendations',
+        data: {
+          'user_id': user.uid,
+          'user_data': user.toJson(),
+          'exclude_project_ids': excludeProjectIds,
+          'max_recommendations': maxRecommendations,
+        },
+        fromJson: (data) => data as Map<String, dynamic>,
+      );
+
+      if (response.isSuccess && response.data != null) {
+        final projectsList = response.data!['projects'] as List<dynamic>? ?? [];
+        return projectsList
+            .map((projectData) => models.ProjectModel.fromJson(projectData as Map<String, dynamic>))
+            .toList();
+      } else {
+        AppLogger.logger.e('ML API error: ${response.message}');
+        return _getFallbackProjectRecommendations(user, excludeProjectIds, maxRecommendations);
+      }
+    } on Exception catch (e, stackTrace) {
+      AppLogger.logger.e('Error getting project recommendations', error: e, stackTrace: stackTrace);
+      return _getFallbackProjectRecommendations(user, excludeProjectIds, maxRecommendations);
+    }
+  }
+
+  /// Get skill-based recommendations
+  Future<List<models.UserModel>> getSkillBasedRecommendations({
+    required List<String> skills,
+    List<String> excludeUserIds = const [],
+    int maxRecommendations = 15,
+  }) async {
+    try {
+      final response = await _apiClient.post<Map<String, dynamic>>(
+        '/ml/skill-recommendations',
+        data: {
+          'skills': skills,
+          'exclude_user_ids': excludeUserIds,
+          'max_recommendations': maxRecommendations,
+        },
+        fromJson: (data) => data as Map<String, dynamic>,
+      );
+
+      if (response.isSuccess && response.data != null) {
+        final usersList = response.data!['users'] as List<dynamic>? ?? [];
+        return usersList
+            .map((userData) => models.UserModel.fromJson(userData as Map<String, dynamic>))
+            .toList();
+      } else {
+        AppLogger.logger.e('ML API error: ${response.message}');
+        return _getFallbackSkillRecommendations(skills, excludeUserIds, maxRecommendations);
+      }
+    } on Exception catch (e, stackTrace) {
+      AppLogger.logger.e('Error getting skill-based recommendations', error: e, stackTrace: stackTrace);
+      return _getFallbackSkillRecommendations(skills, excludeUserIds, maxRecommendations);
+    }
+  }
+
+  /// Fallback recommendations when ML API fails
+  Map<String, dynamic> _getFallbackRecommendations(
+    models.UserModel currentUser,
+    List<String> excludeUserIds,
+    int maxRecommendations,
+  ) => {
+      'recommendations': [],
+      'fallback': true,
+      'message': 'Using fallback recommendations',
+    };
+
+  /// Fallback similarity calculation
+  double _calculateFallbackSimilarity(models.UserModel user1, models.UserModel user2) {
+    // Simple skill-based similarity
+    final commonSkills = user1.skills?.where((skill) => user2.skills?.contains(skill) ?? false).length ?? 0;
+    final totalSkills = (user1.skills?.length ?? 0) + (user2.skills?.length ?? 0);
+    return totalSkills > 0 ? commonSkills / totalSkills : 0.0;
+  }
+
+  /// Fallback project recommendations
+  List<models.ProjectModel> _getFallbackProjectRecommendations(
+    models.UserModel user,
+    List<String> excludeProjectIds,
+    int maxRecommendations,
+  ) => [];
+
+  /// Fallback skill-based recommendations
+  List<models.UserModel> _getFallbackSkillRecommendations(
+    List<String> skills,
+    List<String> excludeUserIds,
+    int maxRecommendations,
+  ) => [];
 
   /// Record a swipe for collaborative filtering
   Future<bool> recordSwipe({
@@ -220,8 +307,7 @@ class MLMatchingService {
   }
 
   /// Convert UserModel to backend-compatible format
-  Map<String, dynamic> _userModelToBackendFormat(models.UserModel user) {
-    return {
+  Map<String, dynamic> _userModelToBackendFormat(models.UserModel user) => {
       'id': user.id,
       'name': user.name ?? '',
       'email': user.email,
@@ -235,7 +321,6 @@ class MLMatchingService {
       'created_at': user.createdAt?.toIso8601String() ?? '',
       'updated_at': user.updatedAt?.toIso8601String() ?? '',
     };
-  }
 
   /// Extract GitHub stats from user model
   Map<String, dynamic> _extractGitHubStats(models.UserModel user) {
@@ -251,7 +336,7 @@ class MLMatchingService {
 
   /// Cache recommendations for offline access
   Future<void> _cacheRecommendations(
-      String userId, Map<String, dynamic> recommendations) async {
+      String userId, Map<String, dynamic> recommendations,) async {
     try {
       // Implementation would use local storage or database
       AppLogger.logger.d('📦 Caching recommendations for user: $userId');
@@ -275,11 +360,11 @@ class MLMatchingService {
 
 /// Exception class for ML matching errors
 class MLMatchingException implements Exception {
+
+  MLMatchingException(this.message, {this.statusCode, this.originalError});
   final String message;
   final int? statusCode;
   final dynamic originalError;
-
-  MLMatchingException(this.message, {this.statusCode, this.originalError});
 
   @override
   String toString() => 'MLMatchingException: $message';

@@ -1,7 +1,7 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:gitalong/services/auth/auth_service.dart';
+import 'package:mockito/mockito.dart';
 
 // Mock classes
 class MockFirebaseAuth extends Mock implements FirebaseAuth {}
@@ -37,7 +37,7 @@ void main() {
         when(mockFirebaseAuth.signInWithEmailAndPassword(
           email: email,
           password: password,
-        )).thenAnswer((_) async => mockUserCredential);
+        ),).thenAnswer((_) async => mockUserCredential);
 
         // Act & Assert
         expect(
@@ -102,7 +102,7 @@ void main() {
         when(mockFirebaseAuth.signInWithEmailAndPassword(
           email: email,
           password: password,
-        )).thenThrow(
+        ),).thenThrow(
           FirebaseAuthException(
             code: 'user-not-found',
             message: 'User not found',
@@ -128,7 +128,7 @@ void main() {
         when(mockFirebaseAuth.signInWithEmailAndPassword(
           email: 'test@example.com',
           password: 'password123',
-        )).thenAnswer((_) async => mockUserCredential);
+        ),).thenAnswer((_) async => mockUserCredential);
 
         // Act
         await authService.login(
@@ -140,7 +140,7 @@ void main() {
         verify(mockFirebaseAuth.signInWithEmailAndPassword(
           email: 'test@example.com',
           password: 'password123',
-        )).called(1);
+        ),).called(1);
       });
     });
 
@@ -156,7 +156,7 @@ void main() {
         when(mockFirebaseAuth.createUserWithEmailAndPassword(
           email: email,
           password: password,
-        )).thenAnswer((_) async => mockUserCredential);
+        ),).thenAnswer((_) async => mockUserCredential);
 
         // Act
         final result = await authService.createAccount(

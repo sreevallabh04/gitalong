@@ -1,26 +1,19 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import '../../providers/auth_provider.dart';
-import '../../providers/project_provider.dart';
-import '../../providers/stats_provider.dart';
-import '../../providers/contributions_provider.dart';
+
+import '../../core/utils/accessibility_utils.dart';
 import '../../core/utils/logger.dart';
 import '../../models/models.dart';
-import '../../widgets/profile/role_switch_card.dart';
-import '../../widgets/profile/stats_card.dart';
-import '../../widgets/profile/project_preview_card.dart';
-import '../../widgets/profile/enhanced_security_widget.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import '../../core/utils/accessibility_utils.dart';
-import '../../widgets/common/accessible_button.dart';
 import '../../models/user_roles.dart' as roles;
-import 'package:flutter/services.dart';
+import '../../providers/auth_provider.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -38,7 +31,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
   bool _isLoading = false;
   bool _isPickingImage = false;
-  bool _showFloatingActions = false;
+  final bool _showFloatingActions = false;
 
   @override
   void initState() {
@@ -85,7 +78,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         decoration: BoxDecoration(
           gradient: RadialGradient(
             center: Alignment.topLeft,
-            radius: 2.0,
+            radius: 2,
             colors: [
               const Color(0xFF8B5CF6).withValues(alpha: 0.08),
               const Color(0xFF0D1117),
@@ -94,7 +87,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           ),
         ),
         child: userProfileAsync.when(
-          loading: () => _buildLoadingState(),
+          loading: _buildLoadingState,
           error: (error, stackTrace) => _buildErrorState(error.toString()),
           data: (userProfile) {
             if (userProfile == null) {
@@ -108,406 +101,414 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     );
   }
 
-  Widget _buildLoadingState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
-              ),
-              borderRadius: BorderRadius.circular(32),
-            ),
-            child: const Icon(
-              Icons.person,
-              color: Colors.white,
-              size: 32,
-            ),
-          )
-              .animate(onPlay: (controller) => controller.repeat())
-              .shimmer(duration: 1000.ms)
-              .scale(
-                  begin: const Offset(0.8, 0.8), end: const Offset(1.2, 1.2)),
-          const SizedBox(height: 24),
-          Text(
-            'Loading Profile...',
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 16,
-              color: const Color(0xFF7D8590),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErrorState(String error) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.warning,
-            color: Color(0xFFDA3633),
-            size: 64,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Error Loading Profile',
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 20,
-              color: const Color(0xFFF0F6FC),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            error,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Color(0xFF7D8590)),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: () => ref.refresh(userProfileProvider),
-            child: const Text('Retry'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNoProfileState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.person_off,
-            color: Color(0xFF7D8590),
-            size: 64,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Profile Not Found',
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 20,
-              color: const Color(0xFFF0F6FC),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Please complete your profile setup',
-            style: TextStyle(color: Color(0xFF7D8590)),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: () => context.go('/onboarding'),
-            child: const Text('Setup Profile'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEnhancedProfileContent(
-      UserModel userProfile, User? currentUser) {
-    return CustomScrollView(
-      slivers: [
-        // Enhanced App Bar
-        SliverAppBar(
-          expandedHeight: 200,
-          floating: false,
-          pinned: true,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          flexibleSpace: FlexibleSpaceBar(
-            background: _buildProfileHeader(userProfile),
-          ),
-          actions: [
-            IconButton(
-              icon: Icon(
-                PhosphorIcons.gear(PhosphorIconsStyle.regular),
-                color: Colors.white,
-              ),
-              onPressed: () => _showSettingsDialog(context),
-            ),
-            IconButton(
-              icon: Icon(
-                PhosphorIcons.share(PhosphorIconsStyle.regular),
-                color: Colors.white,
-              ),
-              onPressed: () => _shareProfile(userProfile),
-            ),
-          ],
-        ),
-
-        // Profile Content
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                // User Info Card
-                _buildUserInfoCard(userProfile)
-                    .animate()
-                    .slideY(
-                        begin: 0.3,
-                        duration: 600.ms,
-                        curve: Curves.easeOutCubic)
-                    .fadeIn(duration: 800.ms),
-
-                const SizedBox(height: 20),
-
-                // Stats Cards
-                _buildStatsSection(userProfile)
-                    .animate()
-                    .slideY(
-                        begin: 0.3,
-                        duration: 700.ms,
-                        curve: Curves.easeOutCubic)
-                    .fadeIn(duration: 900.ms),
-
-                const SizedBox(height: 20),
-
-                // Role Switch Card
-                _buildRoleSwitchSection(userProfile)
-                    .animate()
-                    .slideY(
-                        begin: 0.3,
-                        duration: 800.ms,
-                        curve: Curves.easeOutCubic)
-                    .fadeIn(duration: 1000.ms),
-
-                const SizedBox(height: 20),
-
-                // Recent Projects
-                _buildRecentProjectsSection(userProfile)
-                    .animate()
-                    .slideY(
-                        begin: 0.3,
-                        duration: 900.ms,
-                        curve: Curves.easeOutCubic)
-                    .fadeIn(duration: 1100.ms),
-
-                const SizedBox(height: 20),
-
-                // Security Section
-                _buildSecuritySection(userProfile)
-                    .animate()
-                    .slideY(
-                        begin: 0.3,
-                        duration: 1000.ms,
-                        curve: Curves.easeOutCubic)
-                    .fadeIn(duration: 1200.ms),
-
-                const SizedBox(height: 100), // Bottom padding for FAB
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildProfileHeader(UserModel userProfile) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF8B5CF6).withValues(alpha: 0.8),
-            const Color(0xFFEC4899).withValues(alpha: 0.6),
-            const Color(0xFF1F6FEB).withValues(alpha: 0.4),
-          ],
-        ),
-      ),
-      child: SafeArea(
+  Widget _buildLoadingState() => Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Profile Image
-            GestureDetector(
-              onTap: _pickProfileImage,
-              child: Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 4),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.3),
-                      blurRadius: 20,
-                      spreadRadius: 5,
-                    ),
-                  ],
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
                 ),
-                child: ClipOval(
-                  child: userProfile.effectivePhotoUrl != null
-                      ? Image.network(
-                          userProfile.effectivePhotoUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              _buildDefaultProfileImage(),
-                        )
-                      : _buildDefaultProfileImage(),
-                ),
+                borderRadius: BorderRadius.circular(32),
               ),
-            ).animate().scale(
-                  duration: 600.ms,
-                  curve: Curves.elasticOut,
-                ),
-
-            const SizedBox(height: 16),
-
-            // User Name
-            Text(
-              userProfile.displayName ?? 'Anonymous Developer',
-              style: GoogleFonts.jetBrainsMono(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+              child: const Icon(
+                Icons.person,
                 color: Colors.white,
+                size: 32,
               ),
-            ).animate().slideY(
-                  begin: 0.5,
-                  duration: 800.ms,
-                  curve: Curves.easeOutCubic,
+            )
+                .animate(onPlay: (controller) => controller.repeat())
+                .shimmer(duration: 1000.ms)
+                .scale(
+                  begin: const Offset(0.8, 0.8),
+                  end: const Offset(1.2, 1.2),
                 ),
-
-            // User Bio
-            if (userProfile.bio != null && userProfile.bio!.isNotEmpty)
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 32, vertical: 8),
-                child: Text(
-                  userProfile.bio!,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 14,
-                    color: Colors.white.withValues(alpha: 0.9),
-                  ),
-                ),
-              ).animate().slideY(
-                    begin: 0.5,
-                    duration: 1000.ms,
-                    curve: Curves.easeOutCubic,
-                  ),
+            const SizedBox(height: 24),
+            Text(
+              'Loading Profile...',
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 16,
+                color: const Color(0xFF7D8590),
+              ),
+            ),
           ],
         ),
-      ),
-    );
-  }
+      );
 
-  Widget _buildDefaultProfileImage() {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            const Color(0xFF8B5CF6),
-            const Color(0xFFEC4899),
+  Widget _buildErrorState(String error) => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.warning,
+              color: Color(0xFFDA3633),
+              size: 64,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Error Loading Profile',
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 20,
+                color: const Color(0xFFF0F6FC),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              error,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Color(0xFF7D8590)),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () => ref.refresh(userProfileProvider),
+              child: const Text('Retry'),
+            ),
           ],
         ),
-      ),
-      child: Icon(
-        PhosphorIcons.user(PhosphorIconsStyle.fill),
-        color: Colors.white,
-        size: 50,
-      ),
-    );
-  }
+      );
 
-  Widget _buildUserInfoCard(UserModel userProfile) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF161B22).withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFF30363D).withValues(alpha: 0.5),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 20,
-            spreadRadius: 0,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                PhosphorIcons.info(PhosphorIconsStyle.regular),
-                color: const Color(0xFF8B5CF6),
-                size: 20,
+  Widget _buildNoProfileState() => Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.person_off,
+              color: Color(0xFF7D8590),
+              size: 64,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Profile Not Found',
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 20,
+                color: const Color(0xFFF0F6FC),
+                fontWeight: FontWeight.bold,
               ),
-              const SizedBox(width: 8),
-              Text(
-                'Profile Information',
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Please complete your profile setup',
+              style: TextStyle(color: Color(0xFF7D8590)),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () => context.go('/onboarding'),
+              child: const Text('Setup Profile'),
+            ),
+          ],
+        ),
+      );
+
+  Widget _buildEnhancedProfileContent(
+    UserModel userProfile,
+    User? currentUser,
+  ) =>
+      CustomScrollView(
+        slivers: [
+          // Enhanced App Bar
+          SliverAppBar(
+            expandedHeight: 200,
+            floating: false,
+            pinned: true,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            flexibleSpace: FlexibleSpaceBar(
+              background: _buildProfileHeader(userProfile),
+            ),
+            actions: [
+              IconButton(
+                icon: Icon(
+                  PhosphorIcons.gear(PhosphorIconsStyle.regular),
                   color: Colors.white,
                 ),
+                onPressed: () => _showSettingsDialog(context),
+              ),
+              IconButton(
+                icon: Icon(
+                  PhosphorIcons.share(PhosphorIconsStyle.regular),
+                  color: Colors.white,
+                ),
+                onPressed: () => _shareProfile(userProfile),
               ),
             ],
           ),
-          const SizedBox(height: 16),
 
-          // Email
-          _buildInfoRow(
-            icon: PhosphorIcons.envelope(PhosphorIconsStyle.regular),
-            label: 'Email',
-            value: userProfile.email ?? 'Not provided',
-            color: const Color(0xFF1F6FEB),
-          ),
+          // Profile Content
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  // User Info Card
+                  _buildUserInfoCard(userProfile)
+                      .animate()
+                      .slideY(
+                        begin: 0.3,
+                        duration: 600.ms,
+                        curve: Curves.easeOutCubic,
+                      )
+                      .fadeIn(duration: 800.ms),
 
-          const SizedBox(height: 12),
+                  const SizedBox(height: 20),
 
-          // GitHub
-          if (userProfile.githubUrl != null)
-            _buildInfoRow(
-              icon: PhosphorIcons.githubLogo(PhosphorIconsStyle.fill),
-              label: 'GitHub',
-              value: userProfile.githubUrl!,
-              color: const Color(0xFFE09800),
-              isLink: true,
+                  // Stats Cards
+                  _buildStatsSection(userProfile)
+                      .animate()
+                      .slideY(
+                        begin: 0.3,
+                        duration: 700.ms,
+                        curve: Curves.easeOutCubic,
+                      )
+                      .fadeIn(duration: 900.ms),
+
+                  const SizedBox(height: 20),
+
+                  // GitHub Section
+                  _buildGitHubSection(userProfile)
+                      .animate()
+                      .slideY(
+                        begin: 0.3,
+                        duration: 750.ms,
+                        curve: Curves.easeOutCubic,
+                      )
+                      .fadeIn(duration: 950.ms),
+
+                  const SizedBox(height: 20),
+
+                  // Role Switch Card
+                  _buildRoleSwitchSection(userProfile)
+                      .animate()
+                      .slideY(
+                        begin: 0.3,
+                        duration: 800.ms,
+                        curve: Curves.easeOutCubic,
+                      )
+                      .fadeIn(duration: 1000.ms),
+
+                  const SizedBox(height: 20),
+
+                  // Recent Projects
+                  _buildRecentProjectsSection(userProfile)
+                      .animate()
+                      .slideY(
+                        begin: 0.3,
+                        duration: 900.ms,
+                        curve: Curves.easeOutCubic,
+                      )
+                      .fadeIn(duration: 1100.ms),
+
+                  const SizedBox(height: 20),
+
+                  // Security Section
+                  _buildSecuritySection(userProfile)
+                      .animate()
+                      .slideY(
+                        begin: 0.3,
+                        duration: 1000.ms,
+                        curve: Curves.easeOutCubic,
+                      )
+                      .fadeIn(duration: 1200.ms),
+
+                  const SizedBox(height: 100), // Bottom padding for FAB
+                ],
+              ),
             ),
-
-          const SizedBox(height: 12),
-
-          // Location
-          if (userProfile.location != null)
-            _buildInfoRow(
-              icon: PhosphorIcons.mapPin(PhosphorIconsStyle.regular),
-              label: 'Location',
-              value: userProfile.location!,
-              color: const Color(0xFF10B981),
-            ),
-
-          const SizedBox(height: 12),
-
-          // Join Date
-          _buildInfoRow(
-            icon: PhosphorIcons.calendar(PhosphorIconsStyle.regular),
-            label: 'Joined',
-            value: _formatJoinDate(userProfile.createdAt),
-            color: const Color(0xFFEC4899),
           ),
         ],
-      ),
-    );
-  }
+      );
+
+  Widget _buildProfileHeader(UserModel userProfile) => Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              const Color(0xFF8B5CF6).withValues(alpha: 0.8),
+              const Color(0xFFEC4899).withValues(alpha: 0.6),
+              const Color(0xFF1F6FEB).withValues(alpha: 0.4),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Profile Image
+              GestureDetector(
+                onTap: _pickProfileImage,
+                child: Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 4),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        blurRadius: 20,
+                        spreadRadius: 5,
+                      ),
+                    ],
+                  ),
+                  child: ClipOval(
+                    child: userProfile.effectivePhotoUrl != null
+                        ? Image.network(
+                            userProfile.effectivePhotoUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                _buildDefaultProfileImage(),
+                          )
+                        : _buildDefaultProfileImage(),
+                  ),
+                ),
+              ).animate().scale(
+                    duration: 600.ms,
+                    curve: Curves.elasticOut,
+                  ),
+
+              const SizedBox(height: 16),
+
+              // User Name
+              Text(
+                userProfile.displayName ?? 'Anonymous Developer',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ).animate().slideY(
+                    begin: 0.5,
+                    duration: 800.ms,
+                    curve: Curves.easeOutCubic,
+                  ),
+
+              // User Bio
+              if (userProfile.bio != null && userProfile.bio!.isNotEmpty)
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 8),
+                  child: Text(
+                    userProfile.bio!,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 14,
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
+                  ),
+                ).animate().slideY(
+                      begin: 0.5,
+                      duration: 1000.ms,
+                      curve: Curves.easeOutCubic,
+                    ),
+            ],
+          ),
+        ),
+      );
+
+  Widget _buildDefaultProfileImage() => Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF8B5CF6),
+              Color(0xFFEC4899),
+            ],
+          ),
+        ),
+        child: Icon(
+          PhosphorIcons.user(PhosphorIconsStyle.fill),
+          color: Colors.white,
+          size: 50,
+        ),
+      );
+
+  Widget _buildUserInfoCard(UserModel userProfile) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF161B22).withValues(alpha: 0.8),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: const Color(0xFF30363D).withValues(alpha: 0.5),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 20,
+              spreadRadius: 0,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  PhosphorIcons.info(PhosphorIconsStyle.regular),
+                  color: const Color(0xFF8B5CF6),
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Profile Information',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Email
+            _buildInfoRow(
+              icon: PhosphorIcons.envelope(PhosphorIconsStyle.regular),
+              label: 'Email',
+              value: userProfile.email ?? 'Not provided',
+              color: const Color(0xFF1F6FEB),
+            ),
+
+            const SizedBox(height: 12),
+
+            // GitHub
+            if (userProfile.githubUrl != null)
+              _buildInfoRow(
+                icon: PhosphorIcons.githubLogo(PhosphorIconsStyle.fill),
+                label: 'GitHub',
+                value: userProfile.githubUrl!,
+                color: const Color(0xFFE09800),
+                isLink: true,
+              ),
+
+            const SizedBox(height: 12),
+
+            // Location
+            if (userProfile.location != null)
+              _buildInfoRow(
+                icon: PhosphorIcons.mapPin(PhosphorIconsStyle.regular),
+                label: 'Location',
+                value: userProfile.location!,
+                color: const Color(0xFF10B981),
+              ),
+
+            const SizedBox(height: 12),
+
+            // Join Date
+            _buildInfoRow(
+              icon: PhosphorIcons.calendar(PhosphorIconsStyle.regular),
+              label: 'Joined',
+              value: _formatJoinDate(userProfile.createdAt),
+              color: const Color(0xFFEC4899),
+            ),
+          ],
+        ),
+      );
 
   Widget _buildInfoRow({
     required IconData icon,
@@ -515,188 +516,67 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     required String value,
     required Color color,
     bool isLink = false,
-  }) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            icon,
-            color: color,
-            size: 16,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 12,
-                  color: const Color(0xFF7D8590),
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (isLink)
-          Icon(
-            PhosphorIcons.arrowUpRight(PhosphorIconsStyle.regular),
-            color: const Color(0xFF7D8590),
-            size: 16,
-          ),
-      ],
-    );
-  }
-
-  Widget _buildStatsSection(UserModel userProfile) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(
-              PhosphorIcons.chartBar(PhosphorIconsStyle.regular),
-              color: const Color(0xFF10B981),
-              size: 20,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'Statistics',
-              style: GoogleFonts.jetBrainsMono(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatCard(
-                icon: PhosphorIcons.star(PhosphorIconsStyle.fill),
-                title: 'Projects',
-                value: '12',
-                color: const Color(0xFFE09800),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildStatCard(
-                icon: PhosphorIcons.users(PhosphorIconsStyle.fill),
-                title: 'Contributions',
-                value: '45',
-                color: const Color(0xFF1F6FEB),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildStatCard(
-                icon: PhosphorIcons.heart(PhosphorIconsStyle.fill),
-                title: 'Matches',
-                value: '8',
-                color: const Color(0xFFE91E63),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatCard({
-    required IconData icon,
-    required String title,
-    required String value,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF161B22).withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFF30363D).withValues(alpha: 0.5),
-          width: 1,
-        ),
-      ),
-      child: Column(
+  }) =>
+      Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
               icon,
               color: color,
-              size: 24,
+              size: 16,
             ),
           ),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 12,
+                    color: const Color(0xFF7D8590),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 12,
+          if (isLink)
+            Icon(
+              PhosphorIcons.arrowUpRight(PhosphorIconsStyle.regular),
               color: const Color(0xFF7D8590),
+              size: 16,
             ),
-          ),
         ],
-      ),
-    );
-  }
+      );
 
-  Widget _buildRoleSwitchSection(UserModel userProfile) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF161B22).withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFF30363D).withValues(alpha: 0.5),
-          width: 1,
-        ),
-      ),
-      child: Column(
+  Widget _buildStatsSection(UserModel userProfile) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Icon(
-                PhosphorIcons.arrowsLeftRight(PhosphorIconsStyle.regular),
-                color: const Color(0xFF8B5CF6),
+                PhosphorIcons.chartBar(PhosphorIconsStyle.regular),
+                color: const Color(0xFF10B981),
                 size: 20,
               ),
               const SizedBox(width: 8),
               Text(
-                'Role Management',
+                'Statistics',
                 style: GoogleFonts.jetBrainsMono(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -706,67 +586,511 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             ],
           ),
           const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  icon: PhosphorIcons.star(PhosphorIconsStyle.fill),
+                  title: 'Projects',
+                  value: '12',
+                  color: const Color(0xFFE09800),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCard(
+                  icon: PhosphorIcons.users(PhosphorIconsStyle.fill),
+                  title: 'Contributions',
+                  value: '45',
+                  color: const Color(0xFF1F6FEB),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCard(
+                  icon: PhosphorIcons.heart(PhosphorIconsStyle.fill),
+                  title: 'Matches',
+                  value: '8',
+                  color: const Color(0xFFE91E63),
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
 
-          // Current Role Display
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF21262D).withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
-                width: 1,
+  Widget _buildStatCard({
+    required IconData icon,
+    required String title,
+    required String value,
+    required Color color,
+  }) =>
+      Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF161B22).withValues(alpha: 0.8),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFF30363D).withValues(alpha: 0.5),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color: color,
+                size: 24,
               ),
             ),
-            child: Row(
+            const SizedBox(height: 12),
+            Text(
+              value,
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 12,
+                color: const Color(0xFF7D8590),
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _buildGitHubSection(UserModel userProfile) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF161B22).withValues(alpha: 0.8),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: const Color(0xFF30363D).withValues(alpha: 0.5),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF8B5CF6).withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(8),
+                Icon(
+                  PhosphorIcons.githubLogo(PhosphorIconsStyle.fill),
+                  color: const Color(0xFFE09800),
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'GitHub Profile',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
-                  child: Icon(
-                    PhosphorIcons.user(PhosphorIconsStyle.fill),
-                    color: const Color(0xFF8B5CF6),
-                    size: 16,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // GitHub Stats
+            Row(
+              children: [
+                Expanded(
+                  child: _buildGitHubStatCard(
+                    icon: PhosphorIcons.star(PhosphorIconsStyle.fill),
+                    title: 'Repositories',
+                    value: '${userProfile.repositories ?? 0}',
+                    color: const Color(0xFFE09800),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Current Role',
-                        style: GoogleFonts.jetBrainsMono(
-                          fontSize: 12,
-                          color: const Color(0xFF7D8590),
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Collaborator',
-                        style: GoogleFonts.jetBrainsMono(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
+                  child: _buildGitHubStatCard(
+                    icon: PhosphorIcons.users(PhosphorIconsStyle.fill),
+                    title: 'Followers',
+                    value: '${userProfile.followers ?? 0}',
+                    color: const Color(0xFF1F6FEB),
                   ),
                 ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildGitHubStatCard(
+                    icon: PhosphorIcons.userPlus(PhosphorIconsStyle.regular),
+                    title: 'Following',
+                    value: '${userProfile.following ?? 0}',
+                    color: const Color(0xFF10B981),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // GitHub Username
+            if (userProfile.githubUsername != null) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF21262D).withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFFE09800).withValues(alpha: 0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      PhosphorIcons.at(PhosphorIconsStyle.regular),
+                      color: const Color(0xFFE09800),
+                      size: 16,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '@${userProfile.githubUsername}',
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const Spacer(),
+                    Icon(
+                      PhosphorIcons.arrowUpRight(PhosphorIconsStyle.regular),
+                      color: const Color(0xFF7D8590),
+                      size: 16,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            // Skills
+            if (userProfile.skills?.isNotEmpty == true) ...[
+              Text(
+                'Skills',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: userProfile.skills!
+                    .take(6)
+                    .map(
+                      (skill) => Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6,),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE09800).withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: const Color(0xFFE09800),
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          skill,
+                          style: GoogleFonts.inter(
+                            color: const Color(0xFFE09800),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
+
+            const SizedBox(height: 16),
+
+            // View GitHub Profile Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _openGitHubProfile(userProfile),
+                icon: Icon(
+                  PhosphorIcons.githubLogo(PhosphorIconsStyle.fill),
+                  color: Colors.white,
+                  size: 16,
+                ),
+                label: Text(
+                  'View GitHub Profile',
+                  style: GoogleFonts.jetBrainsMono(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFE09800),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _buildGitHubStatCard({
+    required IconData icon,
+    required String title,
+    required String value,
+    required Color color,
+  }) =>
+      Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF161B22).withValues(alpha: 0.8),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: const Color(0xFF30363D).withValues(alpha: 0.5),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                icon,
+                color: color,
+                size: 16,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              title,
+              style: GoogleFonts.jetBrainsMono(
+                fontSize: 10,
+                color: const Color(0xFF7D8590),
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _buildRoleSwitchSection(UserModel userProfile) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF161B22).withValues(alpha: 0.8),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: const Color(0xFF30363D).withValues(alpha: 0.5),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  PhosphorIcons.arrowsLeftRight(PhosphorIconsStyle.regular),
+                  color: const Color(0xFF8B5CF6),
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Role Management',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Current Role Display
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF21262D).withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF8B5CF6).withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      PhosphorIcons.user(PhosphorIconsStyle.fill),
+                      color: const Color(0xFF8B5CF6),
+                      size: 16,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Current Role',
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 12,
+                            color: const Color(0xFF7D8590),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Collaborator',
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => _showRoleSwitchDialog(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF8B5CF6),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: Text(
+                      'Switch',
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _buildRecentProjectsSection(UserModel userProfile) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                PhosphorIcons.folder(PhosphorIconsStyle.regular),
+                color: const Color(0xFFE09800),
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Recent Projects',
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const Spacer(),
+              TextButton(
+                onPressed: () => context.push('/projects'),
+                child: Text(
+                  'View All',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 12,
+                    color: const Color(0xFF8B5CF6),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Placeholder for recent projects
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF161B22).withValues(alpha: 0.8),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFF30363D).withValues(alpha: 0.5),
+                width: 1,
+              ),
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  PhosphorIcons.folderOpen(PhosphorIconsStyle.regular),
+                  color: const Color(0xFF7D8590),
+                  size: 48,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No Recent Projects',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Start contributing to projects to see them here',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 12,
+                    color: const Color(0xFF7D8590),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () => _showRoleSwitchDialog(context),
+                  onPressed: () => context.push('/discover'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF8B5CF6),
+                    backgroundColor: const Color(0xFFE09800),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                   child: Text(
-                    'Switch',
+                    'Discover Projects',
                     style: GoogleFonts.jetBrainsMono(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -777,172 +1101,72 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             ),
           ),
         ],
-      ),
-    );
-  }
+      );
 
-  Widget _buildRecentProjectsSection(UserModel userProfile) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+  Widget _buildSecuritySection(UserModel userProfile) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF161B22).withValues(alpha: 0.8),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: const Color(0xFF30363D).withValues(alpha: 0.5),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              PhosphorIcons.folder(PhosphorIconsStyle.regular),
-              color: const Color(0xFFE09800),
-              size: 20,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              'Recent Projects',
-              style: GoogleFonts.jetBrainsMono(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            const Spacer(),
-            TextButton(
-              onPressed: () => context.push('/projects'),
-              child: Text(
-                'View All',
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 12,
-                  color: const Color(0xFF8B5CF6),
+            Row(
+              children: [
+                Icon(
+                  PhosphorIcons.shield(PhosphorIconsStyle.regular),
+                  color: const Color(0xFF10B981),
+                  size: 20,
                 ),
-              ),
+                const SizedBox(width: 8),
+                Text(
+                  'Security & Privacy',
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Security Options
+            _buildSecurityOption(
+              icon: PhosphorIcons.lock(PhosphorIconsStyle.regular),
+              title: 'Two-Factor Authentication',
+              subtitle: 'Add an extra layer of security',
+              color: const Color(0xFF10B981),
+              onTap: () => _showTwoFactorDialog(context),
+            ),
+
+            const SizedBox(height: 12),
+
+            _buildSecurityOption(
+              icon: PhosphorIcons.eye(PhosphorIconsStyle.regular),
+              title: 'Privacy Settings',
+              subtitle: 'Control your profile visibility',
+              color: const Color(0xFF1F6FEB),
+              onTap: () => _showPrivacyDialog(context),
+            ),
+
+            const SizedBox(height: 12),
+
+            _buildSecurityOption(
+              icon: PhosphorIcons.download(PhosphorIconsStyle.regular),
+              title: 'Export Data',
+              subtitle: 'Download your personal data',
+              color: const Color(0xFFE09800),
+              onTap: _exportUserData,
             ),
           ],
         ),
-        const SizedBox(height: 16),
-
-        // Placeholder for recent projects
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: const Color(0xFF161B22).withValues(alpha: 0.8),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: const Color(0xFF30363D).withValues(alpha: 0.5),
-              width: 1,
-            ),
-          ),
-          child: Column(
-            children: [
-              Icon(
-                PhosphorIcons.folderOpen(PhosphorIconsStyle.regular),
-                color: const Color(0xFF7D8590),
-                size: 48,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'No Recent Projects',
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Start contributing to projects to see them here',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 12,
-                  color: const Color(0xFF7D8590),
-                ),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => context.push('/discover'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE09800),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: Text(
-                  'Discover Projects',
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSecuritySection(UserModel userProfile) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF161B22).withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFF30363D).withValues(alpha: 0.5),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                PhosphorIcons.shield(PhosphorIconsStyle.regular),
-                color: const Color(0xFF10B981),
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Security & Privacy',
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Security Options
-          _buildSecurityOption(
-            icon: PhosphorIcons.lock(PhosphorIconsStyle.regular),
-            title: 'Two-Factor Authentication',
-            subtitle: 'Add an extra layer of security',
-            color: const Color(0xFF10B981),
-            onTap: () => _showTwoFactorDialog(context),
-          ),
-
-          const SizedBox(height: 12),
-
-          _buildSecurityOption(
-            icon: PhosphorIcons.eye(PhosphorIconsStyle.regular),
-            title: 'Privacy Settings',
-            subtitle: 'Control your profile visibility',
-            color: const Color(0xFF1F6FEB),
-            onTap: () => _showPrivacyDialog(context),
-          ),
-
-          const SizedBox(height: 12),
-
-          _buildSecurityOption(
-            icon: PhosphorIcons.download(PhosphorIconsStyle.regular),
-            title: 'Export Data',
-            subtitle: 'Download your personal data',
-            color: const Color(0xFFE09800),
-            onTap: () => _exportUserData(),
-          ),
-        ],
-      ),
-    );
-  }
+      );
 
   Widget _buildSecurityOption({
     required IconData icon,
@@ -950,77 +1174,74 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     required String subtitle,
     required Color color,
     required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFF21262D).withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: const Color(0xFF30363D).withValues(alpha: 0.3),
-              width: 1,
+  }) =>
+      Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF21262D).withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFF30363D).withValues(alpha: 0.3),
+                width: 1,
+              ),
             ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(8),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: color,
+                    size: 16,
+                  ),
                 ),
-                child: Icon(
-                  icon,
-                  color: color,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 12,
+                          color: const Color(0xFF7D8590),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  PhosphorIcons.caretRight(PhosphorIconsStyle.regular),
+                  color: const Color(0xFF7D8590),
                   size: 16,
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 12,
-                        color: const Color(0xFF7D8590),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                PhosphorIcons.caretRight(PhosphorIconsStyle.regular),
-                color: const Color(0xFF7D8590),
-                size: 16,
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
-    );
-  }
+      );
 
-  Widget _buildFloatingActionButton() {
-    return AnimatedBuilder(
-      animation: _fabController,
-      builder: (context, child) {
-        return Transform.scale(
+  Widget _buildFloatingActionButton() => AnimatedBuilder(
+        animation: _fabController,
+        builder: (context, child) => Transform.scale(
           scale: 1.0 + (_fabController.value * 0.1),
           child: FloatingActionButton(
             onPressed: () {
@@ -1037,13 +1258,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               size: 24,
             ),
           ),
-        );
-      },
-    ).animate().scale(
-          duration: 600.ms,
-          curve: Curves.elasticOut,
-        );
-  }
+        ),
+      ).animate().scale(
+            duration: 600.ms,
+            curve: Curves.elasticOut,
+          );
 
   void _showQuickActionsDialog(BuildContext context) {
     showModalBottomSheet(
@@ -1054,93 +1273,91 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     );
   }
 
-  Widget _buildQuickActionsSheet() {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            const Color(0xFF21262D).withValues(alpha: 0.95),
-            const Color(0xFF161B22).withValues(alpha: 0.98),
-          ],
+  Widget _buildQuickActionsSheet() => Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              const Color(0xFF21262D).withValues(alpha: 0.95),
+              const Color(0xFF161B22).withValues(alpha: 0.98),
+            ],
+          ),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(
+            color: const Color(0xFF30363D).withValues(alpha: 0.5),
+            width: 1,
+          ),
         ),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border.all(
-          color: const Color(0xFF30363D).withValues(alpha: 0.5),
-          width: 1,
-        ),
-      ),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF7D8590).withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(2),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF7D8590).withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  Text(
-                    'Quick Actions',
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    Text(
+                      'Quick Actions',
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  _buildQuickActionItem(
-                    icon: PhosphorIcons.pencil(PhosphorIconsStyle.bold),
-                    title: 'Edit Profile',
-                    subtitle: 'Update your information',
-                    color: const Color(0xFF10B981),
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push('/profile/edit');
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  _buildQuickActionItem(
-                    icon: PhosphorIcons.upload(PhosphorIconsStyle.bold),
-                    title: 'Upload Project',
-                    subtitle: 'Share your work',
-                    color: const Color(0xFF7C3AED),
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push('/project/upload');
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  _buildQuickActionItem(
-                    icon: PhosphorIcons.users(PhosphorIconsStyle.bold),
-                    title: 'Find Contributors',
-                    subtitle: 'Search for developers',
-                    color: const Color(0xFF1F6FEB),
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push('/search');
-                    },
-                  ),
-                ],
+                    const SizedBox(height: 20),
+                    _buildQuickActionItem(
+                      icon: PhosphorIcons.pencil(PhosphorIconsStyle.bold),
+                      title: 'Edit Profile',
+                      subtitle: 'Update your information',
+                      color: const Color(0xFF10B981),
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/profile/edit');
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    _buildQuickActionItem(
+                      icon: PhosphorIcons.upload(PhosphorIconsStyle.bold),
+                      title: 'Upload Project',
+                      subtitle: 'Share your work',
+                      color: const Color(0xFF7C3AED),
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/project/upload');
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    _buildQuickActionItem(
+                      icon: PhosphorIcons.users(PhosphorIconsStyle.bold),
+                      title: 'Find Contributors',
+                      subtitle: 'Search for developers',
+                      color: const Color(0xFF1F6FEB),
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.push('/search');
+                      },
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    ).animate().slideY(
-          begin: 1,
-          duration: 400.ms,
-          curve: Curves.easeOutCubic,
-        );
-  }
+      ).animate().slideY(
+            begin: 1,
+            duration: 400.ms,
+            curve: Curves.easeOutCubic,
+          );
 
   Widget _buildQuickActionItem({
     required IconData icon,
@@ -1148,71 +1365,70 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     required String subtitle,
     required Color color,
     required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFF21262D).withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: const Color(0xFF30363D).withValues(alpha: 0.3),
-              width: 1,
+  }) =>
+      Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF21262D).withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFF30363D).withValues(alpha: 0.3),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: color,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 12,
+                          color: const Color(0xFF7D8590),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  PhosphorIcons.caretRight(PhosphorIconsStyle.regular),
+                  color: const Color(0xFF7D8590),
+                  size: 16,
+                ),
+              ],
             ),
           ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  icon,
-                  color: color,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 12,
-                        color: const Color(0xFF7D8590),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                PhosphorIcons.caretRight(PhosphorIconsStyle.regular),
-                color: const Color(0xFF7D8590),
-                size: 16,
-              ),
-            ],
-          ),
         ),
-      ),
-    );
-  }
+      );
 
   // Helper methods
   String _formatJoinDate(DateTime? date) {
@@ -1220,7 +1436,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     return '${date.month}/${date.year}';
   }
 
-  void _pickProfileImage() async {
+  Future<void> _pickProfileImage() async {
     // Implementation for picking profile image
   }
 
@@ -1287,7 +1503,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           );
         }
       }
-    } catch (e) {
+    } on Exception catch (e) {
       AppLogger.logger.e('❌ Failed to switch role', error: e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1338,12 +1554,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       if (mounted) {
         context.go('/login');
       }
-    } catch (e) {
+    } on FirebaseAuthException catch (e) {
       AppLogger.logger.e('❌ Failed to sign out', error: e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to sign out: ${e.toString()}'),
+            content: Text('Failed to sign out: ${e.message}'),
             backgroundColor: const Color(0xFFDA3633),
           ),
         );
@@ -1399,7 +1615,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       } on FirebaseException catch (e) {
         AppLogger.logger.e('❌ Firebase Storage error', error: e);
         if (mounted) {
-          String userFriendlyMessage = 'Failed to upload profile picture';
+          var userFriendlyMessage = 'Failed to upload profile picture';
           if (e.code == 'storage/object-not-found') {
             userFriendlyMessage = 'Storage path not found. Please try again.';
           } else if (e.code == 'storage/unauthorized') {
@@ -1434,34 +1650,52 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           );
         }
       } finally {
-        if (mounted) setState(() => _isLoading = false);
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
       }
     } on PlatformException catch (e) {
       if (e.code == 'already_active') {
-        AppLogger.logger.e('❌ Image picker already active', error: e);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text('Image picker is already open. Please wait.')),
-          );
-        }
+        AppLogger.logger.w('Image picker is already active.');
       } else {
-        AppLogger.logger.e('❌ Platform error', error: e);
+        AppLogger.logger.e('❌ Platform error during image picking', error: e);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Platform error: ${e.message ?? e.code}')),
+            SnackBar(
+              content:
+                  Text('An error occurred: ${e.message ?? 'Unknown error'}'),
+            ),
           );
         }
       }
     } catch (e) {
-      AppLogger.logger.e('❌ Error picking image', error: e);
+      AppLogger.logger.e('❌ Failed to pick or upload image', error: e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error picking image: $e')),
+          SnackBar(content: Text('An unexpected error occurred: $e')),
         );
       }
     } finally {
       _isPickingImage = false;
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _openGitHubProfile(UserModel userProfile) {
+    if (userProfile.githubUsername != null) {
+      final url = 'https://github.com/${userProfile.githubUsername}';
+      // You can use url_launcher here to open the GitHub profile
+      // For now, we'll just show a snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Opening GitHub profile: $url'),
+          backgroundColor: const Color(0xFFE09800),
+        ),
+      );
     }
   }
 }

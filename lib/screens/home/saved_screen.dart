@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import '../../core/utils/logger.dart';
+
 import '../../core/monitoring/analytics_service.dart';
 import '../../core/utils/accessibility_utils.dart';
+import '../../core/utils/logger.dart';
 import '../../widgets/common/accessible_button.dart';
 
 class SavedScreen extends ConsumerStatefulWidget {
@@ -49,8 +50,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       backgroundColor: const Color(0xFF0D1117),
       body: Container(
         decoration: BoxDecoration(
@@ -76,10 +76,8 @@ class _SavedScreenState extends ConsumerState<SavedScreen>
         ),
       ),
     );
-  }
 
-  Widget _buildEnhancedAppBar() {
-    return Container(
+  Widget _buildEnhancedAppBar() => Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       child: Row(
         children: [
@@ -147,7 +145,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen>
               icon: PhosphorIcons.funnelSimple(PhosphorIconsStyle.regular),
               label: 'Sort or filter saved items',
               semanticLabel: AccessibilityUtils.getButtonLabel(
-                  'Sort or filter saved items', false),
+                  'Sort or filter saved items', false,),
               enableHapticFeedback: true,
               iconColor: const Color(0xFF7D8590),
               size: 20,
@@ -159,10 +157,8 @@ class _SavedScreenState extends ConsumerState<SavedScreen>
         .animate(controller: _contentController)
         .fadeIn(duration: 800.ms)
         .slideY(begin: -0.5, curve: Curves.easeOutBack);
-  }
 
-  Widget _buildEmptyState() {
-    return Center(
+  Widget _buildEmptyState() => Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Column(
@@ -198,7 +194,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen>
                 )
                     .animate(
                         onPlay: (controller) =>
-                            controller.repeat(reverse: true))
+                            controller.repeat(reverse: true),)
                     .rotate(begin: -0.1, end: -0.05, duration: 3000.ms),
 
                 // Main bookmark
@@ -241,14 +237,14 @@ class _SavedScreenState extends ConsumerState<SavedScreen>
                           size: 16,
                         )
                             .animate(
-                                onPlay: (controller) => controller.repeat())
+                                onPlay: (controller) => controller.repeat(),)
                             .scale(
                                 begin: const Offset(0.8, 0.8),
-                                end: const Offset(1.2, 1.2))
+                                end: const Offset(1.2, 1.2),)
                             .then(delay: 500.ms)
                             .scale(
                                 begin: const Offset(1.2, 1.2),
-                                end: const Offset(0.8, 0.8)),
+                                end: const Offset(0.8, 0.8),),
                       ),
 
                       Positioned(
@@ -260,7 +256,7 @@ class _SavedScreenState extends ConsumerState<SavedScreen>
                           size: 14,
                         )
                             .animate(
-                                onPlay: (controller) => controller.repeat())
+                                onPlay: (controller) => controller.repeat(),)
                             .fadeIn(duration: 1000.ms)
                             .then(delay: 1000.ms)
                             .fadeOut(duration: 1000.ms),
@@ -463,15 +459,13 @@ class _SavedScreenState extends ConsumerState<SavedScreen>
         ),
       ),
     );
-  }
 
   Widget _buildFeatureCard({
     required IconData icon,
     required String title,
     required String subtitle,
     required Color color,
-  }) {
-    return Container(
+  }) => Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -523,6 +517,5 @@ class _SavedScreenState extends ConsumerState<SavedScreen>
         ],
       ),
     );
-  }
 }
 

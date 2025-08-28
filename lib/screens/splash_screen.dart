@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+
 import '../../core/utils/logger.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/firestore_service.dart';
@@ -140,7 +141,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           // Otherwise show loading splash
           return _buildLoadingSplash();
         },
-        loading: () => _buildLoadingSplash(),
+        loading: _buildLoadingSplash,
         error: (error, stack) {
           AppLogger.logger.e('❌ Auth state error', error: error);
           return _buildErrorScreen(error.toString());
@@ -150,8 +151,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   /// 🚨 BLOCKING SCREEN: Forces email verification before proceeding
-  Widget _buildEmailVerificationBlockingScreen() {
-    return Container(
+  Widget _buildEmailVerificationBlockingScreen() => Container(
       decoration: BoxDecoration(
         gradient: RadialGradient(
           center: Alignment.center,
@@ -249,10 +249,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         ),
       ),
     );
-  }
 
-  Widget _buildLoadingSplash() {
-    return Container(
+  Widget _buildLoadingSplash() => Container(
       decoration: BoxDecoration(
         gradient: RadialGradient(
           center: Alignment.center,
@@ -271,8 +269,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             // App icon from assets/app_icon
             AnimatedBuilder(
               animation: _logoController,
-              builder: (context, child) {
-                return Transform.scale(
+              builder: (context, child) => Transform.scale(
                   scale: 1.05 + (_logoController.value * 0.10),
                   child: Opacity(
                     opacity: _logoController.value,
@@ -286,8 +283,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       ),
                     ),
                   ),
-                );
-              },
+                ),
             ),
 
             const SizedBox(height: 32),
@@ -295,8 +291,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             // App name
             AnimatedBuilder(
               animation: _textController,
-              builder: (context, child) {
-                return Opacity(
+              builder: (context, child) => Opacity(
                   opacity: _textController.value,
                   child: Text(
                     'GitAlong',
@@ -307,16 +302,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       letterSpacing: 3,
                     ),
                   ),
-                );
-              },
+                ),
             ),
 
             const SizedBox(height: 16),
 
             AnimatedBuilder(
               animation: _textController,
-              builder: (context, child) {
-                return Opacity(
+              builder: (context, child) => Opacity(
                   opacity: _textController.value * 0.8,
                   child: Text(
                     'Connect • Collaborate • Create',
@@ -327,8 +320,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       fontWeight: FontWeight.w400,
                     ),
                   ),
-                );
-              },
+                ),
             ),
 
             const SizedBox(height: 60),
@@ -347,10 +339,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         ),
       ),
     );
-  }
 
-  Widget _buildErrorScreen(String error) {
-    return Center(
+  Widget _buildErrorScreen(String error) => Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -392,5 +382,4 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         ),
       ),
     );
-  }
 }

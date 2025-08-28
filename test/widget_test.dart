@@ -1,8 +1,8 @@
 // This is a basic Flutter widget test for GitAlong app.
 
 import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:gitalong/main.dart';
 
 void main() {

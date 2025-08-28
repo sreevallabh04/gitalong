@@ -1,12 +1,4 @@
 class ContributionModel {
-  final String id;
-  final String userId;
-  final String projectId;
-  final ContributionStatus status;
-  final DateTime createdAt;
-  final DateTime? updatedAt;
-  final String? prUrl;
-  final String? description;
 
   const ContributionModel({
     required this.id,
@@ -19,8 +11,7 @@ class ContributionModel {
     this.description,
   });
 
-  factory ContributionModel.fromJson(Map<String, dynamic> json) {
-    return ContributionModel(
+  factory ContributionModel.fromJson(Map<String, dynamic> json) => ContributionModel(
       id: json['id'] as String,
       userId: json['user_id'] as String,
       projectId: json['project_id'] as String,
@@ -33,10 +24,16 @@ class ContributionModel {
       prUrl: json['pr_url'] as String?,
       description: json['description'] as String?,
     );
-  }
+  final String id;
+  final String userId;
+  final String projectId;
+  final ContributionStatus status;
+  final DateTime createdAt;
+  final DateTime? updatedAt;
+  final String? prUrl;
+  final String? description;
 
-  Map<String, dynamic> toJson() {
-    return {
+  Map<String, dynamic> toJson() => {
       'id': id,
       'user_id': userId,
       'project_id': projectId,
@@ -46,7 +43,6 @@ class ContributionModel {
       'pr_url': prUrl,
       'description': description,
     };
-  }
 
   ContributionModel copyWith({
     String? id,
@@ -57,8 +53,7 @@ class ContributionModel {
     DateTime? updatedAt,
     String? prUrl,
     String? description,
-  }) {
-    return ContributionModel(
+  }) => ContributionModel(
       id: id ?? this.id,
       userId: userId ?? this.userId,
       projectId: projectId ?? this.projectId,
@@ -68,7 +63,6 @@ class ContributionModel {
       prUrl: prUrl ?? this.prUrl,
       description: description ?? this.description,
     );
-  }
 
   @override
   bool operator ==(Object other) =>
@@ -81,9 +75,7 @@ class ContributionModel {
   int get hashCode => id.hashCode;
 
   @override
-  String toString() {
-    return 'ContributionModel{id: $id, userId: $userId, projectId: $projectId, status: $status}';
-  }
+  String toString() => 'ContributionModel{id: $id, userId: $userId, projectId: $projectId, status: $status}';
 }
 
 enum ContributionStatus { started, prOpen, merged, closed }

@@ -1,26 +1,25 @@
 import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-
-// Screens
-import '../../screens/auth/login_screen.dart';
-import '../../screens/onboarding/onboarding_screen.dart';
-import '../../screens/home/main_navigation_screen.dart';
-import '../../screens/splash_screen.dart';
-import '../../screens/project/project_upload_screen.dart';
-import '../../screens/error/route_error_screen.dart';
-import '../../screens/profile/public_profile_screen.dart';
-// Added AuthScreen import
-import '../../screens/auth/signup_screen.dart'; // Add this import
 
 // Providers
 import '../../providers/auth_provider.dart';
-
+// Screens
+import '../../screens/auth/login_screen.dart';
+// Added AuthScreen import
+import '../../screens/auth/signup_screen.dart'; // Add this import
+import '../../screens/error/route_error_screen.dart';
+import '../../screens/home/main_navigation_screen.dart';
+import '../../screens/onboarding/onboarding_screen.dart';
+import '../../screens/profile/public_profile_screen.dart';
+import '../../screens/project/project_upload_screen.dart';
+import '../../screens/splash_screen.dart';
+import '../monitoring/analytics_service.dart';
 // Utils
 import '../utils/logger.dart';
-import '../monitoring/analytics_service.dart';
 
 // ============================================================================
 // 🎯 PRODUCTION-GRADE ROUTE DEFINITIONS WITH ENHANCED DEEP LINKING
@@ -149,7 +148,7 @@ class NavigationAnalytics {
   static int _routeDepth = 0;
 
   static Future<void> trackRouteEntry(
-      String routeName, Map<String, String> params) async {
+      String routeName, Map<String, String> params,) async {
     _routeStartTimes[routeName] = DateTime.now();
     _routeDepth++;
     _currentRoute = routeName;
@@ -193,7 +192,7 @@ class NavigationAnalytics {
   }
 
   static Future<void> trackDeepLink(String originalUrl, String resolvedRoute,
-      Map<String, String> params) async {
+      Map<String, String> params,) async {
     await AnalyticsService.trackCustomEvent(
       eventName: 'deep_link_accessed',
       parameters: {
@@ -210,7 +209,7 @@ class NavigationAnalytics {
   }
 
   static Future<void> trackNavigationError(String route, String error,
-      {String? action}) async {
+      {String? action,}) async {
     await AnalyticsService.trackError(
       errorType: 'navigation_error',
       errorMessage: error,
@@ -270,7 +269,7 @@ class RouterErrorHandler {
     AppLogger.logger
         .w('🌐 Network error on route $route, implementing retry logic');
 
-    for (int attempt = 1; attempt <= maxRetries; attempt++) {
+    for (var attempt = 1; attempt <= maxRetries; attempt++) {
       await Future.delayed(retryDelay * attempt);
 
       try {
@@ -331,10 +330,6 @@ class RouterErrorHandler {
 // 💀 SKELETON SCREEN COMPONENTS FOR LOADING STATES
 // ============================================================================
 class SkeletonLoader extends StatefulWidget {
-  final double height;
-  final double width;
-  final double borderRadius;
-  final EdgeInsets margin;
 
   const SkeletonLoader({
     super.key,
@@ -343,6 +338,10 @@ class SkeletonLoader extends StatefulWidget {
     this.borderRadius = 8,
     this.margin = EdgeInsets.zero,
   });
+  final double height;
+  final double width;
+  final double borderRadius;
+  final EdgeInsets margin;
 
   @override
   State<SkeletonLoader> createState() => _SkeletonLoaderState();
@@ -360,7 +359,7 @@ class _SkeletonLoaderState extends State<SkeletonLoader>
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
-    _animation = Tween<double>(begin: 0.3, end: 1.0).animate(
+    _animation = Tween<double>(begin: 0.3, end: 1).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
     _controller.repeat(reverse: true);
@@ -373,13 +372,11 @@ class _SkeletonLoaderState extends State<SkeletonLoader>
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
+  Widget build(BuildContext context) => Container(
       margin: widget.margin,
       child: AnimatedBuilder(
         animation: _animation,
-        builder: (context, child) {
-          return Container(
+        builder: (context, child) => Container(
             height: widget.height,
             width: widget.width,
             decoration: BoxDecoration(
@@ -387,26 +384,22 @@ class _SkeletonLoaderState extends State<SkeletonLoader>
                   const Color(0xFF30363D).withValues(alpha: _animation.value),
               borderRadius: BorderRadius.circular(widget.borderRadius),
             ),
-          );
-        },
+          ),
       ),
     );
-  }
 }
 
 class RouteLoadingScreen extends StatelessWidget {
+
+  const RouteLoadingScreen({
+    required this.routeName, super.key,
+    this.message,
+  });
   final String routeName;
   final String? message;
 
-  const RouteLoadingScreen({
-    super.key,
-    required this.routeName,
-    this.message,
-  });
-
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       backgroundColor: const Color(0xFF0D1117),
       body: SafeArea(
         child: Padding(
@@ -456,17 +449,15 @@ class RouteLoadingScreen extends StatelessWidget {
         ),
       ),
     );
-  }
 
-  List<Widget> _buildProjectSkeleton() {
-    return [
+  List<Widget> _buildProjectSkeleton() => [
       // Project header
       const SkeletonLoader(
           height: 32,
           width: double.infinity,
-          margin: EdgeInsets.only(bottom: 16)),
+          margin: EdgeInsets.only(bottom: 16),),
       const SkeletonLoader(
-          height: 20, width: 200, margin: EdgeInsets.only(bottom: 24)),
+          height: 20, width: 200, margin: EdgeInsets.only(bottom: 24),),
 
       // Project details
       const Row(
@@ -480,9 +471,9 @@ class RouteLoadingScreen extends StatelessWidget {
                 SkeletonLoader(
                     height: 16,
                     width: double.infinity,
-                    margin: EdgeInsets.only(bottom: 8)),
+                    margin: EdgeInsets.only(bottom: 8),),
                 SkeletonLoader(
-                    height: 16, width: 150, margin: EdgeInsets.only(bottom: 8)),
+                    height: 16, width: 150, margin: EdgeInsets.only(bottom: 8),),
                 Row(
                   children: [
                     SkeletonLoader(height: 24, width: 60, borderRadius: 12),
@@ -496,10 +487,8 @@ class RouteLoadingScreen extends StatelessWidget {
         ],
       ),
     ];
-  }
 
-  List<Widget> _buildChatSkeleton() {
-    return [
+  List<Widget> _buildChatSkeleton() => [
       // Chat header
       const Row(
         children: [
@@ -523,7 +512,7 @@ class RouteLoadingScreen extends StatelessWidget {
                   children: [
                     if (index % 2 == 0) ...[
                       const SkeletonLoader(
-                          height: 32, width: 32, borderRadius: 16),
+                          height: 32, width: 32, borderRadius: 16,),
                       const SizedBox(width: 8),
                     ],
                     SkeletonLoader(
@@ -538,16 +527,14 @@ class RouteLoadingScreen extends StatelessWidget {
                     if (index % 2 == 1) ...[
                       const SizedBox(width: 8),
                       const SkeletonLoader(
-                          height: 32, width: 32, borderRadius: 16),
+                          height: 32, width: 32, borderRadius: 16,),
                     ],
                   ],
                 ),
-              )),
+              ),),
     ];
-  }
 
-  List<Widget> _buildProfileSkeleton() {
-    return [
+  List<Widget> _buildProfileSkeleton() => [
       // Profile header
       const Center(
         child: Column(
@@ -567,13 +554,13 @@ class RouteLoadingScreen extends StatelessWidget {
       const SkeletonLoader(
           height: 20,
           width: double.infinity,
-          margin: EdgeInsets.only(bottom: 16)),
+          margin: EdgeInsets.only(bottom: 16),),
       const SkeletonLoader(
           height: 16,
           width: double.infinity,
-          margin: EdgeInsets.only(bottom: 8)),
+          margin: EdgeInsets.only(bottom: 8),),
       const SkeletonLoader(
-          height: 16, width: 200, margin: EdgeInsets.only(bottom: 24)),
+          height: 16, width: 200, margin: EdgeInsets.only(bottom: 24),),
 
       // Skills
       Wrap(
@@ -582,19 +569,17 @@ class RouteLoadingScreen extends StatelessWidget {
         children: List.generate(
             6,
             (index) => SkeletonLoader(
-                height: 32, width: 60 + (index * 10.0), borderRadius: 16)),
+                height: 32, width: 60 + (index * 10.0), borderRadius: 16,),),
       ),
     ];
-  }
 
-  List<Widget> _buildDiscoverSkeleton() {
-    return [
+  List<Widget> _buildDiscoverSkeleton() => [
       // Search bar
       const SkeletonLoader(
           height: 48,
           width: double.infinity,
           borderRadius: 24,
-          margin: EdgeInsets.only(bottom: 24)),
+          margin: EdgeInsets.only(bottom: 24),),
 
       // Filter chips
       const Row(
@@ -618,23 +603,21 @@ class RouteLoadingScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SkeletonLoader(
-                        height: 150, width: double.infinity, borderRadius: 12),
+                        height: 150, width: double.infinity, borderRadius: 12,),
                     SizedBox(height: 12),
                     SkeletonLoader(height: 20, width: double.infinity),
                     SizedBox(height: 8),
                     SkeletonLoader(height: 16, width: 200),
                   ],
                 ),
-              )),
+              ),),
     ];
-  }
 }
 
 // ============================================================================
 // 🚀 ENHANCED PRODUCTION ROUTER WITH ALL FEATURES
 // ============================================================================
-final routerProvider = Provider<GoRouter>((ref) {
-  return GoRouter(
+final routerProvider = Provider<GoRouter>((ref) => GoRouter(
     initialLocation: AppRoutes.splash,
     debugLogDiagnostics: false,
 
@@ -656,7 +639,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       return authStateValue.when(
         loading: () {
           AppLogger.logger.navigation(
-              '⏳ Auth loading, staying on current route: $currentPath');
+              '⏳ Auth loading, staying on current route: $currentPath',);
           return null; // Stay on current route while loading
         },
         error: (error, stackTrace) {
@@ -664,7 +647,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           return '${AppRoutes.error}?message=${Uri.encodeComponent(error.toString())}';
         },
         data: (user) => _handleAuthenticatedRedirect(
-            user, currentPath, authRequirement, state),
+            user, currentPath, authRequirement, state,),
       );
     },
 
@@ -698,9 +681,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.login,
         name: 'login',
-        builder: (context, state) {
-          return const LoginScreen();
-        },
+        builder: (context, state) => const LoginScreen(),
       ),
 
       GoRoute(
@@ -1034,8 +1015,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const AdminDashboard(),
       ),
     ],
-  );
-});
+  ),);
 
 // ============================================================================
 // 🛡️ AUTHENTICATION HELPER FUNCTIONS
@@ -1054,7 +1034,7 @@ String? _handleAuthenticatedRedirect(
     case AuthRequirement.authenticated:
       if (user == null) {
         AppLogger.logger.navigation(
-            '🔐 Unauthenticated access to protected route: $currentPath');
+            '🔐 Unauthenticated access to protected route: $currentPath',);
         return '${AppRoutes.login}?redirect=${Uri.encodeComponent(currentPath)}';
       }
       return null;
@@ -1062,12 +1042,12 @@ String? _handleAuthenticatedRedirect(
     case AuthRequirement.verified:
       if (user == null) {
         AppLogger.logger.navigation(
-            '🔐 Unauthenticated access to verified route: $currentPath');
+            '🔐 Unauthenticated access to verified route: $currentPath',);
         return '${AppRoutes.login}?redirect=${Uri.encodeComponent(currentPath)}';
       }
       if (!user.emailVerified) {
         AppLogger.logger.navigation(
-            '📧 Unverified email access to verified route: $currentPath');
+            '📧 Unverified email access to verified route: $currentPath',);
         return AppRoutes.emailVerification;
       }
       return null;
@@ -1075,12 +1055,12 @@ String? _handleAuthenticatedRedirect(
     case AuthRequirement.complete:
       if (user == null) {
         AppLogger.logger.navigation(
-            '🔐 Unauthenticated access to complete route: $currentPath');
+            '🔐 Unauthenticated access to complete route: $currentPath',);
         return '${AppRoutes.login}?redirect=${Uri.encodeComponent(currentPath)}';
       }
       if (!user.emailVerified) {
         AppLogger.logger.navigation(
-            '📧 Unverified email access to complete route: $currentPath');
+            '📧 Unverified email access to complete route: $currentPath',);
         return AppRoutes.emailVerification;
       }
       // Check profile completion status
@@ -1090,7 +1070,7 @@ String? _handleAuthenticatedRedirect(
     case AuthRequirement.admin:
       if (user == null) {
         AppLogger.logger.navigation(
-            '🔐 Unauthenticated access to admin route: $currentPath');
+            '🔐 Unauthenticated access to admin route: $currentPath',);
         return '${AppRoutes.login}?redirect=${Uri.encodeComponent(currentPath)}';
       }
       // TODO: Add admin privilege check here
@@ -1141,7 +1121,7 @@ extension AppNavigation on BuildContext {
         ? '${AppRoutes.login}?redirect=${Uri.encodeComponent(redirectAfter)}'
         : AppRoutes.login;
     await _trackAndNavigate(
-        'login', uri, {'has_redirect': redirectAfter != null});
+        'login', uri, {'has_redirect': redirectAfter != null},);
   }
 
   // Protected routes with analytics tracking
@@ -1280,7 +1260,7 @@ extension AppNavigation on BuildContext {
 
   // Error handling with retry mechanism
   Future<void> goToError(String message,
-      {String? action, String? originalRoute}) async {
+      {String? action, String? originalRoute,}) async {
     var uri = '${AppRoutes.error}?message=${Uri.encodeComponent(message)}';
     if (action != null) uri += '&action=${Uri.encodeComponent(action)}';
     if (originalRoute != null) {
@@ -1296,7 +1276,7 @@ extension AppNavigation on BuildContext {
 
   // Safe navigation with error handling
   Future<bool> safeNavigateTo(String route,
-      {Map<String, dynamic>? params}) async {
+      {Map<String, dynamic>? params,}) async {
     try {
       await _trackAndNavigate('safe_navigation', route, params ?? {});
       return true;
@@ -1323,22 +1303,16 @@ extension AppNavigation on BuildContext {
     return state.name ?? state.uri.path;
   }
 
-  Map<String, String> get routeParameters {
-    return GoRouterState.of(this).pathParameters;
-  }
+  Map<String, String> get routeParameters => GoRouterState.of(this).pathParameters;
 
-  Map<String, String> get queryParameters {
-    return GoRouterState.of(this).uri.queryParameters;
-  }
+  Map<String, String> get queryParameters => GoRouterState.of(this).uri.queryParameters;
 
   AuthRequirement get currentAuthRequirement {
     final location = GoRouterState.of(this).uri.path;
     return _getAuthRequirement(location);
   }
 
-  bool get canNavigateBack {
-    return canPop();
-  }
+  bool get canNavigateBack => canPop();
 
   Future<void> safeGoBack() async {
     if (canNavigateBack) {
@@ -1353,14 +1327,12 @@ extension AppNavigation on BuildContext {
   }
 
   // Route state preservation
-  Map<String, dynamic> get routeState {
-    return {
+  Map<String, dynamic> get routeState => {
       'route': currentRouteName,
       'parameters': routeParameters,
       'query_parameters': queryParameters,
       'timestamp': DateTime.now().toIso8601String(),
     };
-  }
 
   Future<void> restoreRouteState(Map<String, dynamic> state) async {
     final route = state['route'] as String?;
@@ -1416,7 +1388,7 @@ class GoRouterRefreshStream extends ChangeNotifier {
   GoRouterRefreshStream(Stream<dynamic> stream) {
     notifyListeners();
     _subscription = stream.asBroadcastStream().listen(
-          (dynamic _) => notifyListeners(),
+          (_) => notifyListeners(),
         );
   }
 
@@ -1436,8 +1408,7 @@ class EmailVerificationSuccessScreen extends StatelessWidget {
   const EmailVerificationSuccessScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1454,60 +1425,51 @@ class EmailVerificationSuccessScreen extends StatelessWidget {
         ),
       ),
     );
-  }
 }
 
 class EmailVerificationScreen extends StatelessWidget {
   const EmailVerificationScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
+  Widget build(BuildContext context) => const Scaffold(
       body: Center(child: Text('Email Verification Screen')),
     );
-  }
 }
 
 class ResetPasswordScreen extends StatelessWidget {
-  final String? resetToken;
   const ResetPasswordScreen({super.key, this.resetToken});
+  final String? resetToken;
 
   @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
+  Widget build(BuildContext context) => const Scaffold(
       body: Center(child: Text('Reset Password Screen')),
     );
-  }
 }
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
+  Widget build(BuildContext context) => const Scaffold(
       body: Center(child: Text('Settings Screen')),
     );
-  }
 }
 
 class ProjectDetailScreen extends StatelessWidget {
+
+  const ProjectDetailScreen({
+    required this.projectId, super.key,
+    this.previousRoute,
+    this.initialTab,
+    this.highlightElement,
+  });
   final String projectId;
   final String? previousRoute;
   final String? initialTab;
   final String? highlightElement;
 
-  const ProjectDetailScreen({
-    super.key,
-    required this.projectId,
-    this.previousRoute,
-    this.initialTab,
-    this.highlightElement,
-  });
-
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1520,22 +1482,19 @@ class ProjectDetailScreen extends StatelessWidget {
         ),
       ),
     );
-  }
 }
 
 class UserProfileScreen extends StatelessWidget {
+
+  const UserProfileScreen({
+    required this.userId, super.key,
+    this.queryParameters,
+  });
   final String userId;
   final Map<String, String>? queryParameters;
 
-  const UserProfileScreen({
-    super.key,
-    required this.userId,
-    this.queryParameters,
-  });
-
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1547,26 +1506,23 @@ class UserProfileScreen extends StatelessWidget {
         ),
       ),
     );
-  }
 }
 
 class ChatScreen extends StatelessWidget {
+
+  const ChatScreen({
+    required this.chatId, super.key,
+    this.projectId,
+    this.messageId,
+    this.action,
+  });
   final String chatId;
   final String? projectId;
   final String? messageId;
   final String? action;
 
-  const ChatScreen({
-    super.key,
-    required this.chatId,
-    this.projectId,
-    this.messageId,
-    this.action,
-  });
-
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1579,23 +1535,20 @@ class ChatScreen extends StatelessWidget {
         ),
       ),
     );
-  }
 }
 
 // New screen placeholders for enhanced deep linking
 class ProjectShareScreen extends StatelessWidget {
+
+  const ProjectShareScreen({
+    required this.projectId, super.key,
+    this.source,
+  });
   final String projectId;
   final String? source;
 
-  const ProjectShareScreen({
-    super.key,
-    required this.projectId,
-    this.source,
-  });
-
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1606,22 +1559,19 @@ class ProjectShareScreen extends StatelessWidget {
         ),
       ),
     );
-  }
 }
 
 class UserShareScreen extends StatelessWidget {
+
+  const UserShareScreen({
+    required this.userId, super.key,
+    this.source,
+  });
   final String userId;
   final String? source;
 
-  const UserShareScreen({
-    super.key,
-    required this.userId,
-    this.source,
-  });
-
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1632,22 +1582,19 @@ class UserShareScreen extends StatelessWidget {
         ),
       ),
     );
-  }
 }
 
 class InviteJoinScreen extends StatelessWidget {
+
+  const InviteJoinScreen({
+    required this.inviteCode, super.key,
+    this.referrer,
+  });
   final String inviteCode;
   final String? referrer;
 
-  const InviteJoinScreen({
-    super.key,
-    required this.inviteCode,
-    this.referrer,
-  });
-
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1658,22 +1605,19 @@ class InviteJoinScreen extends StatelessWidget {
         ),
       ),
     );
-  }
 }
 
 class ProjectReviewScreen extends StatelessWidget {
+
+  const ProjectReviewScreen({
+    required this.projectId, super.key,
+    this.queryParameters,
+  });
   final String projectId;
   final Map<String, String>? queryParameters;
 
-  const ProjectReviewScreen({
-    super.key,
-    required this.projectId,
-    this.queryParameters,
-  });
-
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1685,22 +1629,19 @@ class ProjectReviewScreen extends StatelessWidget {
         ),
       ),
     );
-  }
 }
 
 class ContributorApplicationScreen extends StatelessWidget {
+
+  const ContributorApplicationScreen({
+    required this.projectId, super.key,
+    this.queryParameters,
+  });
   final String projectId;
   final Map<String, String>? queryParameters;
 
-  const ContributorApplicationScreen({
-    super.key,
-    required this.projectId,
-    this.queryParameters,
-  });
-
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1712,38 +1653,31 @@ class ContributorApplicationScreen extends StatelessWidget {
         ),
       ),
     );
-  }
 }
 
 class MaintenanceScreen extends StatelessWidget {
   const MaintenanceScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
+  Widget build(BuildContext context) => const Scaffold(
       body: Center(child: Text('Under Maintenance')),
     );
-  }
 }
 
 class AdminDashboard extends StatelessWidget {
   const AdminDashboard({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
+  Widget build(BuildContext context) => const Scaffold(
       body: Center(child: Text('Admin Dashboard')),
     );
-  }
 }
 
 class MainNavigationShell extends StatelessWidget {
+  const MainNavigationShell({required this.child, super.key});
   final Widget child;
-  const MainNavigationShell({super.key, required this.child});
 
   @override
-  Widget build(BuildContext context) {
-    return child;
-  }
+  Widget build(BuildContext context) => child;
 }
 

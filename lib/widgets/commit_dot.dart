@@ -6,9 +6,7 @@ import '../core/theme/app_theme.dart';
 /// This is the building block for our GitHub-style contribution visualization
 class CommitDot extends StatefulWidget {
   const CommitDot({
-    super.key,
-    required this.commitCount,
-    required this.date,
+    required this.commitCount, required this.date, super.key,
     this.size = 12.0,
     this.animationDelay = Duration.zero,
     this.onTap,
@@ -97,8 +95,7 @@ class _CommitDotState extends State<CommitDot>
   }
 
   @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
+  Widget build(BuildContext context) => MouseRegion(
       onEnter: (_) => _onHover(true),
       onExit: (_) => _onHover(false),
       child: GestureDetector(
@@ -147,20 +144,16 @@ class _CommitDotState extends State<CommitDot>
         .fadeIn(duration: 300.ms, curve: Curves.easeOut)
         .scale(
           begin: const Offset(0.5, 0.5),
-          end: const Offset(1.0, 1.0),
+          end: const Offset(1, 1),
           duration: 400.ms,
           curve: Curves.elasticOut,
         );
-  }
 }
 
 /// A tooltip that shows commit details when hovering over a CommitDot
 class CommitTooltip extends StatelessWidget {
   const CommitTooltip({
-    super.key,
-    required this.commitCount,
-    required this.date,
-    required this.child,
+    required this.commitCount, required this.date, required this.child, super.key,
   });
 
   final int commitCount;
@@ -179,8 +172,7 @@ class CommitTooltip extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Tooltip(
+  Widget build(BuildContext context) => Tooltip(
       message: _tooltipText,
       textStyle: AppTheme.codeStyle.copyWith(
         color: AppTheme.textPrimary,
@@ -204,7 +196,6 @@ class CommitTooltip extends StatelessWidget {
       waitDuration: const Duration(milliseconds: 500),
       child: child,
     );
-  }
 }
 
 /// Helper class for managing commit data
@@ -224,7 +215,7 @@ class CommitData {
     final now = DateTime.now();
     final startDate = now.subtract(const Duration(days: 371)); // ~53 weeks
 
-    for (int i = 0; i < 371; i++) {
+    for (var i = 0; i < 371; i++) {
       final date = startDate.add(Duration(days: i));
       data.add(CommitData(date: date, commitCount: 0));
     }

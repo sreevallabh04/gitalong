@@ -5,15 +5,6 @@ enum MatchStatus {
 }
 
 class MatchModel {
-  final String id;
-  final String contributorId;
-  final String projectId;
-  final String projectOwnerId;
-  final DateTime createdAt;
-  final MatchStatus status;
-  final DateTime? lastMessageAt;
-  final int? messageCount;
-  final Map<String, dynamic>? metadata;
 
   const MatchModel({
     required this.id,
@@ -27,8 +18,7 @@ class MatchModel {
     this.metadata,
   });
 
-  factory MatchModel.fromJson(Map<String, dynamic> json) {
-    return MatchModel(
+  factory MatchModel.fromJson(Map<String, dynamic> json) => MatchModel(
       id: json['id'] as String,
       contributorId: json['contributorId'] as String,
       projectId: json['projectId'] as String,
@@ -41,10 +31,17 @@ class MatchModel {
       messageCount: json['messageCount'] as int?,
       metadata: json['metadata'] as Map<String, dynamic>?,
     );
-  }
+  final String id;
+  final String contributorId;
+  final String projectId;
+  final String projectOwnerId;
+  final DateTime createdAt;
+  final MatchStatus status;
+  final DateTime? lastMessageAt;
+  final int? messageCount;
+  final Map<String, dynamic>? metadata;
 
-  Map<String, dynamic> toJson() {
-    return {
+  Map<String, dynamic> toJson() => {
       'id': id,
       'contributorId': contributorId,
       'projectId': projectId,
@@ -55,15 +52,13 @@ class MatchModel {
       'messageCount': messageCount,
       'metadata': metadata,
     };
-  }
 
   // Static factory method for easy creation
   static MatchModel create({
     required String contributorId,
     required String projectId,
     required String projectOwnerId,
-  }) {
-    return MatchModel(
+  }) => MatchModel(
       id: '${contributorId}_${projectId}_${DateTime.now().millisecondsSinceEpoch}',
       contributorId: contributorId,
       projectId: projectId,
@@ -72,7 +67,6 @@ class MatchModel {
       status: MatchStatus.active,
       messageCount: 0,
     );
-  }
 
   bool get isActive => status == MatchStatus.active;
   bool get hasMessages => (messageCount ?? 0) > 0;

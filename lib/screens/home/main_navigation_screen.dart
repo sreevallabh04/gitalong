@@ -1,31 +1,29 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../core/utils/logger.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+
 import '../../core/monitoring/analytics_service.dart';
 import '../../core/utils/accessibility_utils.dart';
-import '../../core/utils/accessibility_utils.dart';
-import 'swipe_screen.dart';
-import 'messages_screen.dart';
-import 'saved_screen.dart';
-import 'profile_screen.dart';
-import '../search/user_search_screen.dart';
+import '../../core/utils/logger.dart';
+import '../../models/user_roles.dart';
 import '../../widgets/role_specific/collaborator_dashboard.dart';
 import '../../widgets/role_specific/maintainer_dashboard.dart';
-import '../../providers/auth_provider.dart';
-import '../../models/user_roles.dart';
+import '../search/user_search_screen.dart';
+import 'messages_screen.dart';
+import 'profile_screen.dart';
+import 'saved_screen.dart';
 
 class MainNavigationScreen extends ConsumerStatefulWidget {
-  final int initialIndex;
-  final UserRole? userRole;
 
   const MainNavigationScreen({
     super.key,
     this.initialIndex = 0,
     this.userRole,
   });
+  final int initialIndex;
+  final UserRole? userRole;
 
   @override
   ConsumerState<MainNavigationScreen> createState() =>
@@ -56,7 +54,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
     );
 
     AppLogger.logger.navigation(
-        '🏠 Enhanced main navigation initialized with index: $_currentIndex');
+        '🏠 Enhanced main navigation initialized with index: $_currentIndex',);
     AnalyticsService.trackScreenView('main_navigation');
   }
 
@@ -219,15 +217,14 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       backgroundColor: const Color(0xFF0D1117),
       extendBody: true,
       body: Container(
         decoration: BoxDecoration(
           gradient: RadialGradient(
             center: Alignment.topCenter,
-            radius: 2.0,
+            radius: 2,
             colors: [
               _navigationItems[_currentIndex].color.withValues(alpha: 0.05),
               const Color(0xFF0D1117),
@@ -243,22 +240,17 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
             });
           },
           itemCount: _screens.length,
-          itemBuilder: (context, index) {
-            return _screens[index];
-          },
+          itemBuilder: (context, index) => _screens[index],
         ),
       ),
       floatingActionButton: _buildFloatingActionButton(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: _buildEnhancedBottomNavigationBar(),
     );
-  }
 
-  Widget _buildFloatingActionButton() {
-    return AnimatedBuilder(
+  Widget _buildFloatingActionButton() => AnimatedBuilder(
       animation: _floatingActionController,
-      builder: (context, child) {
-        return Transform.scale(
+      builder: (context, child) => Transform.scale(
           scale: 1.0 + (_floatingActionController.value * 0.1),
           child: Container(
             decoration: BoxDecoration(
@@ -300,13 +292,11 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
               ),
             ),
           ),
-        );
-      },
+        ),
     ).animate().scale(
           duration: 600.ms,
           curve: Curves.elasticOut,
         );
-  }
 
   void _showQuickActionsDialog(BuildContext context) {
     showModalBottomSheet(
@@ -317,8 +307,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
     );
   }
 
-  Widget _buildQuickActionsSheet() {
-    return Container(
+  Widget _buildQuickActionsSheet() => Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -403,7 +392,6 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
           duration: 400.ms,
           curve: Curves.easeOutCubic,
         );
-  }
 
   Widget _buildQuickActionItem({
     required IconData icon,
@@ -411,8 +399,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
     required String subtitle,
     required Color color,
     required VoidCallback onTap,
-  }) {
-    return Material(
+  }) => Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
@@ -475,10 +462,8 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
         ),
       ),
     );
-  }
 
-  Widget _buildEnhancedBottomNavigationBar() {
-    return Container(
+  Widget _buildEnhancedBottomNavigationBar() => Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(32),
@@ -537,14 +522,12 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
         .fadeIn(
           duration: 600.ms,
         );
-  }
 
   Widget _buildEnhancedNavigationItem({
     required _NavigationItem item,
     required int index,
     required bool isSelected,
-  }) {
-    return Semantics(
+  }) => Semantics(
       label: AccessibilityUtils.getNavigationLabel(item.label, isSelected),
       button: true,
       selected: isSelected,
@@ -592,12 +575,10 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                     ),
                     child: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 300),
-                      transitionBuilder: (child, animation) {
-                        return ScaleTransition(
+                      transitionBuilder: (child, animation) => ScaleTransition(
                           scale: animation,
                           child: child,
-                        );
-                      },
+                        ),
                       child: Icon(
                         isSelected ? item.activeIcon : item.icon,
                         key: ValueKey(isSelected),
@@ -657,21 +638,15 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
           ),
         ),
       ).animate(target: isSelected ? 1 : 0).scale(
-            begin: const Offset(1.0, 1.0),
+            begin: const Offset(1, 1),
             end: const Offset(1.15, 1.15),
             duration: 300.ms,
             curve: Curves.easeInOut,
           ),
     );
-  }
 }
 
 class _NavigationItem {
-  final IconData icon;
-  final IconData activeIcon;
-  final String label;
-  final Color color;
-  final String? badge;
 
   const _NavigationItem({
     required this.icon,
@@ -680,4 +655,9 @@ class _NavigationItem {
     required this.color,
     this.badge,
   });
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+  final Color color;
+  final String? badge;
 }

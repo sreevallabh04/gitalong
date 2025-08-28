@@ -1,10 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../providers/auth_provider.dart';
+
 import '../../core/utils/firestore_utils.dart';
 import '../../core/widgets/responsive_buttons.dart';
+import '../../providers/auth_provider.dart';
 
 class MaintainerLoginScreen extends ConsumerStatefulWidget {
   const MaintainerLoginScreen({super.key});
@@ -120,8 +121,7 @@ class _MaintainerLoginScreenState extends ConsumerState<MaintainerLoginScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       backgroundColor: const Color(0xFF0D1117),
       appBar: AppBar(
         title: const Text(
@@ -199,6 +199,5 @@ class _MaintainerLoginScreenState extends ConsumerState<MaintainerLoginScreen> {
         ),
       ),
     );
-  }
 }
 

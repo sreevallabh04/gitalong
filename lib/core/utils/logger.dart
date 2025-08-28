@@ -67,13 +67,9 @@ class AppLogger {
     _logHistory.clear();
   }
 
-  static List<LogEvent> getLogsForLevel(Level level) {
-    return _logHistory.where((log) => log.level == level).toList();
-  }
+  static List<LogEvent> getLogsForLevel(Level level) => _logHistory.where((log) => log.level == level).toList();
 
-  static List<LogEvent> getRecentLogs([int count = 50]) {
-    return _logHistory.take(count).toList();
-  }
+  static List<LogEvent> getRecentLogs([int count = 50]) => _logHistory.take(count).toList();
 
   static void _addToHistory(LogEvent event) {
     _logHistory.insert(0, event);
@@ -118,7 +114,7 @@ class AppLogPrinter extends LogPrinter {
         _levelNames[event.level] ?? event.level.name.toUpperCase();
     final timestamp = DateTime.now().toIso8601String();
 
-    final List<String> output = [];
+    final output = <String>[];
 
     // Header
     output.add('$emoji [$levelName] $timestamp');

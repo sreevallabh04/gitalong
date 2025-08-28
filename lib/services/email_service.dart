@@ -1,22 +1,23 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../core/utils/logger.dart';
-import '../core/utils/firestore_utils.dart';
+
 import '../core/monitoring/analytics_service.dart';
+import '../core/utils/firestore_utils.dart';
+import '../core/utils/logger.dart';
 import 'enhanced_email_templates.dart';
 
 /// Email service for sending various types of emails to users
 class EmailService {
-  static final EmailService _instance = EmailService._internal();
   factory EmailService() => _instance;
   EmailService._internal();
+  static final EmailService _instance = EmailService._internal();
 
   // Email API configuration (using a mock service for demo)
   // static const String _emailApiBaseUrl = 'https://api.emailjs.com/api/v1.0'; // Unused for now
   static const String _serviceId = 'service_gitalong';
-  static const String _templateId_welcome = 'template_welcome';
-  static const String _templateId_verification = 'template_verification';
-  static const String _templateId_notification = 'template_notification';
+  static const String templateIdWelcome = 'template_welcome';
+  static const String templateIdVerification = 'template_verification';
+  static const String templateIdNotification = 'template_notification';
   static const String _publicKey =
       'your_emailjs_public_key'; // Replace with actual key
 
@@ -40,7 +41,7 @@ class EmailService {
 
       // Choose template based on verification status
       final templateId =
-          isEmailVerified ? _templateId_welcome : _templateId_verification;
+          isEmailVerified ? templateIdWelcome : templateIdVerification;
 
       // Generate enhanced email content
       final htmlContent = EnhancedEmailTemplates.generateWelcomeEmail(
@@ -110,7 +111,7 @@ class EmailService {
       }
     } catch (error, stackTrace) {
       AppLogger.logger.e('❌ Failed to send welcome email',
-          error: error, stackTrace: stackTrace);
+          error: error, stackTrace: stackTrace,);
 
       // Record email failure
       await _recordEmailFailure(
@@ -135,7 +136,7 @@ class EmailService {
 
       final emailData = {
         'service_id': _serviceId,
-        'template_id': _templateId_verification,
+        'template_id': templateIdVerification,
         'user_id': _publicKey,
         'template_params': {
           'to_name': userName,
@@ -164,7 +165,7 @@ class EmailService {
       }
     } catch (error, stackTrace) {
       AppLogger.logger.e('❌ Failed to send verification reminder',
-          error: error, stackTrace: stackTrace);
+          error: error, stackTrace: stackTrace,);
 
       await _recordEmailFailure(
         userId: userId,
@@ -192,7 +193,7 @@ class EmailService {
 
       final emailData = {
         'service_id': _serviceId,
-        'template_id': _templateId_notification,
+        'template_id': templateIdNotification,
         'user_id': _publicKey,
         'template_params': {
           'to_name': userName,
@@ -230,7 +231,7 @@ class EmailService {
       }
     } catch (error, stackTrace) {
       AppLogger.logger.e('❌ Failed to send notification email',
-          error: error, stackTrace: stackTrace);
+          error: error, stackTrace: stackTrace,);
 
       await _recordEmailFailure(
         userId: userId,
@@ -267,15 +268,13 @@ class EmailService {
   /// Check if welcome email has been sent
   Future<bool> _hasWelcomeEmailBeenSent(String userId) async {
     try {
-      final querySnapshot = await safeQuery(() async {
-        return await FirebaseFirestore.instance
+      final querySnapshot = await safeQuery(() async => FirebaseFirestore.instance
             .collection('welcome_emails')
             .where('user_id', isEqualTo: userId)
             .where('type', whereIn: ['welcome', 'welcome_verified'])
             .where('status', isEqualTo: 'sent')
             .limit(1)
-            .get();
-      });
+            .get(),);
 
       return querySnapshot?.docs.isNotEmpty ?? false;
     } catch (error) {
@@ -292,7 +291,7 @@ class EmailService {
       // In production, integrate with EmailJS, SendGrid, or another service
 
       await Future.delayed(
-          const Duration(milliseconds: 500)); // Simulate API call
+          const Duration(milliseconds: 500),); // Simulate API call
 
       // Simulate 95% success rate
       final random = DateTime.now().millisecond;
@@ -426,10 +425,10 @@ class EmailService {
             .where('user_id', isEqualTo: userId)
             .get();
 
-        int totalSent = 0;
-        int totalFailed = 0;
-        int welcomeEmails = 0;
-        int notificationEmails = 0;
+        var totalSent = 0;
+        var totalFailed = 0;
+        var welcomeEmails = 0;
+        var notificationEmails = 0;
 
         for (final doc in querySnapshot.docs) {
           final data = doc.data();
@@ -502,8 +501,7 @@ class EmailService {
 
   /// Get user notifications stream
   static Stream<List<Map<String, dynamic>>> getUserNotifications(
-      String userId) {
-    return FirebaseFirestore.instance
+      String userId,) => FirebaseFirestore.instance
         .collection('user_notifications')
         .where('user_id', isEqualTo: userId)
         .orderBy('created_at', descending: true)
@@ -513,9 +511,8 @@ class EmailService {
             .map((doc) => {
                   'id': doc.id,
                   ...doc.data(),
-                })
-            .toList());
-  }
+                },)
+            .toList(),);
 
   /// Mark notification as read
   static Future<void> markNotificationAsRead(String notificationId) async {
@@ -576,11 +573,6 @@ class EmailService {
 
 /// Email analytics model
 class EmailAnalytics {
-  final int totalSent;
-  final int totalFailed;
-  final int welcomeEmails;
-  final int notificationEmails;
-  final double successRate;
 
   const EmailAnalytics({
     required this.totalSent,
@@ -590,20 +582,22 @@ class EmailAnalytics {
     required this.successRate,
   });
 
-  factory EmailAnalytics.empty() {
-    return const EmailAnalytics(
+  factory EmailAnalytics.empty() => const EmailAnalytics(
       totalSent: 0,
       totalFailed: 0,
       welcomeEmails: 0,
       notificationEmails: 0,
-      successRate: 0.0,
+      successRate: 0,
     );
-  }
+  final int totalSent;
+  final int totalFailed;
+  final int welcomeEmails;
+  final int notificationEmails;
+  final double successRate;
 
   int get totalAttempts => totalSent + totalFailed;
 
-  Map<String, dynamic> toJson() {
-    return {
+  Map<String, dynamic> toJson() => {
       'total_sent': totalSent,
       'total_failed': totalFailed,
       'welcome_emails': welcomeEmails,
@@ -611,6 +605,5 @@ class EmailAnalytics {
       'success_rate': successRate,
       'total_attempts': totalAttempts,
     };
-  }
 }
 

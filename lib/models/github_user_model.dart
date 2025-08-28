@@ -5,15 +5,12 @@ class GitHubUser {
     required this.id,
     required this.login,
     required this.avatarUrl,
-    this.name,
+    required this.publicRepos, required this.followers, required this.following, this.name,
     this.bio,
     this.location,
     this.company,
     this.blog,
     this.email,
-    required this.publicRepos,
-    required this.followers,
-    required this.following,
     this.createdAt,
     this.updatedAt,
     this.isVerified = false,
@@ -25,56 +22,8 @@ class GitHubUser {
     this.contributionStreak = 0,
   });
 
-  final int id;
-  final String login;
-  final String avatarUrl;
-  final String? name;
-  final String? bio;
-  final String? location;
-  final String? company;
-  final String? blog;
-  final String? email;
-  final int publicRepos;
-  final int followers;
-  final int following;
-  final DateTime? createdAt;
-  final DateTime? updatedAt;
-  final bool isVerified;
-  final List<String> topLanguages;
-  final int totalStars;
-  final int totalCommits;
-  final String? latestCommitMessage;
-  final int contributionsThisYear;
-  final int contributionStreak;
-
-  /// Profile URL on GitHub
-  String get profileUrl => 'https://github.com/$login';
-
-  /// HTML URL for GitHub profile (alias for profileUrl)
-  String get htmlUrl => profileUrl;
-
-  /// Display name (prefers name over login)
-  String get displayName => name ?? login;
-
-  /// Member since text
-  String get memberSince {
-    if (createdAt == null) return 'GitHub member';
-    final year = createdAt!.year;
-    return 'GitHub member since $year';
-  }
-
-  /// Contribution level based on yearly activity
-  ContributionLevel get contributionLevel {
-    if (contributionsThisYear >= 1000) return ContributionLevel.legendary;
-    if (contributionsThisYear >= 500) return ContributionLevel.active;
-    if (contributionsThisYear >= 100) return ContributionLevel.moderate;
-    if (contributionsThisYear >= 10) return ContributionLevel.beginner;
-    return ContributionLevel.inactive;
-  }
-
   /// Creates GitHubUser from GitHub API response
-  factory GitHubUser.fromGitHubApi(Map<String, dynamic> json) {
-    return GitHubUser(
+  factory GitHubUser.fromGitHubApi(Map<String, dynamic> json) => GitHubUser(
       id: json['id'] ?? 0,
       login: json['login'] ?? '',
       avatarUrl: json['avatar_url'] ?? '',
@@ -94,7 +43,6 @@ class GitHubUser {
           ? DateTime.parse(json['updated_at'])
           : null,
     );
-  }
 
   /// Creates enriched GitHubUser with additional computed data
   factory GitHubUser.fromEnrichedData({
@@ -165,7 +113,7 @@ class GitHubUser {
   }
 
   /// Factory constructor for creating sample user from ML recommendation
-  factory GitHubUser.sampleFromRecommendation(dynamic recommendation) {
+  factory GitHubUser.sampleFromRecommendation() {
     final sampleUsers = [
       const GitHubUser(
         login: 'alex_dev',
@@ -207,68 +155,8 @@ class GitHubUser {
     return sampleUsers[DateTime.now().millisecond % sampleUsers.length];
   }
 
-  /// Generates multiple sample users for demos
-  static List<GitHubUser> generateSampleUsers() {
-    return [
-      GitHubUser.sample(
-        login: 'torvalds',
-        name: 'Linus Torvalds',
-        bio: 'Creator of Linux and Git. Finnish-American software engineer.',
-      ),
-      GitHubUser.sample(
-        login: 'gaearon',
-        name: 'Dan Abramov',
-        bio: 'Co-creator of Redux. Works on React at Meta.',
-      ),
-      GitHubUser.sample(
-        login: 'tj',
-        name: 'TJ Holowaychuk',
-        bio: 'Creator of Express.js and many other Node.js modules.',
-      ),
-      GitHubUser.sample(
-        login: 'sindresorhus',
-        name: 'Sindre Sorhus',
-        bio: 'Full-time open-sourcerer. Creator of AVA, Chalk, XO.',
-      ),
-      GitHubUser.sample(
-        login: 'addyosmani',
-        name: 'Addy Osmani',
-        bio:
-            'Engineering Manager at Google working on Chrome & web performance.',
-      ),
-    ];
-  }
-
-  /// JSON serialization
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'login': login,
-      'avatar_url': avatarUrl,
-      'name': name,
-      'bio': bio,
-      'location': location,
-      'company': company,
-      'blog': blog,
-      'email': email,
-      'public_repos': publicRepos,
-      'followers': followers,
-      'following': following,
-      'created_at': createdAt?.toIso8601String(),
-      'updated_at': updatedAt?.toIso8601String(),
-      'is_verified': isVerified,
-      'top_languages': topLanguages,
-      'total_stars': totalStars,
-      'total_commits': totalCommits,
-      'latest_commit_message': latestCommitMessage,
-      'contributions_this_year': contributionsThisYear,
-      'contribution_streak': contributionStreak,
-    };
-  }
-
   /// JSON deserialization
-  factory GitHubUser.fromJson(Map<String, dynamic> json) {
-    return GitHubUser(
+  factory GitHubUser.fromJson(Map<String, dynamic> json) => GitHubUser(
       id: json['id'] ?? 0,
       login: json['login'] ?? '',
       avatarUrl: json['avatar_url'] ?? '',
@@ -298,13 +186,112 @@ class GitHubUser {
       contributionsThisYear: json['contributions_this_year'] ?? 0,
       contributionStreak: json['contribution_streak'] ?? 0,
     );
+
+  final int id;
+  final String login;
+  final String avatarUrl;
+  final String? name;
+  final String? bio;
+  final String? location;
+  final String? company;
+  final String? blog;
+  final String? email;
+  final int publicRepos;
+  final int followers;
+  final int following;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final bool isVerified;
+  final List<String> topLanguages;
+  final int totalStars;
+  final int totalCommits;
+  final String? latestCommitMessage;
+  final int contributionsThisYear;
+  final int contributionStreak;
+
+  /// Profile URL on GitHub
+  String get profileUrl => 'https://github.com/$login';
+
+  /// HTML URL for GitHub profile (alias for profileUrl)
+  String get htmlUrl => profileUrl;
+
+  /// Display name (prefers name over login)
+  String get displayName => name ?? login;
+
+  /// Member since text
+  String get memberSince {
+    if (createdAt == null) return 'GitHub member';
+    final year = createdAt!.year;
+    return 'GitHub member since $year';
   }
+
+  /// Contribution level based on yearly activity
+  ContributionLevel get contributionLevel {
+    if (contributionsThisYear >= 1000) return ContributionLevel.legendary;
+    if (contributionsThisYear >= 500) return ContributionLevel.active;
+    if (contributionsThisYear >= 100) return ContributionLevel.moderate;
+    if (contributionsThisYear >= 10) return ContributionLevel.beginner;
+    return ContributionLevel.inactive;
+  }
+
+  /// Generates multiple sample users for demos
+  static List<GitHubUser> generateSampleUsers() => [
+      GitHubUser.sample(
+        login: 'torvalds',
+        name: 'Linus Torvalds',
+        bio: 'Creator of Linux and Git. Finnish-American software engineer.',
+      ),
+      GitHubUser.sample(
+        login: 'gaearon',
+        name: 'Dan Abramov',
+        bio: 'Co-creator of Redux. Works on React at Meta.',
+      ),
+      GitHubUser.sample(
+        login: 'tj',
+        name: 'TJ Holowaychuk',
+        bio: 'Creator of Express.js and many other Node.js modules.',
+      ),
+      GitHubUser.sample(
+        login: 'sindresorhus',
+        name: 'Sindre Sorhus',
+        bio: 'Full-time open-sourcerer. Creator of AVA, Chalk, XO.',
+      ),
+      GitHubUser.sample(
+        login: 'addyosmani',
+        name: 'Addy Osmani',
+        bio:
+            'Engineering Manager at Google working on Chrome & web performance.',
+      ),
+    ];
+
+  /// JSON serialization
+  Map<String, dynamic> toJson() => {
+      'id': id,
+      'login': login,
+      'avatar_url': avatarUrl,
+      'name': name,
+      'bio': bio,
+      'location': location,
+      'company': company,
+      'blog': blog,
+      'email': email,
+      'public_repos': publicRepos,
+      'followers': followers,
+      'following': following,
+      'created_at': createdAt?.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
+      'is_verified': isVerified,
+      'top_languages': topLanguages,
+      'total_stars': totalStars,
+      'total_commits': totalCommits,
+      'latest_commit_message': latestCommitMessage,
+      'contributions_this_year': contributionsThisYear,
+      'contribution_streak': contributionStreak,
+    };
 
   /// String representation for debugging
   @override
-  String toString() {
-    return 'GitHubUser(login: $login, name: $name, repos: $publicRepos, followers: $followers)';
-  }
+  String toString() => 'GitHubUser(login: $login, name: $name, repos: $publicRepos, followers: $followers)';
 
   /// Equality comparison
   @override
@@ -339,8 +326,7 @@ class GitHubUser {
     String? latestCommitMessage,
     int? contributionsThisYear,
     int? contributionStreak,
-  }) {
-    return GitHubUser(
+  }) => GitHubUser(
       id: id ?? this.id,
       login: login ?? this.login,
       avatarUrl: avatarUrl ?? this.avatarUrl,
@@ -364,7 +350,6 @@ class GitHubUser {
           contributionsThisYear ?? this.contributionsThisYear,
       contributionStreak: contributionStreak ?? this.contributionStreak,
     );
-  }
 }
 
 /// Contribution activity levels

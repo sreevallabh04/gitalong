@@ -10,22 +10,6 @@ enum ProjectStatus {
 
 /// Project model for maintainers to upload and contributors to discover
 class ProjectModel {
-  final String id;
-  final String title;
-  final String description;
-  final String repoUrl;
-  final List<String> skillsRequired;
-  final String ownerId;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-  final ProjectStatus status;
-  final String? imageUrl;
-  final String? language;
-  final int? stars;
-  final int? forks;
-  final String? license;
-  final List<String> tags;
-  final bool isPublic;
 
   const ProjectModel({
     required this.id,
@@ -47,15 +31,13 @@ class ProjectModel {
   });
 
   /// Create ProjectModel from Firestore document
-  factory ProjectModel.fromFirestore(Map<String, dynamic> json) {
-    return ProjectModel.fromJson(json);
-  }
+  factory ProjectModel.fromFirestore(Map<String, dynamic> json) => ProjectModel.fromJson(json);
 
   /// Create ProjectModel from JSON with safe parsing
   factory ProjectModel.fromJson(Map<String, dynamic> json) {
     try {
       // Parse skills with fallback
-      List<String> skillsList = [];
+      var skillsList = <String>[];
       if (json['skills_required'] != null) {
         if (json['skills_required'] is List) {
           skillsList = (json['skills_required'] as List)
@@ -73,7 +55,7 @@ class ProjectModel {
       }
 
       // Parse tags with fallback
-      List<String> tagsList = [];
+      var tagsList = <String>[];
       if (json['tags'] != null && json['tags'] is List) {
         tagsList = (json['tags'] as List)
             .map((e) => e?.toString() ?? '')
@@ -82,7 +64,7 @@ class ProjectModel {
       }
 
       // Parse status with fallback
-      ProjectStatus projectStatus = ProjectStatus.active;
+      var projectStatus = ProjectStatus.active;
       if (json['status'] != null) {
         try {
           projectStatus = ProjectStatus.values.firstWhere(
@@ -95,8 +77,8 @@ class ProjectModel {
       }
 
       // Parse timestamps with multiple field name support
-      DateTime createdAt = DateTime.now();
-      DateTime updatedAt = DateTime.now();
+      var createdAt = DateTime.now();
+      var updatedAt = DateTime.now();
 
       // Handle created_at / createdAt
       if (json['created_at'] != null) {
@@ -164,10 +146,25 @@ class ProjectModel {
       );
     }
   }
+  final String id;
+  final String title;
+  final String description;
+  final String repoUrl;
+  final List<String> skillsRequired;
+  final String ownerId;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final ProjectStatus status;
+  final String? imageUrl;
+  final String? language;
+  final int? stars;
+  final int? forks;
+  final String? license;
+  final List<String> tags;
+  final bool isPublic;
 
   /// Convert ProjectModel to JSON for Firestore
-  Map<String, dynamic> toJson() {
-    return {
+  Map<String, dynamic> toJson() => {
       'id': id,
       'title': title,
       'description': description,
@@ -185,7 +182,6 @@ class ProjectModel {
       'tags': tags,
       'is_public': isPublic,
     };
-  }
 
   /// Create a copy of this project with updated fields
   ProjectModel copyWith({
@@ -205,8 +201,7 @@ class ProjectModel {
     String? license,
     List<String>? tags,
     bool? isPublic,
-  }) {
-    return ProjectModel(
+  }) => ProjectModel(
       id: id ?? this.id,
       title: title ?? this.title,
       description: description ?? this.description,
@@ -224,7 +219,6 @@ class ProjectModel {
       tags: tags ?? this.tags,
       isPublic: isPublic ?? this.isPublic,
     );
-  }
 
   @override
   bool operator ==(Object other) {
@@ -236,8 +230,6 @@ class ProjectModel {
   int get hashCode => id.hashCode;
 
   @override
-  String toString() {
-    return 'ProjectModel(id: $id, title: $title, status: $status)';
-  }
+  String toString() => 'ProjectModel(id: $id, title: $title, status: $status)';
 }
 

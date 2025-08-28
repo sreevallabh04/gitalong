@@ -1,11 +1,12 @@
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
-import '../firebase_options.dart';
+
 import '../core/utils/logger.dart';
+import '../firebase_options.dart';
 
 class FirebaseConfig {
   static bool _initialized = false;
@@ -209,7 +210,7 @@ class FirebaseConfig {
           'timestamp': FieldValue.serverTimestamp(),
           'status': 'connected',
           'app_version': '1.0.0',
-        }, SetOptions(merge: true));
+        }, SetOptions(merge: true),);
 
         final testRead = await healthCheckDoc.get();
         if (testRead.exists) {
@@ -280,7 +281,7 @@ class FirebaseConfig {
     }
   }
 
-  static void _handleGenericInitializationError(dynamic e) {
+  static void _handleGenericInitializationError(e) {
     final errorString = e.toString().toLowerCase();
 
     if (errorString.contains('network') || errorString.contains('connection')) {
@@ -373,27 +374,19 @@ class FirebaseConfig {
   }
 
   // Get Firestore collection with type safety
-  static CollectionReference<Map<String, dynamic>> collection(String path) {
-    return firestore.collection(path);
-  }
+  static CollectionReference<Map<String, dynamic>> collection(String path) => firestore.collection(path);
 
   // Get Firestore document with type safety
-  static DocumentReference<Map<String, dynamic>> document(String path) {
-    return firestore.doc(path);
-  }
+  static DocumentReference<Map<String, dynamic>> document(String path) => firestore.doc(path);
 
   // Batch operations for Firestore
-  static WriteBatch batch() {
-    return firestore.batch();
-  }
+  static WriteBatch batch() => firestore.batch();
 
   // Transaction operations for Firestore
   static Future<T> runTransaction<T>(
     TransactionHandler<T> updateFunction, {
     Duration timeout = const Duration(seconds: 30),
-  }) {
-    return firestore.runTransaction(updateFunction, timeout: timeout);
-  }
+  }) => firestore.runTransaction(updateFunction, timeout: timeout);
 
   // Reset initialization state (for testing)
   static void reset() {
@@ -494,7 +487,7 @@ class FirebaseConfig {
           androidProvider: AndroidProvider.playIntegrity,
           appleProvider: AppleProvider.appAttest,
           webProvider: ReCaptchaV3Provider(
-              '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'), // Test key - replace with real one
+              '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI',), // Test key - replace with real one
         );
       }
 

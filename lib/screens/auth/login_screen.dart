@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../core/config/app_theme.dart';
-import '../../providers/auth_provider.dart';
-import '../../core/utils/logger.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import '../../services/auth_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import '../../core/config/app_theme.dart';
 import '../../core/services/haptic_service.dart';
+import '../../core/utils/logger.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/auth_service.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -70,12 +71,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     );
 
     _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
+      begin: 0,
+      end: 1,
     ).animate(CurvedAnimation(
       parent: _fadeController,
       curve: Curves.easeInOut,
-    ));
+    ),);
 
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.3),
@@ -83,23 +84,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     ).animate(CurvedAnimation(
       parent: _slideController,
       curve: Curves.easeOutCubic,
-    ));
+    ),);
 
     _githubLogoAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
+      begin: 0,
+      end: 1,
     ).animate(CurvedAnimation(
       parent: _githubLogoController,
       curve: Curves.elasticOut,
-    ));
+    ),);
 
     _bounceAnimation = Tween<double>(
-      begin: 1.0,
+      begin: 1,
       end: 1.1,
     ).animate(CurvedAnimation(
       parent: _bounceController,
       curve: Curves.elasticInOut,
-    ));
+    ),);
 
     // Start animations with delays
     Future.delayed(const Duration(milliseconds: 200), () {
@@ -141,11 +142,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     } catch (navError) {
       AppLogger.logger.e('❌ Navigation failed', error: navError);
       _showErrorDialog('Navigation Error',
-          'Failed to navigate to home screen. Please restart the app.');
+          'Failed to navigate to home screen. Please restart the app.',);
     }
   }
 
-  String _getErrorMessage(dynamic error) {
+  String _getErrorMessage(error) {
     if (error is AuthException) {
       return error.message;
     }
@@ -236,8 +237,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: Stack(
@@ -284,10 +284,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         ),
       ),
     );
-  }
 
-  Widget _buildGitHubBackground() {
-    return Container(
+  Widget _buildGitHubBackground() => Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -304,18 +302,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         size: Size.infinite,
       ),
     );
-  }
 
-  Widget _buildGitHubHeader() {
-    return Column(
+  Widget _buildGitHubHeader() => Column(
       children: [
         // GitHub logo with animation and bounce
         ScaleTransition(
           scale: _githubLogoAnimation,
           child: AnimatedBuilder(
             animation: _bounceAnimation,
-            builder: (context, child) {
-              return Transform.scale(
+            builder: (context, child) => Transform.scale(
                 scale: _bounceAnimation.value,
                 child: Container(
                   width: 100,
@@ -337,8 +332,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     size: 50,
                   ),
                 ),
-              );
-            },
+              ),
           ),
         ),
 
@@ -392,10 +386,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         ).animate().fadeIn(delay: 400.ms, duration: 600.ms),
       ],
     );
-  }
 
-  Widget _buildGitHubLoginSection() {
-    return Column(
+  Widget _buildGitHubLoginSection() => Column(
       children: [
         // GitHub login button
         Container(
@@ -458,7 +450,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         const SizedBox(height: 8),
       ],
     );
-  }
 
   Future<void> _signInWithGitHub() async {
     setState(() => _isLoading = true);
@@ -493,8 +484,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     }
   }
 
-  Widget _buildFooter() {
-    return Column(
+  Widget _buildFooter() => Column(
       children: [
         Text(
           "Don't have an account?",
@@ -519,10 +509,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         ),
       ],
     );
-  }
 
-  Widget _buildLoadingOverlay() {
-    return Container(
+  Widget _buildLoadingOverlay() => Container(
       color: Colors.black.withValues(alpha: 0.7),
       child: Center(
         child: Container(
@@ -558,10 +546,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         ),
       ),
     );
-  }
 
-  Widget _buildTestModeIndicator() {
-    return Positioned(
+  Widget _buildTestModeIndicator() => Positioned(
       top: 16,
       right: 16,
       child: Container(
@@ -591,7 +577,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         ),
       ),
     );
-  }
 }
 
 class GitHubCommitHistoryPainter extends CustomPainter {
@@ -605,7 +590,7 @@ class GitHubCommitHistoryPainter extends CustomPainter {
     final path = Path();
 
     // Draw GitHub-style commit history lines
-    for (int i = 0; i < 6; i++) {
+    for (var i = 0; i < 6; i++) {
       final x = size.width * 0.15 + (i * size.width * 0.12);
       final y = size.height * 0.1 + (i * size.height * 0.15);
 

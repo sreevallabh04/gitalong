@@ -5,42 +5,6 @@ import 'user_roles.dart' as roles;
 
 @immutable
 class UserModel {
-  final String uid;
-  final String email;
-  final String? name;
-  final String? bio;
-  final String? githubHandle;
-  final String? location;
-  final List<String>? techStack;
-  final String? profileImageUrl;
-  final Map<String, dynamic>? githubData;
-  final DateTime? createdAt;
-  final DateTime? updatedAt;
-  final bool? isOnboardingComplete;
-  // Additional properties needed by the app
-  final String? id;
-  final String? username;
-  final String? displayName;
-  final String? photoURL;
-  final String? avatarUrl;
-  final String? githubUrl;
-  final String? githubUsername;
-  final roles.UserRole? role;
-  final List<String>? skills;
-  final List<String>? interests;
-  final int? followers;
-  final int? following;
-  final int? repositories;
-  final String? company;
-  final String? website;
-  final List<String>? topLanguages;
-  final String? authMethod;
-  final bool? isEmailVerified;
-  final bool? isProfileComplete;
-  // Security and profile enhancements
-  final Map<String, dynamic>? security;
-  final Map<String, dynamic>? privacy;
-  final Map<String, dynamic>? statistics;
 
   const UserModel({
     required this.uid,
@@ -79,8 +43,7 @@ class UserModel {
     this.statistics,
   });
 
-  factory UserModel.fromJson(Map<String, dynamic> json) {
-    return UserModel(
+  factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
       uid: json['uid'] as String,
       email: json['email'] as String,
       name: json['name'] as String?,
@@ -122,10 +85,44 @@ class UserModel {
       privacy: json['privacy'] as Map<String, dynamic>?,
       statistics: json['statistics'] as Map<String, dynamic>?,
     );
-  }
+  final String uid;
+  final String email;
+  final String? name;
+  final String? bio;
+  final String? githubHandle;
+  final String? location;
+  final List<String>? techStack;
+  final String? profileImageUrl;
+  final Map<String, dynamic>? githubData;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final bool? isOnboardingComplete;
+  // Additional properties needed by the app
+  final String? id;
+  final String? username;
+  final String? displayName;
+  final String? photoURL;
+  final String? avatarUrl;
+  final String? githubUrl;
+  final String? githubUsername;
+  final roles.UserRole? role;
+  final List<String>? skills;
+  final List<String>? interests;
+  final int? followers;
+  final int? following;
+  final int? repositories;
+  final String? company;
+  final String? website;
+  final List<String>? topLanguages;
+  final String? authMethod;
+  final bool? isEmailVerified;
+  final bool? isProfileComplete;
+  // Security and profile enhancements
+  final Map<String, dynamic>? security;
+  final Map<String, dynamic>? privacy;
+  final Map<String, dynamic>? statistics;
 
-  Map<String, dynamic> toJson() {
-    return {
+  Map<String, dynamic> toJson() => {
       'uid': uid,
       'email': email,
       'name': name,
@@ -161,7 +158,6 @@ class UserModel {
       'privacy': privacy,
       'statistics': statistics,
     };
-  }
 
   // Returns the best available profile image URL
   String? get effectivePhotoUrl => photoURL ?? avatarUrl ?? profileImageUrl;
@@ -201,8 +197,7 @@ class UserModel {
     Map<String, dynamic>? security,
     Map<String, dynamic>? privacy,
     Map<String, dynamic>? statistics,
-  }) {
-    return UserModel(
+  }) => UserModel(
       uid: uid ?? this.uid,
       email: email ?? this.email,
       name: name ?? this.name,
@@ -238,7 +233,6 @@ class UserModel {
       privacy: privacy ?? this.privacy,
       statistics: statistics ?? this.statistics,
     );
-  }
 
   @override
   bool operator ==(Object other) {

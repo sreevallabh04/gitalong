@@ -3,19 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/utils/logger.dart';
 
 // App lifecycle state provider
-final appLifecycleProvider = Provider<AppLifecycleListener>((ref) {
-  return AppLifecycleListener(
+final appLifecycleProvider = Provider<AppLifecycleListener>((ref) => AppLifecycleListener(
     onShow: () => AppLogger.logger.ui('📱 App resumed'),
     onHide: () => AppLogger.logger.ui('📱 App paused'),
     onDetach: () => AppLogger.logger.ui('📱 App detached'),
     onInactive: () => AppLogger.logger.ui('📱 App inactive'),
     onPause: () => AppLogger.logger.ui('📱 App hidden'),
-  );
-});
+  ),);
 
-final appLifecycleStateProvider = StateProvider<AppLifecycleState>((ref) {
-  return AppLifecycleState.resumed;
-});
+final appLifecycleStateProvider = StateProvider<AppLifecycleState>((ref) => AppLifecycleState.resumed);
 
 class AppLifecycleNotifier extends StateNotifier<AppLifecycleState>
     with WidgetsBindingObserver {

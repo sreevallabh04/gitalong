@@ -1,11 +1,4 @@
 class MessageModel {
-  final String id;
-  final String senderId;
-  final String receiverId;
-  final String content;
-  final DateTime timestamp;
-  final MessageType type;
-  final bool isRead;
 
   const MessageModel({
     required this.id,
@@ -17,8 +10,7 @@ class MessageModel {
     this.isRead = false,
   });
 
-  factory MessageModel.fromJson(Map<String, dynamic> json) {
-    return MessageModel(
+  factory MessageModel.fromJson(Map<String, dynamic> json) => MessageModel(
       id: json['id'] as String,
       senderId: json['sender_id'] as String,
       receiverId: json['receiver_id'] as String,
@@ -27,10 +19,15 @@ class MessageModel {
       type: MessageType.values.byName(json['type'] ?? 'text'),
       isRead: json['is_read'] as bool? ?? false,
     );
-  }
+  final String id;
+  final String senderId;
+  final String receiverId;
+  final String content;
+  final DateTime timestamp;
+  final MessageType type;
+  final bool isRead;
 
-  Map<String, dynamic> toJson() {
-    return {
+  Map<String, dynamic> toJson() => {
       'id': id,
       'sender_id': senderId,
       'receiver_id': receiverId,
@@ -39,7 +36,6 @@ class MessageModel {
       'type': type.name,
       'is_read': isRead,
     };
-  }
 
   MessageModel copyWith({
     String? id,
@@ -49,8 +45,7 @@ class MessageModel {
     DateTime? timestamp,
     MessageType? type,
     bool? isRead,
-  }) {
-    return MessageModel(
+  }) => MessageModel(
       id: id ?? this.id,
       senderId: senderId ?? this.senderId,
       receiverId: receiverId ?? this.receiverId,
@@ -59,7 +54,6 @@ class MessageModel {
       type: type ?? this.type,
       isRead: isRead ?? this.isRead,
     );
-  }
 
   @override
   bool operator ==(Object other) =>
@@ -72,9 +66,7 @@ class MessageModel {
   int get hashCode => id.hashCode;
 
   @override
-  String toString() {
-    return 'MessageModel{id: $id, senderId: $senderId, content: $content}';
-  }
+  String toString() => 'MessageModel{id: $id, senderId: $senderId, content: $content}';
 }
 
 enum MessageType { text, image, file }

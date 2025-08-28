@@ -2,13 +2,6 @@ import 'github_user_model.dart';
 
 /// ML recommendation model for user matching
 class MLRecommendation {
-  final String uid;
-  final double matchScore;
-  final GitHubUser user;
-  final List<String> matchReasons;
-
-  // Convenience getter for compatibility with swipe screen
-  String get targetUserId => uid;
 
   const MLRecommendation({
     required this.uid,
@@ -17,23 +10,26 @@ class MLRecommendation {
     this.matchReasons = const [],
   });
 
-  factory MLRecommendation.fromJson(Map<String, dynamic> json) {
-    return MLRecommendation(
+  factory MLRecommendation.fromJson(Map<String, dynamic> json) => MLRecommendation(
       uid: json['uid'] as String,
       matchScore: (json['match_score'] as num).toDouble(),
       user: GitHubUser.fromJson(json['user'] as Map<String, dynamic>),
       matchReasons: List<String>.from(json['match_reasons'] ?? []),
     );
-  }
+  final String uid;
+  final double matchScore;
+  final GitHubUser user;
+  final List<String> matchReasons;
 
-  Map<String, dynamic> toJson() {
-    return {
+  // Convenience getter for compatibility with swipe screen
+  String get targetUserId => uid;
+
+  Map<String, dynamic> toJson() => {
       'uid': uid,
       'match_score': matchScore,
       'user': user.toJson(),
       'match_reasons': matchReasons,
     };
-  }
 
   @override
   bool operator ==(Object other) {
@@ -49,9 +45,7 @@ class MLRecommendation {
   int get hashCode => Object.hash(uid, matchScore, user, matchReasons);
 
   @override
-  String toString() {
-    return 'MLRecommendation(uid: $uid, matchScore: $matchScore, user: $user, matchReasons: $matchReasons)';
-  }
+  String toString() => 'MLRecommendation(uid: $uid, matchScore: $matchScore, user: $user, matchReasons: $matchReasons)';
 
   /// Creates a copy with updated values
   MLRecommendation copyWith({
@@ -59,13 +53,11 @@ class MLRecommendation {
     double? matchScore,
     GitHubUser? user,
     List<String>? matchReasons,
-  }) {
-    return MLRecommendation(
+  }) => MLRecommendation(
       uid: uid ?? this.uid,
       matchScore: matchScore ?? this.matchScore,
       user: user ?? this.user,
       matchReasons: matchReasons ?? this.matchReasons,
     );
-  }
 }
 

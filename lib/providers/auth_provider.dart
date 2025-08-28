@@ -1,20 +1,20 @@
 import 'dart:async';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../core/utils/firestore_utils.dart'; // Re-add safeQuery import
+import '../core/utils/logger.dart';
+import '../models/user_model.dart';
+import '../models/user_roles.dart' as roles;
 import '../services/auth_service.dart';
 import '../services/enhanced_auth_service.dart';
 import '../services/enterprise_auth_service.dart';
 import '../services/firestore_service.dart';
-import '../models/user_model.dart';
-import '../core/utils/logger.dart';
-import '../core/utils/firestore_utils.dart'; // Re-add safeQuery import
-import '../models/user_roles.dart' as roles;
 
 
 // Firestore service provider
-final firestoreServiceProvider = Provider<FirestoreService>((ref) {
-  return FirestoreService();
-});
+final firestoreServiceProvider = Provider<FirestoreService>((ref) => FirestoreService());
 
 // Auth service provider - lazy initialization to prevent early Firebase access
 final authServiceProvider = Provider<AuthService>((ref) => AuthService());
@@ -81,13 +81,13 @@ final userProfileProvider =
 });
 
 class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
-  final Ref _ref;
-  late StreamSubscription<User?> _authStateSubscription;
 
   UserProfileNotifier(this._ref) : super(const AsyncValue.loading()) {
     AppLogger.logger.auth('🔧 UserProfileNotifier initialized');
     _initializeProfile();
   }
+  final Ref _ref;
+  late StreamSubscription<User?> _authStateSubscription;
 
   void _initializeProfile() {
     // Listen to auth state changes using stream
@@ -116,11 +116,11 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
 
       if (profile != null) {
         AppLogger.logger
-            .d('✅ Profile loaded: [32m${profile.name ?? 'Unknown'}[0m');
+            .d('✅ Profile loaded:  [32m${profile.name ?? 'Unknown'} [0m');
       } else {
         AppLogger.logger.d('✅ Profile loaded: null (no profile found)');
       }
-    } catch (error, stackTrace) {
+    } on Exception catch (error, stackTrace) {
       AppLogger.logger
           .e('❌ Error loading profile', error: error, stackTrace: stackTrace);
       state = AsyncValue.error(error, stackTrace);
@@ -177,14 +177,14 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
       } catch (e) {
         AppLogger.logger.e('❌ Invalid role provided: $role');
         throw Exception(
-            'Invalid role selected. Please select either contributor or maintainer.');
+            'Invalid role selected. Please select either contributor or maintainer.',);
       }
 
       // Validate GitHub URL if provided
       if (trimmedGithubUrl != null && trimmedGithubUrl.isNotEmpty) {
         if (!trimmedGithubUrl.startsWith('https://github.com/')) {
           throw Exception(
-              'Invalid GitHub URL. Please enter a valid GitHub profile URL.');
+              'Invalid GitHub URL. Please enter a valid GitHub profile URL.',);
         }
       }
 
@@ -192,7 +192,7 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
       final skillsList = skills ?? [];
       if (skillsList.length > 10) {
         throw Exception(
-            'Too many skills selected. Please select up to 10 skills.');
+            'Too many skills selected. Please select up to 10 skills.',);
       }
 
       AppLogger.logger.auth('🔄 Calling AuthService.upsertUserProfile...');
@@ -211,7 +211,7 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
       AppLogger.logger.e('❌ Profile creation exception', error: e);
 
       // Extract clean error message
-      String errorMessage = e.toString();
+      var errorMessage = e.toString();
       if (errorMessage.startsWith('Exception: ')) {
         errorMessage = errorMessage.substring(11);
       }
@@ -220,10 +220,10 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
       rethrow;
     } catch (error, stackTrace) {
       AppLogger.logger.e('❌ Unexpected error creating user profile',
-          error: error, stackTrace: stackTrace);
+          error: error, stackTrace: stackTrace,);
 
       // Provide user-friendly error messages based on error type
-      String userFriendlyMessage = 'Failed to create profile. ';
+      var userFriendlyMessage = 'Failed to create profile. ';
 
       final errorString = error.toString().toLowerCase();
       if (errorString.contains('permission') ||
@@ -264,7 +264,7 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
     }, onError: (e) {
       state =
           AsyncValue.error('Failed to update profile: $e', StackTrace.current);
-    });
+    },);
   }
 
   Future<void> signOut() async {
@@ -396,8 +396,8 @@ final emailVerificationProvider = StreamProvider<bool>((ref) {
       if (user == null) return Stream.value(false);
 
       // Create a stream that starts with current status then periodically checks
-      return Stream.value(user.emailVerified).asyncExpand((initialStatus) {
-        return Stream.periodic(const Duration(seconds: 5)).asyncMap((_) async {
+      return Stream.value(user.emailVerified).asyncExpand(
+        (initialStatus) => Stream.periodic(const Duration(seconds: 5)).asyncMap((_) async {
           try {
             await user.reload();
             final refreshedUser = FirebaseAuth.instance.currentUser;
@@ -409,12 +409,12 @@ final emailVerificationProvider = StreamProvider<bool>((ref) {
             }
 
             return isVerified;
-          } catch (e) {
-            AppLogger.logger.w('Error checking email verification', error: e);
+          } on Exception catch (e, stackTrace) {
+            AppLogger.logger.w('Error checking email verification', error: e, stackTrace: stackTrace);
             return user.emailVerified;
           }
-        });
-      });
+        }),
+      );
     },
     loading: () => Stream.value(false),
     error: (_, __) => Stream.value(false),
@@ -423,9 +423,7 @@ final emailVerificationProvider = StreamProvider<bool>((ref) {
 
 // 🔔 USER NOTIFICATIONS PROVIDER - Get user notifications
 final userNotificationsProvider =
-    StreamProvider.family<List<Map<String, dynamic>>, String>((ref, userId) {
-  return Stream.value(<Map<String, dynamic>>[]);
-});
+    StreamProvider.family<List<Map<String, dynamic>>, String>((ref, userId) => Stream.value(<Map<String, dynamic>>[]));
 
 // 📊 AUTH STATUS PROVIDER - Comprehensive auth status
 final authStatusProvider = Provider<AuthStatus>((ref) {
@@ -434,13 +432,19 @@ final authStatusProvider = Provider<AuthStatus>((ref) {
 
   return authState.when(
     data: (user) {
-      if (user == null) return AuthStatus.unauthenticated;
+      if (user == null) {
+        return AuthStatus.unauthenticated;
+      }
 
-      if (!user.emailVerified) return AuthStatus.unverified;
+      if (!user.emailVerified) {
+        return AuthStatus.unverified;
+      }
 
       return profileState.when(
         data: (profile) {
-          if (profile == null) return AuthStatus.needsProfile;
+          if (profile == null) {
+            return AuthStatus.needsProfile;
+          }
           return AuthStatus.authenticated;
         },
         loading: () => AuthStatus.loading,
@@ -463,9 +467,7 @@ enum AuthStatus {
 }
 
 // 📧 EMAIL ACTIONS PROVIDER - Email related actions
-final emailActionsProvider = Provider<EmailActions>((ref) {
-  return EmailActions();
-});
+final emailActionsProvider = Provider<EmailActions>((ref) => EmailActions());
 
 class EmailActions {
   EmailActions();
@@ -477,8 +479,8 @@ class EmailActions {
       if (user != null && !user.emailVerified) {
         await user.sendEmailVerification();
       }
-    } catch (error) {
-      AppLogger.logger.e('❌ Error sending verification email', error: error);
+    } on Exception catch (error, stackTrace) {
+      AppLogger.logger.e('❌ Error sending verification email', error: error, stackTrace: stackTrace);
       rethrow;
     }
   }
@@ -489,9 +491,9 @@ final mockUserProvider = StateProvider<Map<String, dynamic>?>((ref) => null);
 
 // Mock auth actions
 class MockAuthActions {
-  final Ref _ref;
   
   MockAuthActions(this._ref);
+  final Ref _ref;
 
   /// Set mock user data
   void setMockUser(Map<String, dynamic> mockUser) {
@@ -500,9 +502,7 @@ class MockAuthActions {
   }
 
   /// Get mock user data
-  Map<String, dynamic>? getMockUser() {
-    return _ref.read(mockUserProvider);
-  }
+  Map<String, dynamic>? getMockUser() => _ref.read(mockUserProvider);
 
   /// Clear mock user data
   void clearMockUser() {
@@ -512,7 +512,5 @@ class MockAuthActions {
 }
 
 // Mock auth actions provider
-final mockAuthActionsProvider = Provider<MockAuthActions>((ref) {
-  return MockAuthActions(ref);
-});
+final mockAuthActionsProvider = Provider<MockAuthActions>(MockAuthActions.new);
 

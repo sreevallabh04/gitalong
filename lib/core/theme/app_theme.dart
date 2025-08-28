@@ -78,8 +78,7 @@ class AppTheme {
   );
 
   /// 🎯 Main theme data
-  static ThemeData get darkTheme {
-    return ThemeData(
+  static ThemeData get darkTheme => ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: const ColorScheme.dark(
@@ -405,7 +404,6 @@ class AppTheme {
         }),
       ),
     );
-  }
 
   /// 🎨 Custom text styles
   static TextStyle get codeStyle => GoogleFonts.inter(
@@ -523,18 +521,16 @@ class GitAlongThemeExtension extends ThemeExtension<GitAlongThemeExtension> {
     BoxShadow? subtleGlow,
     BoxShadow? cardShadow,
     List<Color>? commitDotColors,
-  }) {
-    return GitAlongThemeExtension(
+  }) => GitAlongThemeExtension(
       primaryGlow: primaryGlow ?? this.primaryGlow,
       subtleGlow: subtleGlow ?? this.subtleGlow,
       cardShadow: cardShadow ?? this.cardShadow,
       commitDotColors: commitDotColors ?? this.commitDotColors,
     );
-  }
 
   @override
   GitAlongThemeExtension lerp(
-      ThemeExtension<GitAlongThemeExtension>? other, double t) {
+      ThemeExtension<GitAlongThemeExtension>? other, double t,) {
     if (other is! GitAlongThemeExtension) {
       return this;
     }

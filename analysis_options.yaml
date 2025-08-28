@@ -36,14 +36,12 @@ linter:
     comment_references: true
     one_member_abstracts: true
     only_throw_errors: true
-    package_api_docs: true
     package_names: true
     package_prefixed_library_names: true
     prefer_adjacent_string_concatenation: true
     prefer_asserts_in_initializer_lists: true
     prefer_conditional_assignment: true
     prefer_contains: true
-    prefer_equal_for_default_values: true
     prefer_expression_function_bodies: true
     prefer_final_in_for_each: true
     prefer_for_elements_to_map_fromIterable: true
@@ -86,13 +84,11 @@ linter:
     always_declare_return_types: true
     always_put_control_body_on_new_line: true
     always_put_required_named_parameters_first: true
-    always_require_non_null_named_parameters: true
     annotate_overrides: true
     avoid_annotating_with_dynamic: true
     avoid_bool_literals_in_conditional_expressions: true
     avoid_catches_without_on_clauses: true
     avoid_catching_errors: true
-    avoid_classes_with_only_static_methods: true
     avoid_double_and_int_checks: true
     avoid_empty_else: true
     avoid_escaping_inner_quotes: true

@@ -80,7 +80,7 @@ Future<String> getPackageName() async {
     final manifestFile = File('android/app/src/main/AndroidManifest.xml');
     if (manifestFile.existsSync()) {
       final content = await manifestFile.readAsString();
-      final packageMatch = RegExp(r'package="([^"]+)"').firstMatch(content);
+      final packageMatch = RegExp('package="([^"]+)"').firstMatch(content);
       return packageMatch?.group(1) ?? 'com.example.gitalong';
     }
   } catch (e) {
@@ -92,7 +92,7 @@ Future<String> getPackageName() async {
 Future<String> getSha1Fingerprint() async {
   try {
     // Try different locations for debug keystore
-    final List<String> keystorePaths = [
+    final keystorePaths = <String>[
       '${Platform.environment['HOME']}/.android/debug.keystore',
       '${Platform.environment['USERPROFILE']}\\.android\\debug.keystore',
     ];
@@ -110,12 +110,12 @@ Future<String> getSha1Fingerprint() async {
           '-storepass',
           'android',
           '-keypass',
-          'android'
+          'android',
         ]);
 
         if (result.exitCode == 0) {
           final sha1Match =
-              RegExp(r'SHA1: ([A-F0-9:]+)').firstMatch(result.stdout);
+              RegExp('SHA1: ([A-F0-9:]+)').firstMatch(result.stdout);
           if (sha1Match != null) {
             return sha1Match.group(1)!;
           }
@@ -233,7 +233,7 @@ Future<void> runFlutterfireConfigure() async {
     AppLogger.logger.i('\n🔄 Running flutterfire configure...');
     try {
       final result = await Process.run(
-          'flutterfire', ['configure', '--project=gitalong-c8075']);
+          'flutterfire', ['configure', '--project=gitalong-c8075'],);
 
       if (result.exitCode == 0) {
         AppLogger.logger.i('✅ Configuration complete!');
@@ -245,7 +245,7 @@ Future<void> runFlutterfireConfigure() async {
     } catch (e) {
       AppLogger.logger.e('❌ Error running flutterfire configure: $e');
       AppLogger.logger.i(
-          'You can run it manually later: flutterfire configure --project=gitalong-c8075');
+          'You can run it manually later: flutterfire configure --project=gitalong-c8075',);
     }
   }
 }

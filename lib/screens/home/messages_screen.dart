@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import '../../core/utils/logger.dart';
+
 import '../../core/monitoring/analytics_service.dart';
 import '../../core/utils/accessibility_utils.dart';
+import '../../core/utils/logger.dart';
 import '../../widgets/common/accessible_button.dart';
 
 class MessagesScreen extends ConsumerStatefulWidget {
@@ -49,8 +50,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       backgroundColor: const Color(0xFF0D1117),
       body: Container(
         decoration: BoxDecoration(
@@ -76,10 +76,8 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
         ),
       ),
     );
-  }
 
-  Widget _buildEnhancedAppBar() {
-    return Container(
+  Widget _buildEnhancedAppBar() => Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       child: Row(
         children: [
@@ -158,10 +156,8 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
         .animate(controller: _contentController)
         .fadeIn(duration: 800.ms)
         .slideY(begin: -0.5, curve: Curves.easeOutBack);
-  }
 
-  Widget _buildEmptyState() {
-    return Center(
+  Widget _buildEmptyState() => Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Column(
@@ -224,7 +220,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
                     )
                         .animate(
                             onPlay: (controller) =>
-                                controller.repeat(reverse: true))
+                                controller.repeat(reverse: true),)
                         .moveY(begin: 0, end: -10, duration: 2000.ms)
                         .fadeIn(duration: 1000.ms),
                   ),
@@ -255,7 +251,7 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
                     )
                         .animate(
                             onPlay: (controller) =>
-                                controller.repeat(reverse: true))
+                                controller.repeat(reverse: true),)
                         .moveX(begin: 0, end: 8, duration: 1500.ms)
                         .fadeIn(duration: 1200.ms, delay: 500.ms),
                   ),
@@ -377,14 +373,11 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
                 ],
               ),
               child: AccessibleButton(
-                onPressed: () {
-                  HapticUtils.lightImpact();
-                  // TODO: Navigate to swipe screen
-                },
+                onPressed: HapticUtils.lightImpact,
                 icon: PhosphorIcons.heart(PhosphorIconsStyle.fill),
                 label: 'Start Discovering',
                 semanticLabel: AccessibilityUtils.getButtonLabel(
-                    'Start Discovering', false),
+                    'Start Discovering', false,),
                 enableHapticFeedback: true,
                 backgroundColor: const Color(0xFF1F6FEB),
                 textColor: Colors.white,
@@ -432,15 +425,13 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
         ),
       ),
     );
-  }
 
   Widget _buildFeatureCard({
     required IconData icon,
     required String title,
     required String subtitle,
     required Color color,
-  }) {
-    return Container(
+  }) => Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -492,6 +483,5 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen>
         ],
       ),
     );
-  }
 }
 

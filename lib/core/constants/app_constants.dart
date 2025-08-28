@@ -19,12 +19,12 @@ class AppConstants {
   static const int cacheValidityDuration = 24; // hours
 
   // UI Constants
-  static const double defaultPadding = 16.0;
-  static const double largePadding = 24.0;
-  static const double smallPadding = 8.0;
-  static const double defaultBorderRadius = 16.0;
-  static const double largeBorderRadius = 24.0;
-  static const double smallBorderRadius = 8.0;
+  static const double defaultPadding = 16;
+  static const double largePadding = 24;
+  static const double smallPadding = 8;
+  static const double defaultBorderRadius = 16;
+  static const double largeBorderRadius = 24;
+  static const double smallBorderRadius = 8;
 
   // Animation Durations
   static const int shortAnimationDuration = 200; // ms

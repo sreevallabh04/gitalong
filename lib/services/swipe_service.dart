@@ -1,13 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:uuid/uuid.dart';
+
 import '../config/firebase_config.dart';
+import '../core/utils/firestore_utils.dart';
+import '../core/utils/logger.dart';
+import '../models/match_model.dart';
+import '../models/project_model.dart';
 import '../models/swipe_model.dart';
 import '../models/user_model.dart';
-import '../models/project_model.dart';
-import '../models/match_model.dart';
-import '../core/utils/logger.dart';
-import '../core/utils/firestore_utils.dart';
 import 'notification_service.dart';
 
 abstract class ISwipeService {
@@ -55,91 +56,77 @@ class SwipeService implements ISwipeService {
     required String targetId,
     required SwipeDirection direction,
     required SwipeTargetType targetType,
-  }) {
-    return _instance.recordSwipe(
+  }) => _instance.recordSwipe(
       swiperId: swiperId,
       targetId: targetId,
       direction: direction,
       targetType: targetType,
     );
-  }
 
   static Future<bool> checkForMatchStatic(
     String swiperId,
     String targetId,
     SwipeTargetType targetType,
-  ) {
-    return _instance._checkForMatch(swiperId, targetId, targetType);
-  }
+  ) => _instance._checkForMatch(swiperId, targetId, targetType);
 
   @override
-  Future<List<ProjectModel>> getProjectsToSwipe(String userId) async {
-    return await safeQuery(() async {
+  Future<List<ProjectModel>> getProjectsToSwipe(String userId) async => await safeQuery(() async {
           // Get list of projects user has already swiped
           final swipedProjectIds = await getSwipedProjectIds(userId);
 
           // Add timeout to prevent hanging
-          return await _firestore
+          return _firestore
               .collection(_projectsCollection)
               .where('status', isEqualTo: 'active')
               .orderBy('created_at', descending: true)
               .limit(20) // Increased limit to account for filtering
               .get()
               .timeout(const Duration(seconds: 10))
-              .then((querySnapshot) {
-            return querySnapshot.docs
+              .then((querySnapshot) => querySnapshot.docs
                 .where((doc) =>
                     doc.data()['owner_id'] !=
                         userId && // Filter out own projects
                     !swipedProjectIds.contains(
-                        doc.data()['id'])) // Filter out swiped projects
+                        doc.data()['id'],),) // Filter out swiped projects
                 .map((doc) =>
-                    ProjectModel.fromJson(_convertFirestoreData(doc.data())))
+                    ProjectModel.fromJson(_convertFirestoreData(doc.data())),)
                 .take(10)
-                .toList();
-          });
+                .toList(),);
         }, onError: (e) {
           AppLogger.logger.e('❌ Error loading projects', error: e);
-        }) ??
+        },) ??
         [];
-  }
 
   @override
-  Future<List<UserModel>> getUsersToSwipe(String userId) async {
-    return await safeQuery(() async {
+  Future<List<UserModel>> getUsersToSwipe(String userId) async => await safeQuery(() async {
           // Get list of users user has already swiped
           final swipedUserIds =
               await _getSwipedTargetIds(userId, SwipeTargetType.user);
 
           // Add timeout to prevent hanging
-          return await _firestore
+          return _firestore
               .collection(_usersCollection)
               .where('role', isEqualTo: 'contributor')
               .orderBy('created_at', descending: true)
               .limit(20) // Increased limit to account for filtering
               .get()
               .timeout(const Duration(seconds: 10))
-              .then((querySnapshot) {
-            return querySnapshot.docs
+              .then((querySnapshot) => querySnapshot.docs
                 .where((doc) =>
                     doc.data()['id'] != userId && // Filter out self
                     !swipedUserIds
-                        .contains(doc.data()['id'])) // Filter out swiped users
+                        .contains(doc.data()['id']),) // Filter out swiped users
                 .map((doc) =>
-                    UserModel.fromJson(_convertFirestoreData(doc.data())))
+                    UserModel.fromJson(_convertFirestoreData(doc.data())),)
                 .take(10)
-                .toList();
-          });
+                .toList(),);
         }, onError: (e) {
           AppLogger.logger.e('❌ Error loading users', error: e);
-        }) ??
+        },) ??
         [];
-  }
 
   @override
-  Future<List<String>> getSwipedProjectIds(String userId) async {
-    return await _getSwipedTargetIds(userId, SwipeTargetType.project);
-  }
+  Future<List<String>> getSwipedProjectIds(String userId) async => _getSwipedTargetIds(userId, SwipeTargetType.project);
 
   @override
   Future<bool> recordSwipe({
@@ -158,7 +145,7 @@ class SwipeService implements ISwipeService {
       // Ensure user can only swipe as themselves
       if (currentUser.uid != swiperId) {
         throw const SwipeException(
-            'You can only record swipes for your own account');
+            'You can only record swipes for your own account',);
       }
 
       // Refresh auth token to ensure permissions are current
@@ -202,10 +189,10 @@ class SwipeService implements ISwipeService {
 
       if (e.code == 'permission-denied') {
         throw const SwipeException(
-            'Permission denied. Please sign in again and try.');
+            'Permission denied. Please sign in again and try.',);
       } else if (e.code == 'unauthenticated') {
         throw const SwipeException(
-            'Authentication expired. Please sign in again.');
+            'Authentication expired. Please sign in again.',);
       } else {
         throw SwipeException('Failed to record swipe: ${e.message}');
       }
@@ -236,7 +223,7 @@ class SwipeService implements ISwipeService {
           .map((doc) => doc.data()['id'] as String)
           .toList();
 
-      List<QueryDocumentSnapshot<Map<String, dynamic>>> ownerMatches = [];
+      var ownerMatches = <QueryDocumentSnapshot<Map<String, dynamic>>>[];
       if (projectIds.isNotEmpty) {
         final ownerMatchesSnapshot = await _firestore
             .collection(_matchesCollection)
@@ -286,7 +273,7 @@ class SwipeService implements ISwipeService {
       );
 
       // Find projects that match user's skills
-      Query<Map<String, dynamic>> query = _firestore
+      var query = _firestore
           .collection(_projectsCollection)
           .where('status', isEqualTo: 'active')
           .where('owner_id', isNotEqualTo: userId)
@@ -300,7 +287,7 @@ class SwipeService implements ISwipeService {
 
       return querySnapshot.docs
           .map(
-              (doc) => ProjectModel.fromJson(_convertFirestoreData(doc.data())))
+              (doc) => ProjectModel.fromJson(_convertFirestoreData(doc.data())),)
           .toList();
     } catch (e) {
       AppLogger.logger.e('Failed to fetch smart recommendations', error: e);
@@ -378,7 +365,7 @@ class SwipeService implements ISwipeService {
     SwipeTargetType targetType,
   ) async {
     try {
-      bool hasMatch = false;
+      var hasMatch = false;
 
       if (targetType == SwipeTargetType.project) {
         // Contributor swiped right on project, check if project owner swiped right on contributor
@@ -502,9 +489,9 @@ class SwipeService implements ISwipeService {
 }
 
 class SwipeException implements Exception {
-  final String message;
 
   const SwipeException(this.message);
+  final String message;
 
   @override
   String toString() => 'SwipeException: $message';

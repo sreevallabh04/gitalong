@@ -1,10 +1,12 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import '../core/utils/logger.dart';
+
 import '../core/theme/app_theme.dart';
+import '../core/utils/logger.dart';
 
 /// Easter egg screen that would make GitHub's design team weep with envy
 /// Features color-shifting background and floating Octocat animations
@@ -54,15 +56,15 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
     ).animate(CurvedAnimation(
       parent: _colorController,
       curve: Curves.easeInOut,
-    ));
+    ),);
 
     _floatAnimation = Tween<double>(
-      begin: -20.0,
-      end: 20.0,
+      begin: -20,
+      end: 20,
     ).animate(CurvedAnimation(
       parent: _floatController,
       curve: Curves.easeInOut,
-    ));
+    ),);
 
     _pulseAnimation = Tween<double>(
       begin: 0.8,
@@ -70,7 +72,7 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
     ).animate(CurvedAnimation(
       parent: _pulseController,
       curve: Curves.easeInOut,
-    ));
+    ),);
 
     // Start all animations
     _colorController.repeat(reverse: true);
@@ -87,13 +89,11 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
+  Widget build(BuildContext context) => Scaffold(
       body: AnimatedBuilder(
         animation: Listenable.merge(
-            [_backgroundAnimation, _floatAnimation, _pulseAnimation]),
-        builder: (context, child) {
-          return Container(
+            [_backgroundAnimation, _floatAnimation, _pulseAnimation],),
+        builder: (context, child) => Container(
             decoration: BoxDecoration(
               gradient: RadialGradient(
                 center: Alignment.center,
@@ -179,7 +179,7 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
                                 child: Center(
                                   child: Icon(
                                     PhosphorIcons.octagon(
-                                        PhosphorIconsStyle.fill),
+                                        PhosphorIconsStyle.fill,),
                                     color: Colors.white.withValues(
                                       alpha: 0.1 +
                                           (_pulseAnimation.value - 0.8) * 0.5,
@@ -199,7 +199,7 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
                         child: Column(
                           children: [
                             Text(
-                              'You\'ve discovered the secret!',
+                              "You've discovered the secret!",
                               style: AppTheme.titleStyle.copyWith(
                                 color: _backgroundAnimation.value,
                               ),
@@ -252,18 +252,15 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
                 ),
               ],
             ),
-          );
-        },
+          ),
       ),
     ).animate().fadeIn(duration: 1000.ms).scale(
           begin: const Offset(0.8, 0.8),
           duration: 1200.ms,
           curve: Curves.elasticOut,
         );
-  }
 
-  List<Widget> _buildFloatingParticles() {
-    return List.generate(20, (index) {
+  List<Widget> _buildFloatingParticles() => List.generate(20, (index) {
       final random = math.Random(index);
       final delay = random.nextInt(3000);
       final duration = 3000 + random.nextInt(2000);
@@ -273,8 +270,7 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
         top: random.nextDouble() * MediaQuery.of(context).size.height,
         child: AnimatedBuilder(
           animation: _backgroundAnimation,
-          builder: (context, child) {
-            return Container(
+          builder: (context, child) => Container(
               width: 4 + random.nextDouble() * 8,
               height: 4 + random.nextDouble() * 8,
               decoration: BoxDecoration(
@@ -288,8 +284,7 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
                   ),
                 ],
               ),
-            );
-          },
+            ),
         )
             .animate(
               onPlay: (controller) => controller.repeat(),
@@ -306,6 +301,5 @@ class _OctocatModeScreenState extends State<OctocatModeScreen>
             ),
       );
     });
-  }
 }
 

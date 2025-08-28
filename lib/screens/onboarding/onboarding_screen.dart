@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../models/user_roles.dart' as roles;
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../core/utils/logger.dart';
+
 import '../../core/router/app_router.dart';
-import '../../core/utils/firestore_utils.dart';
-import '../../providers/auth_provider.dart';
 import '../../core/utils/accessibility_utils.dart';
+import '../../core/utils/firestore_utils.dart';
+import '../../core/utils/logger.dart';
+import '../../models/user_roles.dart' as roles;
+import '../../providers/auth_provider.dart';
 import '../../widgets/common/accessible_button.dart';
 import '../../widgets/common/accessible_form_field.dart';
 
@@ -129,7 +130,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final githubUrl = _githubController.text.trim();
     if (githubUrl.isNotEmpty && !githubUrl.startsWith('https://github.com/')) {
       _showError(
-          'Please enter a valid GitHub URL starting with https://github.com/');
+        'Please enter a valid GitHub URL starting with https://github.com/',
+      );
       return false;
     }
 
@@ -190,7 +192,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             ),
           );
         }
-      });
+      },);
 
       // After profile creation, check isMaintainer from the updated profile state
       final createdProfile = ref.read(userProfileProvider).value;
@@ -226,7 +228,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               try {
                 // Use go instead of goToHome for more direct navigation
                 context.go(AppRoutes.home);
-              } catch (e) {
+              } on Exception catch (e) {
                 AppLogger.logger.e('❌ Navigation error', error: e);
                 // Fallback: Use pushReplacementNamed
                 Navigator.of(context).pushReplacementNamed('/home');
@@ -235,12 +237,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           });
         }
       }
-    } catch (e, stackTrace) {
+    } on Exception catch (e, stackTrace) {
       AppLogger.logger
           .e('❌ Error completing onboarding', error: e, stackTrace: stackTrace);
 
       if (mounted) {
-        String errorMessage = e.toString();
+        var errorMessage = e.toString();
         if (errorMessage.startsWith('Exception: ')) {
           errorMessage = errorMessage.substring(11);
         }
@@ -256,7 +258,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             action: SnackBarAction(
               label: 'Retry',
               textColor: Colors.white,
-              onPressed: () => _completeOnboarding(),
+              onPressed: _completeOnboarding,
             ),
           ),
         );
@@ -271,138 +273,134 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0D1117),
-      appBar: AppBar(
-        title: const Text(
-          'Setup Your Profile',
-          style: TextStyle(
-            color: Color(0xFFF0F6FC),
-            fontWeight: FontWeight.bold,
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: const Color(0xFF0D1117),
+        appBar: AppBar(
+          title: const Text(
+            'Setup Your Profile',
+            style: TextStyle(
+              color: Color(0xFFF0F6FC),
+              fontWeight: FontWeight.bold,
+            ),
           ),
+          backgroundColor: const Color(0xFF21262D),
+          elevation: 0,
+          leading: _currentPage > 0
+              ? IconButton(
+                  icon: const Icon(
+                    Icons.arrow_back_rounded,
+                    color: Color(0xFFF0F6FC),
+                  ),
+                  onPressed: _previousPage,
+                )
+              : null,
         ),
-        backgroundColor: const Color(0xFF21262D),
-        elevation: 0,
-        leading: _currentPage > 0
-            ? IconButton(
-                icon: const Icon(
-                  Icons.arrow_back_rounded,
-                  color: Color(0xFFF0F6FC),
-                ),
-                onPressed: _previousPage,
-              )
-            : null,
-      ),
-      body: Column(
-        children: [
-          // Progress indicator
-          Container(
-            height: 4,
-            margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(2),
-              color: const Color(0xFF30363D),
-            ),
-            child: LinearProgressIndicator(
-              value: (_currentPage + 1) / 3,
-              backgroundColor: Colors.transparent,
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(Color(0xFF238636)),
-            ),
-          ),
-
-          Expanded(
-            child: PageView(
-              controller: _pageController,
-              onPageChanged: (page) => setState(() => _currentPage = page),
-              children: [
-                _buildRoleSelectionPage(),
-                _buildBasicInfoPage(),
-                _buildSkillsPage(),
-              ],
-            ),
-          ),
-
-          // Navigation buttons
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: const BoxDecoration(
-              color: Color(0xFF21262D),
-              border: Border(
-                top: BorderSide(color: Color(0xFF30363D), width: 1),
+        body: Column(
+          children: [
+            // Progress indicator
+            Container(
+              height: 4,
+              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(2),
+                color: const Color(0xFF30363D),
+              ),
+              child: LinearProgressIndicator(
+                value: (_currentPage + 1) / 3,
+                backgroundColor: Colors.transparent,
+                valueColor:
+                    const AlwaysStoppedAnimation<Color>(Color(0xFF238636)),
               ),
             ),
-            child: Row(
-              children: [
-                if (_currentPage > 0)
+
+            Expanded(
+              child: PageView(
+                controller: _pageController,
+                onPageChanged: (page) => setState(() => _currentPage = page),
+                children: [
+                  _buildRoleSelectionPage(),
+                  _buildBasicInfoPage(),
+                  _buildSkillsPage(),
+                ],
+              ),
+            ),
+
+            // Navigation buttons
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: const BoxDecoration(
+                color: Color(0xFF21262D),
+                border: Border(
+                  top: BorderSide(color: Color(0xFF30363D), width: 1),
+                ),
+              ),
+              child: Row(
+                children: [
+                  if (_currentPage > 0)
+                    Expanded(
+                      child: AccessibleButton(
+                        onPressed: _isLoading ? null : _previousPage,
+                        label: 'Back',
+                        semanticLabel: AccessibilityUtils.backButton,
+                        enableHapticFeedback: true,
+                      ),
+                    ),
+                  if (_currentPage > 0) const SizedBox(width: 16),
                   Expanded(
                     child: AccessibleButton(
-                      onPressed: _isLoading ? null : _previousPage,
-                      label: 'Back',
-                      semanticLabel: AccessibilityUtils.backButton,
+                      onPressed: _isLoading ? null : _nextPage,
+                      label: _currentPage == 2 ? 'Complete Profile' : 'Next',
+                      isLoading: _isLoading,
+                      semanticLabel: _currentPage == 2
+                          ? 'Complete profile setup'
+                          : AccessibilityUtils.nextButton,
                       enableHapticFeedback: true,
                     ),
                   ),
-                if (_currentPage > 0) const SizedBox(width: 16),
-                Expanded(
-                  child: AccessibleButton(
-                    onPressed: _isLoading ? null : _nextPage,
-                    label: _currentPage == 2 ? 'Complete Profile' : 'Next',
-                    isLoading: _isLoading,
-                    semanticLabel: _currentPage == 2 
-                        ? 'Complete profile setup' 
-                        : AccessibilityUtils.nextButton,
-                    enableHapticFeedback: true,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
+          ],
+        ),
+      );
 
-  Widget _buildRoleSelectionPage() {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 32),
-          Text(
-            'What\'s your role?',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFFF0F6FC),
-                ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Choose how you want to participate in open source',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: const Color(0xFF7D8590),
-                ),
-          ),
-          const SizedBox(height: 48),
-          _buildRoleCard(
-            role: roles.UserRole.collaborator,
-            title: 'Contributor',
-            description: 'I want to contribute to open source projects',
-            icon: Icons.code_rounded,
-          ),
-          const SizedBox(height: 16),
-          _buildRoleCard(
-            role: roles.UserRole.maintainer,
-            title: 'Maintainer',
-            description: 'I have projects that need contributors',
-            icon: Icons.people_rounded,
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildRoleSelectionPage() => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 32),
+            Text(
+              "What's your role?",
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFFF0F6FC),
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Choose how you want to participate in open source',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: const Color(0xFF7D8590),
+                  ),
+            ),
+            const SizedBox(height: 48),
+            _buildRoleCard(
+              role: roles.UserRole.collaborator,
+              title: 'Contributor',
+              description: 'I want to contribute to open source projects',
+              icon: Icons.code_rounded,
+            ),
+            const SizedBox(height: 16),
+            _buildRoleCard(
+              role: roles.UserRole.maintainer,
+              title: 'Maintainer',
+              description: 'I have projects that need contributors',
+              icon: Icons.people_rounded,
+            ),
+          ],
+        ),
+      );
 
   Widget _buildRoleCard({
     required roles.UserRole role,
@@ -474,17 +472,86 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  Widget _buildBasicInfoPage() {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Form(
-        key: _basicInfoFormKey,
+  Widget _buildBasicInfoPage() => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Form(
+          key: _basicInfoFormKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 32),
+              Text(
+                'Tell us about yourself',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFFF0F6FC),
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Help others get to know you better',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: const Color(0xFF7D8590),
+                    ),
+              ),
+              const SizedBox(height: 48),
+              AccessibleFormField(
+                controller: _nameController,
+                label: 'Name *',
+                hintText: 'Enter your full name',
+                semanticLabel: AccessibilityUtils.nameField,
+                enableHapticFeedback: true,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter your name';
+                  }
+                  if (value.trim().length > 100) {
+                    return 'Name is too long';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 24),
+              AccessibleFormField(
+                controller: _bioController,
+                label: 'Bio (Optional)',
+                hintText: 'Tell us about yourself...',
+                semanticLabel: AccessibilityUtils.bioField,
+                enableHapticFeedback: true,
+                maxLines: 3,
+                maxLength: 200,
+              ),
+              const SizedBox(height: 24),
+              AccessibleFormField(
+                controller: _githubController,
+                label: 'GitHub URL (Optional)',
+                hintText: 'https://github.com/username',
+                semanticLabel: AccessibilityUtils.githubUrlField,
+                enableHapticFeedback: true,
+                prefixIcon:
+                    const Icon(Icons.link_rounded, color: Color(0xFF7D8590)),
+                validator: (value) {
+                  if (value != null && value.isNotEmpty) {
+                    if (!value.startsWith('https://github.com/')) {
+                      return 'Please enter a valid GitHub URL';
+                    }
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+
+  Widget _buildSkillsPage() => Padding(
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 32),
             Text(
-              'Tell us about yourself',
+              'What are your skills?',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: const Color(0xFFF0F6FC),
@@ -492,143 +559,70 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Help others get to know you better',
+              'Select up to 5 programming languages or technologies',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: const Color(0xFF7D8590),
                   ),
             ),
-            const SizedBox(height: 48),
-            AccessibleFormField(
-              controller: _nameController,
-              label: 'Name *',
-              hintText: 'Enter your full name',
-              semanticLabel: AccessibilityUtils.nameField,
-              enableHapticFeedback: true,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Please enter your name';
-                }
-                if (value.trim().length > 100) {
-                  return 'Name is too long';
-                }
-                return null;
-              },
-            ),
             const SizedBox(height: 24),
-            AccessibleFormField(
-              controller: _bioController,
-              label: 'Bio (Optional)',
-              hintText: 'Tell us about yourself...',
-              semanticLabel: AccessibilityUtils.bioField,
-              enableHapticFeedback: true,
-              maxLines: 3,
-              maxLength: 200,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF21262D),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: const Color(0xFF30363D)),
+              ),
+              child: Text(
+                'Selected: ${_selectedSkills.length}/5',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: const Color(0xFF238636),
+                      fontWeight: FontWeight.w500,
+                    ),
+              ),
             ),
-            const SizedBox(height: 24),
-            AccessibleFormField(
-              controller: _githubController,
-              label: 'GitHub URL (Optional)',
-              hintText: 'https://github.com/username',
-              semanticLabel: AccessibilityUtils.githubUrlField,
-              enableHapticFeedback: true,
-              prefixIcon:
-                  const Icon(Icons.link_rounded, color: Color(0xFF7D8590)),
-              validator: (value) {
-                if (value != null && value.isNotEmpty) {
-                  if (!value.startsWith('https://github.com/')) {
-                    return 'Please enter a valid GitHub URL';
-                  }
-                }
-                return null;
-              },
+            const SizedBox(height: 16),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _availableSkills.map((skill) {
+                    final isSelected = _selectedSkills.contains(skill);
+                    return FilterChip(
+                      label: Text(
+                        skill,
+                        style: TextStyle(
+                          color: isSelected
+                              ? Colors.white
+                              : const Color(0xFF7D8590),
+                          fontWeight:
+                              isSelected ? FontWeight.w500 : FontWeight.normal,
+                        ),
+                      ),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected && _selectedSkills.length < 5) {
+                            _selectedSkills.add(skill);
+                          } else if (!selected) {
+                            _selectedSkills.remove(skill);
+                          }
+                        });
+                      },
+                      backgroundColor: const Color(0xFF21262D),
+                      selectedColor: const Color(0xFF238636),
+                      checkmarkColor: Colors.white,
+                      side: BorderSide(
+                        color: isSelected
+                            ? const Color(0xFF238636)
+                            : const Color(0xFF30363D),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildSkillsPage() {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 32),
-          Text(
-            'What are your skills?',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFFF0F6FC),
-                ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Select up to 5 programming languages or technologies',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: const Color(0xFF7D8590),
-                ),
-          ),
-          const SizedBox(height: 24),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFF21262D),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: const Color(0xFF30363D)),
-            ),
-            child: Text(
-              'Selected: ${_selectedSkills.length}/5',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF238636),
-                    fontWeight: FontWeight.w500,
-                  ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _availableSkills.map((skill) {
-                  final isSelected = _selectedSkills.contains(skill);
-                  return FilterChip(
-                    label: Text(
-                      skill,
-                      style: TextStyle(
-                        color:
-                            isSelected ? Colors.white : const Color(0xFF7D8590),
-                        fontWeight:
-                            isSelected ? FontWeight.w500 : FontWeight.normal,
-                      ),
-                    ),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      setState(() {
-                        if (selected && _selectedSkills.length < 5) {
-                          _selectedSkills.add(skill);
-                        } else if (!selected) {
-                          _selectedSkills.remove(skill);
-                        }
-                      });
-                    },
-                    backgroundColor: const Color(0xFF21262D),
-                    selectedColor: const Color(0xFF238636),
-                    checkmarkColor: Colors.white,
-                    side: BorderSide(
-                      color: isSelected
-                          ? const Color(0xFF238636)
-                          : const Color(0xFF30363D),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+      );
 }
-

@@ -4,20 +4,18 @@ import '../models/user_roles.dart' as roles;
 
 /// User card widget for displaying user information
 class UserCard extends StatelessWidget {
+
+  const UserCard({
+    required this.user, super.key,
+    this.onTap,
+    this.showSkills = true,
+  });
   final UserModel user;
   final VoidCallback? onTap;
   final bool showSkills;
 
-  const UserCard({
-    super.key,
-    required this.user,
-    this.onTap,
-    this.showSkills = true,
-  });
-
   @override
-  Widget build(BuildContext context) {
-    return Card(
+  Widget build(BuildContext context) => Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
@@ -120,8 +118,7 @@ class UserCard extends StatelessWidget {
                       Wrap(
                         spacing: 4,
                         runSpacing: 4,
-                        children: (user.skills ?? []).take(3).map((skill) {
-                          return Container(
+                        children: (user.skills ?? []).take(3).map((skill) => Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 6,
                               vertical: 2,
@@ -137,8 +134,7 @@ class UserCard extends StatelessWidget {
                                 color: Colors.grey[700],
                               ),
                             ),
-                          );
-                        }).toList(),
+                          ),).toList(),
                       ),
                     ],
 
@@ -182,11 +178,9 @@ class UserCard extends StatelessWidget {
         ),
       ),
     );
-  }
 
   /// Build stat item
-  Widget _buildStatItem(IconData icon, String value, String label) {
-    return Row(
+  Widget _buildStatItem(IconData icon, String value, String label) => Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(
@@ -220,6 +214,5 @@ class UserCard extends StatelessWidget {
         ),
       ],
     );
-  }
 }
 

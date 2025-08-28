@@ -1,9 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
+
 import '../config/firebase_config.dart';
-import '../models/models.dart';
-import '../core/utils/logger.dart';
 import '../core/utils/firestore_utils.dart';
+import '../core/utils/logger.dart';
+import '../models/models.dart';
 
 abstract class IMessagingService {
   Future<MessageModel> sendMessage({
@@ -75,7 +76,7 @@ class MessagingService implements IMessagingService {
 
       // Update conversation metadata
       await _updateConversationMetadata(
-          senderId, receiverId, content, timestamp);
+          senderId, receiverId, content, timestamp,);
 
       return MessageModel.fromJson({
         ...messageData,
@@ -94,8 +95,7 @@ class MessagingService implements IMessagingService {
     int limit = 50,
   }) async {
     try {
-      final querySnapshot = await safeQuery(() async {
-        return await _firestore
+      final querySnapshot = await safeQuery(() async => _firestore
             .collection(_messagesCollection)
             .where(Filter.or(
               Filter.and(
@@ -106,16 +106,15 @@ class MessagingService implements IMessagingService {
                 Filter('sender_id', isEqualTo: userId2),
                 Filter('receiver_id', isEqualTo: userId1),
               ),
-            ))
+            ),)
             .orderBy('timestamp', descending: true)
             .limit(limit)
-            .get();
-      });
+            .get(),);
 
       if (querySnapshot?.docs != null) {
         return querySnapshot!.docs
             .map((doc) =>
-                MessageModel.fromJson(_convertFirestoreData(doc.data())))
+                MessageModel.fromJson(_convertFirestoreData(doc.data())),)
             .toList()
             .reversed
             .toList();
@@ -130,13 +129,11 @@ class MessagingService implements IMessagingService {
   @override
   Future<List<Map<String, dynamic>>> getConversations(String userId) async {
     try {
-      final querySnapshot = await safeQuery(() async {
-        return await _firestore
+      final querySnapshot = await safeQuery(() async => _firestore
             .collection(_conversationsCollection)
             .where('participants', arrayContains: userId)
             .orderBy('last_message_timestamp', descending: true)
-            .get();
-      });
+            .get(),);
 
       if (querySnapshot?.docs != null) {
         return querySnapshot!.docs
@@ -158,14 +155,12 @@ class MessagingService implements IMessagingService {
     try {
       final batch = _firestore.batch();
 
-      final querySnapshot = await safeQuery(() async {
-        return await _firestore
+      final querySnapshot = await safeQuery(() async => _firestore
             .collection(_messagesCollection)
             .where('sender_id', isEqualTo: senderId)
             .where('receiver_id', isEqualTo: receiverId)
             .where('is_read', isEqualTo: false)
-            .get();
-      });
+            .get(),);
 
       if (querySnapshot?.docs != null) {
         for (final doc in querySnapshot!.docs) {
@@ -182,14 +177,12 @@ class MessagingService implements IMessagingService {
   @override
   Future<int> getUnreadMessageCount(String userId) async {
     try {
-      final querySnapshot = await safeQuery(() async {
-        return await _firestore
+      final querySnapshot = await safeQuery(() async => _firestore
             .collection(_messagesCollection)
             .where('receiver_id', isEqualTo: userId)
             .where('is_read', isEqualTo: false)
             .count()
-            .get();
-      });
+            .get(),);
 
       return querySnapshot?.count ?? 0;
     } catch (e) {
@@ -215,13 +208,13 @@ class MessagingService implements IMessagingService {
               Filter('sender_id', isEqualTo: userId2),
               Filter('receiver_id', isEqualTo: userId1),
             ),
-          ))
+          ),)
           .orderBy('timestamp', descending: false)
           .snapshots()
           .map((snapshot) => snapshot.docs
               .map((doc) =>
-                  MessageModel.fromJson(_convertFirestoreData(doc.data())))
-              .toList());
+                  MessageModel.fromJson(_convertFirestoreData(doc.data())),)
+              .toList(),);
     } catch (e) {
       AppLogger.logger.e('Failed to listen to messages', error: e);
       yield [];
@@ -239,8 +232,8 @@ class MessagingService implements IMessagingService {
           .snapshots()
           .map((snapshot) => snapshot.docs
               .map((doc) =>
-                  MessageModel.fromJson(_convertFirestoreData(doc.data())))
-              .toList());
+                  MessageModel.fromJson(_convertFirestoreData(doc.data())),)
+              .toList(),);
     } catch (e) {
       AppLogger.logger.e('Failed to listen to new messages', error: e);
       yield [];
@@ -272,24 +265,22 @@ class MessagingService implements IMessagingService {
       // Note: Firestore doesn't support full-text search natively
       // This is a simple implementation that searches for exact matches
       // For production, consider using Algolia or similar service
-      final querySnapshot = await safeQuery(() async {
-        return await _firestore
+      final querySnapshot = await safeQuery(() async => _firestore
             .collection(_messagesCollection)
             .where(Filter.or(
               Filter('sender_id', isEqualTo: userId),
               Filter('receiver_id', isEqualTo: userId),
-            ))
+            ),)
             .orderBy('timestamp', descending: true)
             .limit(limit * 5) // Get more to filter locally
-            .get();
-      });
+            .get(),);
 
       if (querySnapshot?.docs != null) {
         final messages = querySnapshot!.docs
             .map((doc) =>
-                MessageModel.fromJson(_convertFirestoreData(doc.data())))
+                MessageModel.fromJson(_convertFirestoreData(doc.data())),)
             .where((message) =>
-                message.content.toLowerCase().contains(query.toLowerCase()))
+                message.content.toLowerCase().contains(query.toLowerCase()),)
             .take(limit)
             .toList();
 
@@ -320,7 +311,7 @@ class MessagingService implements IMessagingService {
         'last_message': lastMessage,
         'last_message_timestamp': Timestamp.fromDate(timestamp),
         'last_sender_id': senderId,
-      }, SetOptions(merge: true));
+      }, SetOptions(merge: true),);
     });
   }
 
@@ -350,9 +341,9 @@ class MessagingService implements IMessagingService {
 }
 
 class MessagingException implements Exception {
-  final String message;
 
   const MessagingException(this.message);
+  final String message;
 
   @override
   String toString() => 'MessagingException: $message';

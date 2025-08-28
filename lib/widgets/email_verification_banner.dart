@@ -1,11 +1,12 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import '../providers/auth_provider.dart';
+
 // removed unused email_service import
 import '../core/utils/logger.dart';
+import '../providers/auth_provider.dart';
 
 /// 🎨 Beautiful Email Verification Banner - Production Grade
 ///
@@ -66,7 +67,7 @@ class _EmailVerificationBannerState
           ).animate(CurvedAnimation(
             parent: _slideController,
             curve: Curves.easeOut,
-          )),
+          ),),
           child: Container(
             width: double.infinity,
             margin: const EdgeInsets.all(16),
@@ -102,8 +103,7 @@ class _EmailVerificationBannerState
                     children: [
                       AnimatedBuilder(
                         animation: _pulseController,
-                        builder: (context, child) {
-                          return Transform.scale(
+                        builder: (context, child) => Transform.scale(
                             scale: 1.0 + (_pulseController.value * 0.1),
                             child: Container(
                               width: 40,
@@ -126,8 +126,7 @@ class _EmailVerificationBannerState
                                 size: 20,
                               ),
                             ),
-                          );
-                        },
+                          ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -209,12 +208,12 @@ class _EmailVerificationBannerState
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
                                     valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.white),
+                                        Colors.white,),
                                   ),
                                 )
                               : Icon(
                                   PhosphorIcons.paperPlaneTilt(
-                                      PhosphorIconsStyle.regular),
+                                      PhosphorIconsStyle.regular,),
                                   size: 16,
                                 ),
                           label: Text(
@@ -246,7 +245,7 @@ class _EmailVerificationBannerState
                       ElevatedButton.icon(
                         onPressed: _isCheckingVerification
                             ? null
-                            : () => _checkVerificationStatus(),
+                            : _checkVerificationStatus,
                         icon: _isCheckingVerification
                             ? const SizedBox(
                                 width: 16,
@@ -254,18 +253,18 @@ class _EmailVerificationBannerState
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                   valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white),
+                                      Colors.white,),
                                 ),
                               )
                             : Icon(
                                 PhosphorIcons.checkCircle(
-                                    PhosphorIconsStyle.regular),
+                                    PhosphorIconsStyle.regular,),
                                 size: 16,
                               ),
                         label: Text(
                           _isCheckingVerification
                               ? 'Checking...'
-                              : 'I\'m Verified',
+                              : "I'm Verified",
                           style: GoogleFonts.jetBrainsMono(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
@@ -275,7 +274,7 @@ class _EmailVerificationBannerState
                           backgroundColor: const Color(0xFF238636),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
-                              vertical: 12, horizontal: 16),
+                              vertical: 12, horizontal: 16,),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -310,7 +309,7 @@ class _EmailVerificationBannerState
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'Can\'t find the email?',
+                              "Can't find the email?",
                               style: GoogleFonts.inter(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,

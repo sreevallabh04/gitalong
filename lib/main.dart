@@ -1,25 +1,26 @@
 import 'dart:ui';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+import 'config/firebase_config.dart';
+import 'core/analytics/analytics_service.dart';
+import 'core/config/app_theme.dart';
+import 'core/router/role_based_router.dart';
+import 'core/services/haptic_service.dart';
+import 'core/theme/github_theme.dart';
+import 'core/utils/error_boundary.dart';
 import 'core/utils/error_handler.dart';
 import 'core/utils/logger.dart';
-import 'core/utils/error_boundary.dart';
 import 'core/utils/production_config.dart';
-import 'core/analytics/analytics_service.dart';
-import 'config/firebase_config.dart';
-import 'services/notification_service.dart';
-import 'services/firestore_service.dart';
-import 'core/services/haptic_service.dart';
 import 'providers/app_lifecycle_provider.dart';
 import 'providers/web_backend_provider.dart';
-import 'core/router/role_based_router.dart';
-import 'core/config/app_theme.dart';
-import 'core/theme/github_theme.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'services/firestore_service.dart';
+import 'services/notification_service.dart';
 
 final githubDarkTheme = ThemeData(
   brightness: Brightness.dark,
@@ -325,7 +326,7 @@ class GitAlongApp extends ConsumerWidget {
           return MediaQuery(
             data: mediaQuery.copyWith(
               textScaler: TextScaler.linear(
-                mediaQuery.textScaler.scale(1.0).clamp(0.8, 1.2),
+                mediaQuery.textScaler.scale(1).clamp(0.8, 1.2),
               ),
             ),
             child: child ?? const SizedBox.shrink(),

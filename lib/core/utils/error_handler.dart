@@ -1,7 +1,9 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:io';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+
 import '../constants/app_constants.dart';
 import 'logger.dart';
 
@@ -43,7 +45,7 @@ class ErrorHandler {
   }
 
   /// Handle network errors
-  static AppError handleNetworkError(dynamic error) {
+  static AppError handleNetworkError(Object error) {
     final appError = AppError.networkError(error);
     _recordError(appError);
 
@@ -52,7 +54,7 @@ class ErrorHandler {
   }
 
   /// Handle authentication errors
-  static AppError handleAuthError(dynamic error) {
+  static AppError handleAuthError(Object error) {
     final appError = AppError.authError(error);
     _recordError(appError);
 
@@ -70,7 +72,7 @@ class ErrorHandler {
   }
 
   /// Handle general application errors
-  static AppError handleAppError(dynamic error, {StackTrace? stackTrace}) {
+  static AppError handleAppError(Object error, {StackTrace? stackTrace}) {
     final appError = AppError.general(error, stackTrace: stackTrace);
     _recordError(appError);
 
@@ -83,7 +85,7 @@ class ErrorHandler {
   }
 
   /// Handle Firestore/Database errors
-  static AppError handleFirestoreError(dynamic error) {
+  static AppError handleFirestoreError(Object error) {
     final appError = AppError.firestoreError(error);
     _recordError(appError);
 
@@ -92,7 +94,7 @@ class ErrorHandler {
   }
 
   /// Handle profile setup errors specifically
-  static AppError handleProfileSetupError(dynamic error) {
+  static AppError handleProfileSetupError(Object error) {
     final appError = AppError.profileSetupError(error);
     _recordError(appError);
 
@@ -179,14 +181,10 @@ class ErrorHandler {
   }
 
   /// Get errors by type
-  static List<AppError> getErrorsByType(ErrorType type) {
-    return _errorHistory.where((error) => error.type == type).toList();
-  }
+  static List<AppError> getErrorsByType(ErrorType type) => _errorHistory.where((error) => error.type == type).toList();
 
   /// Get errors by severity
-  static List<AppError> getErrorsBySeverity(ErrorSeverity severity) {
-    return _errorHistory.where((error) => error.severity == severity).toList();
-  }
+  static List<AppError> getErrorsBySeverity(ErrorSeverity severity) => _errorHistory.where((error) => error.severity == severity).toList();
 }
 
 enum ErrorType {
@@ -203,16 +201,6 @@ enum ErrorType {
 enum ErrorSeverity { low, medium, high, critical }
 
 class AppError {
-  final String message;
-  final String userMessage;
-  final ErrorType type;
-  final ErrorSeverity severity;
-  final DateTime timestamp;
-  final Object? exception;
-  final StackTrace? stackTrace;
-  final String? context;
-  final Map<String, dynamic>? metadata;
-  final VoidCallback? retryAction;
 
   const AppError({
     required this.message,
@@ -227,10 +215,7 @@ class AppError {
     this.retryAction,
   });
 
-  bool get shouldShowToUser => severity.index >= ErrorSeverity.medium.index;
-
-  factory AppError.fromFlutterError(FlutterErrorDetails details) {
-    return AppError(
+  factory AppError.fromFlutterError(FlutterErrorDetails details) => AppError(
       message: details.toString(),
       userMessage: AppConstants.genericErrorMessage,
       type: ErrorType.ui,
@@ -240,10 +225,8 @@ class AppError {
       stackTrace: details.stack,
       context: details.context?.toString(),
     );
-  }
 
-  factory AppError.fromPlatformError(Object error, StackTrace stackTrace) {
-    return AppError(
+  factory AppError.fromPlatformError(Object error, StackTrace stackTrace) => AppError(
       message: error.toString(),
       userMessage: AppConstants.genericErrorMessage,
       type: ErrorType.platform,
@@ -252,11 +235,10 @@ class AppError {
       exception: error,
       stackTrace: stackTrace,
     );
-  }
 
-  factory AppError.networkError(dynamic error) {
-    String message = AppConstants.networkErrorMessage;
-    ErrorSeverity severity = ErrorSeverity.medium;
+  factory AppError.networkError(error) {
+    var message = AppConstants.networkErrorMessage;
+    var severity = ErrorSeverity.medium;
 
     if (error is SocketException) {
       message = 'No internet connection';
@@ -277,8 +259,8 @@ class AppError {
     );
   }
 
-  factory AppError.authError(dynamic error) {
-    String userMessage = AppConstants.authErrorMessage;
+  factory AppError.authError(error) {
+    var userMessage = AppConstants.authErrorMessage;
 
     if (error.toString().contains('network')) {
       userMessage = AppConstants.networkErrorMessage;
@@ -300,8 +282,7 @@ class AppError {
     );
   }
 
-  factory AppError.validationError(String message, {String? field}) {
-    return AppError(
+  factory AppError.validationError(String message, {String? field}) => AppError(
       message: message,
       userMessage: message,
       type: ErrorType.validation,
@@ -309,10 +290,8 @@ class AppError {
       timestamp: DateTime.now(),
       metadata: field != null ? {'field': field} : null,
     );
-  }
 
-  factory AppError.permissionError(String permission) {
-    return AppError(
+  factory AppError.permissionError(String permission) => AppError(
       message: 'Permission denied: $permission',
       userMessage: AppConstants.permissionErrorMessage,
       type: ErrorType.permission,
@@ -320,10 +299,8 @@ class AppError {
       timestamp: DateTime.now(),
       metadata: {'permission': permission},
     );
-  }
 
-  factory AppError.storageError(dynamic error) {
-    return AppError(
+  factory AppError.storageError(error) => AppError(
       message: error.toString(),
       userMessage: 'Storage operation failed',
       type: ErrorType.storage,
@@ -331,10 +308,8 @@ class AppError {
       timestamp: DateTime.now(),
       exception: error,
     );
-  }
 
-  factory AppError.general(dynamic error, {StackTrace? stackTrace}) {
-    return AppError(
+  factory AppError.general(error, {StackTrace? stackTrace}) => AppError(
       message: error.toString(),
       userMessage: AppConstants.genericErrorMessage,
       type: ErrorType.general,
@@ -343,11 +318,10 @@ class AppError {
       exception: error,
       stackTrace: stackTrace,
     );
-  }
 
-  factory AppError.firestoreError(dynamic error) {
-    String userMessage = 'Database operation failed. Please try again.';
-    ErrorSeverity severity = ErrorSeverity.medium;
+  factory AppError.firestoreError(error) {
+    var userMessage = 'Database operation failed. Please try again.';
+    var severity = ErrorSeverity.medium;
 
     final errorString = error.toString().toLowerCase();
     if (errorString.contains('permission')) {
@@ -381,8 +355,8 @@ class AppError {
     );
   }
 
-  factory AppError.profileSetupError(dynamic error) {
-    String userMessage = 'Failed to complete profile setup. Please try again.';
+  factory AppError.profileSetupError(error) {
+    var userMessage = 'Failed to complete profile setup. Please try again.';
 
     final errorString = error.toString().toLowerCase();
     if (errorString.contains('name')) {
@@ -416,6 +390,18 @@ class AppError {
       exception: error,
     );
   }
+  final String message;
+  final String userMessage;
+  final ErrorType type;
+  final ErrorSeverity severity;
+  final DateTime timestamp;
+  final Object? exception;
+  final StackTrace? stackTrace;
+  final String? context;
+  final Map<String, dynamic>? metadata;
+  final VoidCallback? retryAction;
+
+  bool get shouldShowToUser => severity.index >= ErrorSeverity.medium.index;
 
   AppError copyWith({
     String? message,
@@ -428,8 +414,7 @@ class AppError {
     String? context,
     Map<String, dynamic>? metadata,
     VoidCallback? retryAction,
-  }) {
-    return AppError(
+  }) => AppError(
       message: message ?? this.message,
       userMessage: userMessage ?? this.userMessage,
       type: type ?? this.type,
@@ -441,22 +426,18 @@ class AppError {
       metadata: metadata ?? this.metadata,
       retryAction: retryAction ?? this.retryAction,
     );
-  }
 
   @override
-  String toString() {
-    return 'AppError(type: $type, severity: $severity, message: $message)';
-  }
+  String toString() => 'AppError(type: $type, severity: $severity, message: $message)';
 }
 
 class ErrorDialog extends StatelessWidget {
+
+  const ErrorDialog({required this.error, super.key});
   final AppError error;
 
-  const ErrorDialog({super.key, required this.error});
-
   @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
+  Widget build(BuildContext context) => AlertDialog(
       title: Row(
         children: [
           Icon(
@@ -496,7 +477,6 @@ class ErrorDialog extends StatelessWidget {
         ),
       ],
     );
-  }
 
   IconData _getIconForError(ErrorType type) {
     switch (type) {

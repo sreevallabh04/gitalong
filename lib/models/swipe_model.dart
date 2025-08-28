@@ -9,13 +9,6 @@ enum SwipeTargetType {
 }
 
 class SwipeModel {
-  final String id;
-  final String swiperId;
-  final String targetId;
-  final SwipeTargetType targetType;
-  final bool isLike;
-  final DateTime createdAt;
-  final Map<String, dynamic>? metadata;
 
   const SwipeModel({
     required this.id,
@@ -27,8 +20,7 @@ class SwipeModel {
     this.metadata,
   });
 
-  factory SwipeModel.fromJson(Map<String, dynamic> json) {
-    return SwipeModel(
+  factory SwipeModel.fromJson(Map<String, dynamic> json) => SwipeModel(
       id: json['id'] as String,
       swiperId: json['swiperId'] as String,
       targetId: json['targetId'] as String,
@@ -37,10 +29,15 @@ class SwipeModel {
       createdAt: DateTime.parse(json['createdAt'] as String),
       metadata: json['metadata'] as Map<String, dynamic>?,
     );
-  }
+  final String id;
+  final String swiperId;
+  final String targetId;
+  final SwipeTargetType targetType;
+  final bool isLike;
+  final DateTime createdAt;
+  final Map<String, dynamic>? metadata;
 
-  Map<String, dynamic> toJson() {
-    return {
+  Map<String, dynamic> toJson() => {
       'id': id,
       'swiperId': swiperId,
       'targetId': targetId,
@@ -49,15 +46,13 @@ class SwipeModel {
       'createdAt': createdAt.toIso8601String(),
       'metadata': metadata,
     };
-  }
 
   // Static factory methods for easy creation
   static SwipeModel createUserSwipe({
     required String swiperId,
     required String targetUserId,
     required bool isLike,
-  }) {
-    return SwipeModel(
+  }) => SwipeModel(
       id: '${swiperId}_${targetUserId}_${DateTime.now().millisecondsSinceEpoch}',
       swiperId: swiperId,
       targetId: targetUserId,
@@ -65,14 +60,12 @@ class SwipeModel {
       isLike: isLike,
       createdAt: DateTime.now(),
     );
-  }
 
   static SwipeModel createProjectSwipe({
     required String swiperId,
     required String targetProjectId,
     required bool isLike,
-  }) {
-    return SwipeModel(
+  }) => SwipeModel(
       id: '${swiperId}_${targetProjectId}_${DateTime.now().millisecondsSinceEpoch}',
       swiperId: swiperId,
       targetId: targetProjectId,
@@ -80,7 +73,6 @@ class SwipeModel {
       isLike: isLike,
       createdAt: DateTime.now(),
     );
-  }
 
   @override
   bool operator ==(Object other) =>

@@ -1,26 +1,28 @@
-import 'package:flutter/material.dart';
-import '../models/contribution_model.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:math';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+
+import '../models/contribution_model.dart';
 
 /// Data model for commit activity visualization
 class CommitData {
-  final DateTime date;
-  final int commitCount;
-  final int level;
 
   const CommitData({
     required this.date,
     required this.commitCount,
     required this.level,
   });
+  final DateTime date;
+  final int commitCount;
+  final int level;
 
   static List<CommitData> generateSampleData() {
     final data = <CommitData>[];
     final now = DateTime.now();
     final random = Random();
 
-    for (int i = 365; i >= 0; i--) {
+    for (var i = 365; i >= 0; i--) {
       final date = now.subtract(Duration(days: i));
       final commitCount = random.nextBool() ? random.nextInt(10) : 0;
       final level = commitCount == 0 ? 0 : (commitCount / 3).ceil().clamp(1, 4);
@@ -29,7 +31,7 @@ class CommitData {
         date: date,
         commitCount: commitCount,
         level: level,
-      ));
+      ),);
     }
 
     return data;
@@ -39,14 +41,13 @@ class CommitData {
 /// GitHub-style contribution graph that displays commit activity over time
 /// This is the crown jewel of our developer-focused UI
 class ContributionGraph extends StatefulWidget {
-  final List<ContributionModel> contributions;
-  final int weeks;
 
   const ContributionGraph({
-    super.key,
-    required this.contributions,
+    required this.contributions, super.key,
     this.weeks = 52,
   });
+  final List<ContributionModel> contributions;
+  final int weeks;
 
   @override
   State<ContributionGraph> createState() => _ContributionGraphState();
@@ -87,7 +88,7 @@ class _ContributionGraphState extends State<ContributionGraph>
     final labels = <String>[];
     final now = DateTime.now();
 
-    for (int i = 11; i >= 0; i--) {
+    for (var i = 11; i >= 0; i--) {
       final month = DateTime(now.year, now.month - i, 1);
       labels.add(_getMonthAbbreviation(month.month));
     }
@@ -108,20 +109,18 @@ class _ContributionGraphState extends State<ContributionGraph>
       'Sep',
       'Oct',
       'Nov',
-      'Dec'
+      'Dec',
     ];
     return months[month - 1];
   }
 
   /// Gets total commits for stats
-  int get _totalCommits {
-    return _data.fold(0, (sum, commit) => sum + commit.commitCount);
-  }
+  int get _totalCommits => _data.fold(0, (sum, commit) => sum + commit.commitCount);
 
   /// Gets the current streak
   int get _currentStreak {
-    int streak = 0;
-    for (int i = _data.length - 1; i >= 0; i--) {
+    var streak = 0;
+    for (var i = _data.length - 1; i >= 0; i--) {
       if (_data[i].commitCount > 0) {
         streak++;
       } else {
@@ -152,7 +151,7 @@ class _ContributionGraphState extends State<ContributionGraph>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final grid = List.generate(
-        widget.weeks, (i) => _data.length > i ? _data[i].commitCount : 0);
+        widget.weeks, (i) => _data.length > i ? _data[i].commitCount : 0,);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -173,8 +172,7 @@ class _ContributionGraphState extends State<ContributionGraph>
           // Title and Stats
           AnimatedBuilder(
             animation: _titleAnimation,
-            builder: (context, child) {
-              return Transform.translate(
+            builder: (context, child) => Transform.translate(
                 offset: Offset(0, 20 * (1 - _titleAnimation.value)),
                 child: Opacity(
                   opacity: _titleAnimation.value,
@@ -224,8 +222,7 @@ class _ContributionGraphState extends State<ContributionGraph>
                     ],
                   ),
                 ),
-              );
-            },
+              ),
           ),
 
           const SizedBox(height: 24),
@@ -237,14 +234,12 @@ class _ContributionGraphState extends State<ContributionGraph>
               Expanded(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: _monthLabels.map((month) {
-                    return Text(
+                  children: _monthLabels.map((month) => Text(
                       month,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
-                    );
-                  }).toList(),
+                    ),).toList(),
                 ),
               ),
             ],
@@ -259,8 +254,7 @@ class _ContributionGraphState extends State<ContributionGraph>
               Column(
                 children: [
                   const SizedBox(height: 14), // Align with first row
-                  ...['Mon', 'Wed', 'Fri'].map((day) {
-                    return Container(
+                  ...['Mon', 'Wed', 'Fri'].map((day) => Container(
                       height: 16,
                       margin: const EdgeInsets.only(bottom: 2),
                       child: Text(
@@ -269,8 +263,7 @@ class _ContributionGraphState extends State<ContributionGraph>
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
-                    );
-                  }),
+                    ),),
                 ],
               ),
 
@@ -292,16 +285,14 @@ class _ContributionGraphState extends State<ContributionGraph>
                         crossAxisSpacing: 2,
                       ),
                       itemCount: widget.weeks,
-                      itemBuilder: (context, i) {
-                        return AnimatedContainer(
+                      itemBuilder: (context, i) => AnimatedContainer(
                           duration: Duration(
-                              milliseconds: 400 + Random().nextInt(400)),
+                              milliseconds: 400 + Random().nextInt(400),),
                           decoration: BoxDecoration(
                             color: _colorForLevel(grid[i]),
                             borderRadius: BorderRadius.circular(2),
                           ),
-                        );
-                      },
+                        ),
                     ),
                   ),
                 ),
@@ -322,8 +313,7 @@ class _ContributionGraphState extends State<ContributionGraph>
                 ),
               ),
               Row(
-                children: List.generate(5, (index) {
-                  return Container(
+                children: List.generate(5, (index) => Container(
                     width: 12,
                     height: 12,
                     margin: const EdgeInsets.only(left: 2),
@@ -335,8 +325,7 @@ class _ContributionGraphState extends State<ContributionGraph>
                         width: 0.5,
                       ),
                     ),
-                  );
-                }),
+                  ),),
               ),
               Text(
                 'More',

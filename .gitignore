@@ -235,3 +235,4 @@ $RECYCLE.BIN/
 
 # Production readiness reports (optional - uncomment if you don't want to commit)
 # PRODUCTION_READINESS_REPORT.md
+node_modules
