@@ -175,24 +175,27 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       // Use the userProfileProvider from auth_provider.dart
       final userProfileNotifier = ref.read(userProfileProvider.notifier);
 
-      await safeQuery(() async {
-        await userProfileNotifier.createProfile(
-          name: trimmedName,
-          bio: _bioController.text.trim(),
-          role: _selectedRole.toString().split('.').last,
-          skills: List<String>.from(_selectedSkills),
-          githubUrl: githubUrl.isEmpty ? null : githubUrl,
-        );
-      }, onError: (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to create profile: $e'),
-              backgroundColor: const Color(0xFFDA3633),
-            ),
+      await safeQuery(
+        () async {
+          await userProfileNotifier.createProfile(
+            name: trimmedName,
+            bio: _bioController.text.trim(),
+            role: _selectedRole.toString().split('.').last,
+            skills: List<String>.from(_selectedSkills),
+            githubUrl: githubUrl.isEmpty ? null : githubUrl,
           );
-        }
-      },);
+        },
+        onError: () {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Failed to create profile'),
+                backgroundColor: Color(0xFFDA3633),
+              ),
+            );
+          }
+        },
+      );
 
       // After profile creation, check isMaintainer from the updated profile state
       final createdProfile = ref.read(userProfileProvider).value;

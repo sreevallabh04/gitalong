@@ -13,6 +13,12 @@ class AppConstants {
   static const String supportUrl = 'https://gitalong.dev/support';
   static const String githubUrl = 'https://github.com/gitalong/app';
 
+  /// Backend API URL for FastAPI integration
+  static const String backendApiUrl = String.fromEnvironment(
+    'BACKEND_API_URL',
+    defaultValue: 'http://localhost:8000/api/v1',
+  );
+
   // API Configuration
   static const int apiTimeoutDuration = 30; // seconds
   static const int retryAttempts = 3;

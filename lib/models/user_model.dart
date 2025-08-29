@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'user_roles.dart' as roles;
+import 'project_model.dart';
 
 
 @immutable
@@ -41,6 +42,7 @@ class UserModel {
     this.security,
     this.privacy,
     this.statistics,
+    this.projects,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
@@ -84,6 +86,7 @@ class UserModel {
       security: json['security'] as Map<String, dynamic>?,
       privacy: json['privacy'] as Map<String, dynamic>?,
       statistics: json['statistics'] as Map<String, dynamic>?,
+      projects: (json['projects'] as List<dynamic>?)?.map((project) => ProjectModel.fromJson(project)).toList(),
     );
   final String uid;
   final String email;
@@ -121,6 +124,7 @@ class UserModel {
   final Map<String, dynamic>? security;
   final Map<String, dynamic>? privacy;
   final Map<String, dynamic>? statistics;
+  final List<ProjectModel>? projects;
 
   Map<String, dynamic> toJson() => {
       'uid': uid,
@@ -157,6 +161,7 @@ class UserModel {
       'security': security,
       'privacy': privacy,
       'statistics': statistics,
+      'projects': projects?.map((project) => project.toJson()).toList(),
     };
 
   // Returns the best available profile image URL
@@ -197,6 +202,7 @@ class UserModel {
     Map<String, dynamic>? security,
     Map<String, dynamic>? privacy,
     Map<String, dynamic>? statistics,
+    List<ProjectModel>? projects,
   }) => UserModel(
       uid: uid ?? this.uid,
       email: email ?? this.email,
@@ -232,6 +238,7 @@ class UserModel {
       security: security ?? this.security,
       privacy: privacy ?? this.privacy,
       statistics: statistics ?? this.statistics,
+      projects: projects ?? this.projects,
     );
 
   @override

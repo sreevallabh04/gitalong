@@ -103,12 +103,12 @@ linter:
     avoid_relative_lib_imports: true
     avoid_renaming_method_parameters: true
     avoid_return_types_on_setters: true
-    avoid_returning_null_for_future: true
+    # avoid_returning_null_for_future: true  # Removed in Dart 3.3.0
     avoid_returning_null_for_void: true
-    avoid_returning_nullable_booleans: true
-    avoid_returning_nullable_types: true
+    # avoid_returning_nullable_booleans: true  # Not a recognized lint rule
+    # avoid_returning_nullable_types: true  # Not a recognized lint rule
     avoid_returning_this: true
-    avoid_returning_widgets: true
+    # avoid_returning_widgets: true  # Not a recognized lint rule
     avoid_setters_without_getters: true
     avoid_shadowing_type_parameters: true
     avoid_slow_async_io: true
@@ -146,7 +146,7 @@ linter:
     parameter_assignments: true
     prefer_asserts_with_message: true
     prefer_collection_literals: true
-    prefer_extracting_callbacks: true
+    # prefer_extracting_callbacks: true  # Not a recognized lint rule
     prefer_foreach: true
     prefer_function_declarations_over_variables: true
     prefer_if_elements_to_conditional_expressions: true

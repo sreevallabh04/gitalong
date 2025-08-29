@@ -131,19 +131,23 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
     try {
       // Trigger animation
       if (isLike) {
-        unawaited(_likeAnimationController.forward().then((_) {
-          _likeAnimationController.reverse();
-        }),);
+        unawaited(
+          _likeAnimationController.forward().then((_) {
+            _likeAnimationController.reverse();
+          }),
+        );
       } else {
-        unawaited(_passAnimationController.forward().then((_) {
-          _passAnimationController.reverse();
-        }),);
+        unawaited(
+          _passAnimationController.forward().then((_) {
+            _passAnimationController.reverse();
+          }),
+        );
       }
 
       // Record swipe and check for match
       final isMatch = await ref
           .read(swipeProvider.notifier)
-          .recordSwipe(currentUser.uid, user.uid, isLike);
+          .recordSwipe(currentUser.uid, user.uid, isLike: isLike);
 
       if (isMatch) {
         _showMatch(user);
@@ -353,35 +357,36 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
         ),
       );
 
-  Widget _buildActionButtons(AsyncValue<List<UserModel>> swipeState) => swipeState.maybeWhen(
-      data: (users) {
-        if (users.isEmpty) {
-          return const SizedBox.shrink();
-        }
+  Widget _buildActionButtons(AsyncValue<List<UserModel>> swipeState) =>
+      swipeState.maybeWhen(
+        data: (users) {
+          if (users.isEmpty) {
+            return const SizedBox.shrink();
+          }
 
-        return SwipeActionButtons(
-          onPass: _isSwipeEnabled
-              ? () {
-                  _swiperController.previous();
-                  _handleSwipe(users[_swiperController.index], false);
-                }
-              : null,
-          onLike: _isSwipeEnabled
-              ? () {
-                  _swiperController.next();
-                  _handleSwipe(users[_swiperController.index], true);
-                }
-              : null,
-          onSuperLike: _isSwipeEnabled
-              ? () {
-                  // TODO: Implement super like
-                  _handleSwipe(users[_swiperController.index], true);
-                }
-              : null,
-        );
-      },
-      orElse: () => const SizedBox.shrink(),
-    );
+          return SwipeActionButtons(
+            onPass: _isSwipeEnabled
+                ? () {
+                    _swiperController.previous();
+                    _handleSwipe(users[_swiperController.index], false);
+                  }
+                : null,
+            onLike: _isSwipeEnabled
+                ? () {
+                    _swiperController.next();
+                    _handleSwipe(users[_swiperController.index], true);
+                  }
+                : null,
+            onSuperLike: _isSwipeEnabled
+                ? () {
+                    // TODO: Implement super like
+                    _handleSwipe(users[_swiperController.index], true);
+                  }
+                : null,
+          );
+        },
+        orElse: () => const SizedBox.shrink(),
+      );
 
   Widget _buildLoadingState() => Padding(
         padding: const EdgeInsets.all(GitHubTheme.space4),
@@ -492,33 +497,58 @@ class _SwipeScreenState extends ConsumerState<SwipeScreen>
 
   void _showUserDetails(UserModel user) => showModalBottomSheet(
         context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        maxChildSize: 0.95,
-        minChildSize: 0.5,
-        builder: (context, scrollController) => Container(
-          decoration: const BoxDecoration(
-            color: GitHubTheme.canvasOverlay,
-            borderRadius: BorderRadius.vertical(
-              top: Radius.circular(20),
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          maxChildSize: 0.95,
+          minChildSize: 0.5,
+          builder: (context, scrollController) => Container(
+            decoration: const BoxDecoration(
+              color: GitHubTheme.canvasOverlay,
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
+            ),
+            child: UserDetailsSheet(
+              user: user,
+              scrollController: scrollController,
+              onLike: () {
+                Navigator.pop(context);
+                _handleSwipe(user, true);
+              },
+              onPass: () {
+                Navigator.pop(context);
+                _handleSwipe(user, false);
+              },
             ),
           ),
-          child: UserDetailsSheet(
-            user: user,
-            scrollController: scrollController,
-            onLike: () {
-              Navigator.pop(context);
-              _handleSwipe(user, true);
-            },
-            onPass: () {
-              Navigator.pop(context);
-              _handleSwipe(user, false);
-            },
-          ),
         ),
-      ),
+      );
+}
+
+void paint(Canvas canvas, Size size) {
+  final paint = Paint()
+    ..color = GitHubTheme.borderDefault.withValues(alpha: 0.1)
+    ..strokeWidth = 1
+    ..style = PaintingStyle.stroke;
+
+  const spacing = 40.0;
+
+  // Draw grid pattern
+  for (double x = 0; x < size.width; x += spacing) {
+    canvas.drawLine(
+      Offset(x, 0),
+      Offset(x, size.height),
+      paint,
+    );
+  }
+
+  for (double y = 0; y < size.height; y += spacing) {
+    canvas.drawLine(
+      Offset(0, y),
+      Offset(size.width, y),
+      paint,
     );
   }
 }

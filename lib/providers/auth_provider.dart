@@ -12,9 +12,9 @@ import '../services/enhanced_auth_service.dart';
 import '../services/enterprise_auth_service.dart';
 import '../services/firestore_service.dart';
 
-
 // Firestore service provider
-final firestoreServiceProvider = Provider<FirestoreService>((ref) => FirestoreService());
+final firestoreServiceProvider =
+    Provider<FirestoreService>((ref) => FirestoreService());
 
 // Auth service provider - lazy initialization to prevent early Firebase access
 final authServiceProvider = Provider<AuthService>((ref) => AuthService());
@@ -81,7 +81,6 @@ final userProfileProvider =
 });
 
 class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
-
   UserProfileNotifier(this._ref) : super(const AsyncValue.loading()) {
     AppLogger.logger.auth('🔧 UserProfileNotifier initialized');
     _initializeProfile();
@@ -177,14 +176,16 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
       } catch (e) {
         AppLogger.logger.e('❌ Invalid role provided: $role');
         throw Exception(
-            'Invalid role selected. Please select either contributor or maintainer.',);
+          'Invalid role selected. Please select either contributor or maintainer.',
+        );
       }
 
       // Validate GitHub URL if provided
       if (trimmedGithubUrl != null && trimmedGithubUrl.isNotEmpty) {
         if (!trimmedGithubUrl.startsWith('https://github.com/')) {
           throw Exception(
-              'Invalid GitHub URL. Please enter a valid GitHub profile URL.',);
+            'Invalid GitHub URL. Please enter a valid GitHub profile URL.',
+          );
         }
       }
 
@@ -192,7 +193,8 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
       final skillsList = skills ?? [];
       if (skillsList.length > 10) {
         throw Exception(
-            'Too many skills selected. Please select up to 10 skills.',);
+          'Too many skills selected. Please select up to 10 skills.',
+        );
       }
 
       AppLogger.logger.auth('🔄 Calling AuthService.upsertUserProfile...');
@@ -219,8 +221,11 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
       state = AsyncValue.error(errorMessage, StackTrace.current);
       rethrow;
     } catch (error, stackTrace) {
-      AppLogger.logger.e('❌ Unexpected error creating user profile',
-          error: error, stackTrace: stackTrace,);
+      AppLogger.logger.e(
+        '❌ Unexpected error creating user profile',
+        error: error,
+        stackTrace: stackTrace,
+      );
 
       // Provide user-friendly error messages based on error type
       var userFriendlyMessage = 'Failed to create profile. ';
@@ -251,20 +256,23 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserModel?>> {
   }
 
   Future<void> updateProfile(UserModel updatedProfile) async {
-    await safeQuery(() async {
-      await _ref.read(authServiceProvider).upsertUserProfile(
-            name: updatedProfile.name ?? '',
-            role: updatedProfile.role ?? roles.UserRole.collaborator,
-            bio: updatedProfile.bio,
-            githubUrl: updatedProfile.githubUrl,
-            skills: updatedProfile.skills ?? [],
-          );
-      state = AsyncValue.data(updatedProfile);
-      AppLogger.logger.success('✅ User profile updated successfully');
-    }, onError: (e) {
-      state =
-          AsyncValue.error('Failed to update profile: $e', StackTrace.current);
-    },);
+    await safeQuery(
+      () async {
+        await _ref.read(authServiceProvider).upsertUserProfile(
+              name: updatedProfile.name ?? '',
+              role: updatedProfile.role ?? roles.UserRole.collaborator,
+              bio: updatedProfile.bio,
+              githubUrl: updatedProfile.githubUrl,
+              skills: updatedProfile.skills ?? [],
+            );
+        state = AsyncValue.data(updatedProfile);
+        AppLogger.logger.success('✅ User profile updated successfully');
+      },
+      onError: () {
+        state = AsyncValue.error(
+            'Failed to update profile', StackTrace.current,);
+      },
+    );
   }
 
   Future<void> signOut() async {
@@ -346,7 +354,7 @@ Future<void> _checkEmailVerificationAndTriggerWelcome(User user) async {
       AppLogger.logger.success('✅ Email verified! Triggering welcome email...');
       AppLogger.logger.success('🎉 Welcome email sent successfully!');
     }
-  } catch (error) {
+  } on Exception catch (error) {
     AppLogger.logger.e('❌ Error in verification/welcome flow', error: error);
   }
 }
@@ -397,7 +405,8 @@ final emailVerificationProvider = StreamProvider<bool>((ref) {
 
       // Create a stream that starts with current status then periodically checks
       return Stream.value(user.emailVerified).asyncExpand(
-        (initialStatus) => Stream.periodic(const Duration(seconds: 5)).asyncMap((_) async {
+        (initialStatus) =>
+            Stream.periodic(const Duration(seconds: 5)).asyncMap((_) async {
           try {
             await user.reload();
             final refreshedUser = FirebaseAuth.instance.currentUser;
@@ -410,7 +419,8 @@ final emailVerificationProvider = StreamProvider<bool>((ref) {
 
             return isVerified;
           } on Exception catch (e, stackTrace) {
-            AppLogger.logger.w('Error checking email verification', error: e, stackTrace: stackTrace);
+            AppLogger.logger.w('Error checking email verification',
+                error: e, stackTrace: stackTrace,);
             return user.emailVerified;
           }
         }),
@@ -423,7 +433,8 @@ final emailVerificationProvider = StreamProvider<bool>((ref) {
 
 // 🔔 USER NOTIFICATIONS PROVIDER - Get user notifications
 final userNotificationsProvider =
-    StreamProvider.family<List<Map<String, dynamic>>, String>((ref, userId) => Stream.value(<Map<String, dynamic>>[]));
+    StreamProvider.family<List<Map<String, dynamic>>, String>(
+        (ref, userId) => Stream.value(<Map<String, dynamic>>[]),);
 
 // 📊 AUTH STATUS PROVIDER - Comprehensive auth status
 final authStatusProvider = Provider<AuthStatus>((ref) {
@@ -480,7 +491,8 @@ class EmailActions {
         await user.sendEmailVerification();
       }
     } on Exception catch (error, stackTrace) {
-      AppLogger.logger.e('❌ Error sending verification email', error: error, stackTrace: stackTrace);
+      AppLogger.logger.e('❌ Error sending verification email',
+          error: error, stackTrace: stackTrace,);
       rethrow;
     }
   }
@@ -491,7 +503,6 @@ final mockUserProvider = StateProvider<Map<String, dynamic>?>((ref) => null);
 
 // Mock auth actions
 class MockAuthActions {
-  
   MockAuthActions(this._ref);
   final Ref _ref;
 
@@ -513,4 +524,3 @@ class MockAuthActions {
 
 // Mock auth actions provider
 final mockAuthActionsProvider = Provider<MockAuthActions>(MockAuthActions.new);
-
