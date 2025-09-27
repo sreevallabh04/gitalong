@@ -13,20 +13,38 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>$(PRODUCT_NAME)</string>
+	<string>gitalong</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(FLUTTER_BUILD_NAME)</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
-	<key>NSHumanReadableCopyright</key>
-	<string>$(PRODUCT_COPYRIGHT)</string>
-	<key>NSMainNibFile</key>
-	<string>MainMenu</string>
-	<key>NSPrincipalClass</key>
-	<string>NSApplication</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>This app needs access to local network to discover and connect to other devices.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app needs access to microphone for voice features.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs access to camera for photo features.</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>This app needs access to control other applications.</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>This app needs access to documents folder to save and open files.</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>This app needs access to downloads folder to save files.</string>
+	<key>NSDesktopFolderUsageDescription</key>
+	<string>This app needs access to desktop folder to save files.</string>
+	<key>NSRemovableVolumesUsageDescription</key>
+	<string>This app needs access to removable volumes to save files.</string>
+	<key>NSNetworkVolumesUsageDescription</key>
+	<string>This app needs access to network volumes to save files.</string>
 </dict>
 </plist>

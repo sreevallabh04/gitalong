@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=GitAlong
+Comment=Connect with developers through GitHub projects
+Exec=my_application
+Icon=my_application
+Terminal=false
+Categories=Network;

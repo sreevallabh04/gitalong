@@ -1,82 +1,72 @@
-# GitAlong 🚀
+# GitAlong - Tinder for Developers
 
-> **The Ultimate Developer Networking Platform** - Connect, Collaborate, and Build Amazing Projects Together
+GitAlong is a Flutter application that connects developers through their GitHub projects. Think Tinder for developers, but focused on meaningful collaborations and project discovery.
 
-[![CI/CD](https://github.com/yourusername/gitalong/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/gitalong/actions/workflows/ci.yml)
-[![Flutter](https://img.shields.io/badge/Flutter-3.24.5-blue.svg)](https://flutter.dev/)
-[![Firebase](https://img.shields.io/badge/Firebase-Ready-orange.svg)](https://firebase.google.com/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+## 🚀 Features
 
-## 🎯 Vision
+- **Swipe & Match**: Tinder-style interface for discovering developers and projects
+- **GitHub Integration**: Seamless OAuth authentication with GitHub
+- **Real-time Chat**: Connect with matched developers through in-app messaging
+- **Project Discovery**: Find trending and recommended projects
+- **Clean Architecture**: Modular, scalable, and testable codebase
+- **Responsive Design**: Adaptive UI across all screen sizes
+- **Dark/Light Mode**: Beautiful theme system with system preference support
 
-GitAlong is a revolutionary platform that connects developers through their GitHub projects, enabling meaningful collaborations and fostering a vibrant developer community. Think Tinder for developers, but focused on building amazing things together.
+## 🛠️ Tech Stack
 
-## ✨ Key Features
+- **Framework**: Flutter 3.29+
+- **State Management**: BLoC (flutter_bloc)
+- **Dependency Injection**: get_it with injectable
+- **Navigation**: GoRouter
+- **Responsive Design**: flutter_screenutil
+- **Animations**: flutter_animate, Lottie
+- **Backend**: Firebase (Auth, Firestore, Storage, Analytics)
+- **API Integration**: GitHub API, Dio
+- **Local Storage**: Hive, flutter_secure_storage
 
-### 🔐 **Secure Authentication**
-- **GitHub OAuth Integration** - Seamless login with your GitHub account
-- **Google Sign-In** - Alternative authentication option
-- **Role-based Access Control** - Maintainer and developer roles
-- **JWT Token Management** - Secure session handling
+## 📱 Screenshots
 
-### 📱 **Cross-Platform Excellence**
-- **Responsive Design** - Works perfectly on mobile, tablet, and desktop
-- **Adaptive UI Components** - Optimized for all screen sizes
-- **Touch-Friendly Interface** - Intuitive gestures and interactions
-- **Performance Optimized** - 60fps smooth animations
-
-### 🔥 **Real-time Features**
-- **Live Project Matching** - Real-time swipe interface
-- **Instant Messaging** - Built-in chat system
-- **Push Notifications** - Firebase Cloud Messaging integration
-- **Live Updates** - Firestore real-time listeners
-
-### 🛡️ **Production-Grade Security**
-- **Firestore Security Rules** - Comprehensive data protection
-- **Input Validation** - Client and server-side validation
-- **Error Boundaries** - Graceful error handling
-- **Analytics & Monitoring** - Comprehensive tracking
-
-### 📊 **Analytics & Insights**
-- **User Behavior Tracking** - Understand user engagement
-- **Performance Monitoring** - Real-time app performance
-- **Error Reporting** - Automatic crash reporting
-- **Conversion Tracking** - Track user journey
+*Screenshots will be added after UI implementation*
 
 ## 🏗️ Architecture
 
-### **Clean Architecture**
+The app follows Clean Architecture principles with clear separation of concerns:
+
 ```
 lib/
-├── core/           # Core utilities and shared components
-├── features/       # Feature-based modules
-├── services/       # Business logic and external services
-├── providers/      # State management with Riverpod
-├── config/         # App configuration
-└── main.dart       # App entry point
+├── core/                 # Core functionality
+│   ├── di/              # Dependency injection
+│   ├── router/          # Navigation
+│   └── theme/           # App theming
+├── data/                # Data layer
+│   ├── datasources/     # API and local data sources
+│   ├── models/          # Data models
+│   └── repositories/    # Repository implementations
+├── domain/              # Domain layer
+│   ├── entities/        # Business entities
+│   ├── repositories/    # Repository interfaces
+│   └── usecases/        # Business logic
+└── presentation/        # Presentation layer
+    ├── screens/         # UI screens
+    ├── widgets/         # Reusable widgets
+    └── bloc/           # State management
 ```
-
-### **Tech Stack**
-- **Frontend**: Flutter 3.24.5
-- **Backend**: Firebase (Firestore, Functions, Auth)
-- **State Management**: Riverpod
-- **Navigation**: GoRouter
-- **Analytics**: Custom analytics service
-- **Testing**: Flutter Test + Integration Tests
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Flutter SDK 3.24.5+
-- Dart SDK 3.3.0+
+
+- Flutter 3.29 or higher
+- Dart 3.7 or higher
 - Android Studio / VS Code
-- Firebase project
+- Firebase project setup
+- GitHub OAuth app
 
 ### Installation
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/gitalong.git
+   git clone https://github.com/your-username/gitalong.git
    cd gitalong
    ```
 
@@ -87,174 +77,137 @@ lib/
 
 3. **Configure Firebase**
    - Create a Firebase project
-   - Add your `google-services.json` and `GoogleService-Info.plist`
-   - Enable Authentication, Firestore, and Cloud Functions
+   - Add Android and iOS apps to your Firebase project
+   - Download and place configuration files:
+     - `android/app/google-services.json`
+     - `ios/Runner/GoogleService-Info.plist`
+   - Update `lib/firebase_options.dart` with your Firebase configuration
 
-4. **Set up environment variables**
+4. **Configure GitHub OAuth**
+   - Create a GitHub OAuth app
+   - Update `.env` file with your GitHub client credentials
+
+5. **Generate code**
    ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
+   flutter packages pub run build_runner build
    ```
 
-5. **Run the app**
+6. **Run the app**
    ```bash
    flutter run
    ```
 
-## 🧪 Testing
-
-### Run all tests
-```bash
-flutter test
-```
-
-### Run integration tests
-```bash
-flutter test integration_test/
-```
-
-### Run with coverage
-```bash
-flutter test --coverage
-```
-
-## 📦 Building for Production
-
-### Android APK
-```bash
-flutter build apk --release
-```
-
-### iOS App Store
-```bash
-flutter build ios --release
-```
-
-### Web
-```bash
-flutter build web --release
-```
-
 ## 🔧 Configuration
 
 ### Environment Variables
-```env
-# App Configuration
-APP_NAME=GitAlong
-ENVIRONMENT=production
-ENABLE_ANALYTICS=true
-ENABLE_DEBUG_LOGGING=false
 
+Create a `.env` file in the root directory:
+
+```env
 # GitHub OAuth
 GITHUB_CLIENT_ID=your_github_client_id
 GITHUB_CLIENT_SECRET=your_github_client_secret
-GITHUB_REDIRECT_URI=com.gitalong.app://oauth/callback
 
 # Firebase Configuration
-FIREBASE_PROJECT_ID=your_project_id
-FIREBASE_API_KEY=your_api_key
+FIREBASE_PROJECT_ID=your_firebase_project_id
+FIREBASE_API_KEY=your_firebase_api_key
+
+# App Configuration
+APP_NAME=GitAlong
+APP_VERSION=1.0.0
+DEBUG_MODE=true
 ```
 
-## 📊 Performance Metrics
+### Firebase Setup
 
-- **App Size**: < 50MB
-- **Startup Time**: < 3 seconds
-- **Memory Usage**: < 100MB
-- **Battery Impact**: Minimal
-- **Network Efficiency**: Optimized for slow connections
+1. Create a new Firebase project
+2. Enable Authentication (GitHub provider)
+3. Create Firestore database
+4. Enable Cloud Storage
+5. Configure Analytics and Crashlytics
 
-## 🛡️ Security Features
+### GitHub OAuth Setup
 
-- **Data Encryption**: All sensitive data encrypted at rest
-- **Secure Communication**: HTTPS/TLS for all network requests
-- **Input Sanitization**: Protection against injection attacks
-- **Rate Limiting**: API abuse prevention
-- **Session Management**: Secure token handling
+1. Go to GitHub Settings > Developer settings > OAuth Apps
+2. Create a new OAuth App
+3. Set Authorization callback URL: `https://your-firebase-project-id.firebaseapp.com/__/auth/handler`
+4. Copy Client ID and Client Secret to `.env` file
 
-## 📈 Analytics & Monitoring
+## 📦 Dependencies
 
-### User Metrics
-- Daily/Monthly Active Users
-- User Retention Rates
-- Feature Adoption
-- Conversion Funnels
+### Core Dependencies
+- `flutter_bloc` - State management
+- `get_it` - Dependency injection
+- `go_router` - Navigation
+- `flutter_screenutil` - Responsive design
+- `dio` - HTTP client
+- `firebase_core` - Firebase integration
 
-### Performance Metrics
-- App Load Times
-- Memory Usage
-- Battery Consumption
-- Crash Rates
+### UI Dependencies
+- `flutter_animate` - Animations
+- `lottie` - Lottie animations
+- `card_swiper` - Swipe cards
+- `cached_network_image` - Image caching
+- `google_fonts` - Typography
 
-### Business Metrics
-- Project Matches
-- Successful Collaborations
-- User Engagement
-- Revenue Tracking
+### Data Dependencies
+- `hive` - Local database
+- `flutter_secure_storage` - Secure storage
+- `json_annotation` - JSON serialization
+- `freezed` - Immutable classes
 
-## 🤝 Contributing
+## 🧪 Testing
 
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+```bash
+# Run unit tests
+flutter test
 
-### Development Setup
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
+# Run integration tests
+flutter test integration_test/
+
+# Run with coverage
+flutter test --coverage
+```
+
+## 🚀 Building for Production
+
+### Android
+```bash
+flutter build apk --release
+flutter build appbundle --release
+```
+
+### iOS
+```bash
+flutter build ios --release
+```
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🚀 Deployment
+## 🤝 Contributing
 
-### CI/CD Pipeline
-- **Automated Testing**: Every commit is tested
-- **Security Scanning**: Vulnerability checks
-- **Code Quality**: Linting and formatting
-- **Automated Deployment**: Production releases
-
-### Deployment Environments
-- **Development**: Feature testing
-- **Staging**: Pre-production validation
-- **Production**: Live application
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ## 📞 Support
 
-- **Documentation**: [docs.gitalong.app](https://docs.gitalong.app)
-- **Issues**: [GitHub Issues](https://github.com/yourusername/gitalong/issues)
-- **Discord**: [Join our community](https://discord.gg/gitalong)
-- **Email**: support@gitalong.app
-
-## 🎯 Roadmap
-
-### Q1 2024
-- [ ] Advanced matching algorithm
-- [ ] Video chat integration
-- [ ] Project templates
-- [ ] Advanced analytics dashboard
-
-### Q2 2024
-- [ ] Mobile app stores launch
-- [ ] Enterprise features
-- [ ] API for third-party integrations
-- [ ] Advanced security features
-
-### Q3 2024
-- [ ] AI-powered recommendations
-- [ ] Blockchain integration
-- [ ] Global expansion
-- [ ] Advanced monetization
+If you have any questions or need help, please:
+- Open an issue on GitHub
+- Contact the development team
+- Check the documentation
 
 ## 🙏 Acknowledgments
 
-- **Flutter Team** - For the amazing framework
-- **Firebase Team** - For the robust backend services
-- **GitHub** - For the OAuth integration
-- **Our Community** - For the valuable feedback and contributions
+- Flutter team for the amazing framework
+- Firebase for backend services
+- GitHub for API access
+- All contributors and testers
 
 ---
 
-**Built with ❤️ by the GitAlong Team**
-
-*Ready for Y Combinator and beyond! 🚀*
+**Built with ❤️ by the GitAlong team**

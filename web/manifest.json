@@ -1,58 +1,13 @@
 {
-    "name": "GitAlong - Developer Networking Platform",
+    "name": "GitAlong",
     "short_name": "GitAlong",
-    "description": "Connect, Collaborate, and Build Amazing Projects Together. Find your perfect open source match with AI-powered recommendations.",
-    "start_url": "/",
+    "start_url": ".",
     "display": "standalone",
-    "background_color": "#0D1117",
-    "theme_color": "#238636",
+    "background_color": "#0175C2",
+    "theme_color": "#0175C2",
+    "description": "Connect with developers through GitHub projects",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
-    "scope": "/",
-    "lang": "en",
-    "categories": [
-        "productivity",
-        "social",
-        "utilities"
-    ],
-    "shortcuts": [
-        {
-            "name": "Find Matches",
-            "short_name": "Matches",
-            "description": "Find new developer matches",
-            "url": "/matches",
-            "icons": [
-                {
-                    "src": "icons/Icon-96.png",
-                    "sizes": "96x96"
-                }
-            ]
-        },
-        {
-            "name": "My Profile",
-            "short_name": "Profile",
-            "description": "View and edit your profile",
-            "url": "/profile",
-            "icons": [
-                {
-                    "src": "icons/Icon-96.png",
-                    "sizes": "96x96"
-                }
-            ]
-        },
-        {
-            "name": "Messages",
-            "short_name": "Chat",
-            "description": "View your messages",
-            "url": "/messages",
-            "icons": [
-                {
-                    "src": "icons/Icon-96.png",
-                    "sizes": "96x96"
-                }
-            ]
-        }
-    ],
     "icons": [
         {
             "src": "icons/Icon-192.png",
