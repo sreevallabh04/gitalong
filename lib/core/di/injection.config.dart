@@ -9,22 +9,39 @@
 // coverage:ignore-file
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'package:cloud_firestore/cloud_firestore.dart' as _i974;
 import 'package:dio/dio.dart' as _i361;
 import 'package:get_it/get_it.dart' as _i174;
-import 'package:gitalong/data/datasources/firebase_datasource.dart' as _i611;
-import 'package:gitalong/data/datasources/github_api_datasource.dart' as _i899;
-import 'package:gitalong/domain/repositories/auth_repository.dart' as _i212;
-import 'package:gitalong/domain/repositories/match_repository.dart' as _i785;
-import 'package:gitalong/domain/usecases/auth/get_current_user_usecase.dart'
-    as _i33;
-import 'package:gitalong/domain/usecases/auth/sign_in_with_github_usecase.dart'
-    as _i612;
-import 'package:gitalong/domain/usecases/swipe/get_potential_matches_usecase.dart'
-    as _i451;
-import 'package:gitalong/domain/usecases/swipe/record_swipe_usecase.dart'
-    as _i347;
+import 'package:google_sign_in/google_sign_in.dart' as _i116;
 import 'package:injectable/injectable.dart' as _i526;
+import 'package:supabase_flutter/supabase_flutter.dart' as _i454;
+
+import '../../data/repositories/auth_repository_impl.dart' as _i895;
+import '../../data/repositories/chat_repository_impl.dart' as _i838;
+import '../../data/repositories/match_repository_impl.dart' as _i395;
+import '../../data/repositories/swipe_repository_impl.dart' as _i1047;
+import '../../data/repositories/user_repository_impl.dart' as _i790;
+import '../../data/services/cache_service.dart' as _i763;
+import '../../data/services/github_service.dart' as _i248;
+import '../../data/services/http_module.dart' as _i323;
+import '../../data/services/recommendation_service.dart' as _i447;
+import '../../domain/repositories/auth_repository.dart' as _i1073;
+import '../../domain/repositories/chat_repository.dart' as _i1072;
+import '../../domain/repositories/match_repository.dart' as _i568;
+import '../../domain/repositories/swipe_repository.dart' as _i280;
+import '../../domain/repositories/user_repository.dart' as _i271;
+import '../../domain/usecases/auth/get_current_user_usecase.dart' as _i408;
+import '../../domain/usecases/auth/sign_in_with_github_usecase.dart' as _i959;
+import '../../domain/usecases/auth/sign_in_with_google_usecase.dart' as _i474;
+import '../../domain/usecases/auth/sign_out_usecase.dart' as _i1014;
+import '../../domain/usecases/chat/get_messages_usecase.dart' as _i105;
+import '../../domain/usecases/chat/send_message_usecase.dart' as _i188;
+import '../../domain/usecases/match/get_matches_usecase.dart' as _i229;
+import '../../domain/usecases/swipe/swipe_user_usecase.dart' as _i796;
+import '../../domain/usecases/user/get_recommended_users_usecase.dart' as _i850;
+import '../../presentation/bloc/auth/auth_bloc.dart' as _i605;
+import '../../presentation/bloc/chat/chat_bloc.dart' as _i573;
+import '../../presentation/bloc/discover/discover_bloc.dart' as _i600;
+import '../../presentation/bloc/profile/profile_bloc.dart' as _i636;
 
 extension GetItInjectableX on _i174.GetIt {
   // initializes the registration of main-scope dependencies inside of GetIt
@@ -33,24 +50,92 @@ extension GetItInjectableX on _i174.GetIt {
     _i526.EnvironmentFilter? environmentFilter,
   }) {
     final gh = _i526.GetItHelper(this, environment, environmentFilter);
-    gh.factory<_i33.GetCurrentUserUseCase>(
-      () => _i33.GetCurrentUserUseCase(gh<_i212.AuthRepository>()),
+    final httpModule = _$HttpModule();
+    gh.lazySingleton<_i763.CacheService>(() => _i763.CacheService());
+    gh.lazySingleton<_i361.Dio>(() => httpModule.dio);
+    gh.lazySingleton<_i1072.ChatRepository>(
+      () => _i838.ChatRepositoryImpl(gh<_i454.SupabaseClient>()),
     );
-    gh.factory<_i612.SignInWithGitHubUseCase>(
-      () => _i612.SignInWithGitHubUseCase(gh<_i212.AuthRepository>()),
+    gh.lazySingleton<_i280.SwipeRepository>(
+      () => _i1047.SwipeRepositoryImpl(gh<_i454.SupabaseClient>()),
     );
-    gh.factory<_i451.GetPotentialMatchesUseCase>(
-      () => _i451.GetPotentialMatchesUseCase(gh<_i785.MatchRepository>()),
+    gh.lazySingleton<_i248.GitHubService>(
+      () => _i248.GitHubService(gh<_i361.Dio>()),
     );
-    gh.factory<_i347.RecordSwipeUseCase>(
-      () => _i347.RecordSwipeUseCase(gh<_i785.MatchRepository>()),
+    gh.lazySingleton<_i447.RecommendationService>(
+      () => _i447.RecommendationService(
+        gh<_i248.GitHubService>(),
+        gh<_i454.SupabaseClient>(),
+      ),
     );
-    gh.factory<_i899.GitHubApiDataSource>(
-      () => _i899.GitHubApiDataSource(gh<_i361.Dio>()),
+    gh.factory<_i105.GetMessagesUseCase>(
+      () => _i105.GetMessagesUseCase(gh<_i1072.ChatRepository>()),
     );
-    gh.factory<_i611.FirebaseDataSource>(
-      () => _i611.FirebaseDataSource(gh<_i974.FirebaseFirestore>()),
+    gh.factory<_i188.SendMessageUseCase>(
+      () => _i188.SendMessageUseCase(gh<_i1072.ChatRepository>()),
+    );
+    gh.factory<_i573.ChatBloc>(
+      () => _i573.ChatBloc(gh<_i1072.ChatRepository>()),
+    );
+    gh.lazySingleton<_i568.MatchRepository>(
+      () => _i395.MatchRepositoryImpl(gh<_i454.SupabaseClient>()),
+    );
+    gh.lazySingleton<_i1073.AuthRepository>(
+      () => _i895.AuthRepositoryImpl(
+        gh<_i454.SupabaseClient>(),
+        gh<_i116.GoogleSignIn>(),
+      ),
+    );
+    gh.factory<_i796.SwipeUserUseCase>(
+      () => _i796.SwipeUserUseCase(gh<_i280.SwipeRepository>()),
+    );
+    gh.factory<_i408.GetCurrentUserUseCase>(
+      () => _i408.GetCurrentUserUseCase(gh<_i1073.AuthRepository>()),
+    );
+    gh.factory<_i959.SignInWithGitHubUseCase>(
+      () => _i959.SignInWithGitHubUseCase(gh<_i1073.AuthRepository>()),
+    );
+    gh.factory<_i1014.SignOutUseCase>(
+      () => _i1014.SignOutUseCase(gh<_i1073.AuthRepository>()),
+    );
+    gh.factory<_i474.SignInWithGoogleUseCase>(
+      () => _i474.SignInWithGoogleUseCase(gh<_i1073.AuthRepository>()),
+    );
+    gh.lazySingleton<_i271.UserRepository>(
+      () => _i790.UserRepositoryImpl(
+        gh<_i454.SupabaseClient>(),
+        gh<_i447.RecommendationService>(),
+        gh<_i248.GitHubService>(),
+      ),
+    );
+    gh.factory<_i850.GetRecommendedUsersUseCase>(
+      () => _i850.GetRecommendedUsersUseCase(gh<_i271.UserRepository>()),
+    );
+    gh.factory<_i229.GetMatchesUseCase>(
+      () => _i229.GetMatchesUseCase(gh<_i568.MatchRepository>()),
+    );
+    gh.factory<_i636.ProfileBloc>(
+      () => _i636.ProfileBloc(
+        gh<_i408.GetCurrentUserUseCase>(),
+        gh<_i229.GetMatchesUseCase>(),
+      ),
+    );
+    gh.factory<_i605.AuthBloc>(
+      () => _i605.AuthBloc(
+        gh<_i408.GetCurrentUserUseCase>(),
+        gh<_i959.SignInWithGitHubUseCase>(),
+        gh<_i474.SignInWithGoogleUseCase>(),
+        gh<_i1014.SignOutUseCase>(),
+      ),
+    );
+    gh.factory<_i600.DiscoverBloc>(
+      () => _i600.DiscoverBloc(
+        gh<_i850.GetRecommendedUsersUseCase>(),
+        gh<_i796.SwipeUserUseCase>(),
+      ),
     );
     return this;
   }
 }
+
+class _$HttpModule extends _i323.HttpModule {}

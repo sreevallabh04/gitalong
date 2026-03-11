@@ -1,132 +1,215 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-/// Chat detail screen for individual conversations
-class ChatDetailScreen extends StatelessWidget {
-  /// ID of the chat
-  final String chatId;
+import '../../../core/di/injection.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_text_styles.dart';
+import '../../../domain/repositories/match_repository.dart';
+import '../../bloc/auth/auth_bloc.dart';
+import '../../bloc/auth/auth_state.dart';
+import '../../bloc/chat/chat_bloc.dart';
+import '../../bloc/chat/chat_event.dart';
+import '../../bloc/chat/chat_state.dart';
 
-  /// Creates the chat detail screen
-  const ChatDetailScreen({super.key, required this.chatId});
+/// Chat detail screen
+class ChatDetailScreen extends StatefulWidget {
+  final String matchId;
+  
+  const ChatDetailScreen({
+    super.key,
+    required this.matchId,
+  });
+  
+  @override
+  State<ChatDetailScreen> createState() => _ChatDetailScreenState();
+}
+
+class _ChatDetailScreenState extends State<ChatDetailScreen> {
+  final TextEditingController _messageController = TextEditingController();
+  late ChatBloc _chatBloc;
+  String _otherUserId = ''; // Store other user ID
+  String _currentUserId = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _chatBloc = getIt<ChatBloc>()..add(LoadMessagesEvent(widget.matchId));
+    
+    // We need to resolve `receiverId`. Easiest way is to fetch MatchEntity or user from Auth state
+    _fetchUsers();
+  }
+  
+  Future<void> _fetchUsers() async {
+     try {
+       final authBloc = context.read<AuthBloc>();
+       if (authBloc.state is AuthAuthenticated) {
+         _currentUserId = (authBloc.state as AuthAuthenticated).user.id;
+       }
+       
+       // Just grab the specific match using repo instance to extract the other user ID
+       // Or from a passed-in entity, but we only have string.
+       final matchRepo = getIt<MatchRepository>();
+       final match = await matchRepo.getMatchById(widget.matchId);
+       _otherUserId = match.user.id;
+     } catch (e) {
+       // Log
+     }
+  }
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    _chatBloc.close();
+    super.dispose();
+  }
+  
+  void _sendMessage() {
+    final text = _messageController.text.trim();
+    if (text.isEmpty || _otherUserId.isEmpty) return;
+    
+    _chatBloc.add(
+      SendMessageEvent(
+        matchId: widget.matchId,
+        receiverId: _otherUserId,
+        content: text,
+      )
+    );
+    _messageController.clear();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Chat'), centerTitle: true),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
+    return BlocProvider.value(
+      value: _chatBloc,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Chat'),
+        ),
+        body: Column(
+          children: [
+            // Messages List
+            Expanded(
+              child: BlocBuilder<ChatBloc, ChatState>(
+                builder: (context, state) {
+                  if (state is ChatLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  
+                  if (state is ChatError) {
+                    return Center(child: Text('Error: ${state.message}'));
+                  }
+                  
+                  if (state is ChatLoaded) {
+                    final messages = state.messages;
+                    
+                    if (messages.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              PhosphorIconsRegular.chatCircle,
+                              size: 80.sp,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                            SizedBox(height: 16.h),
+                            Text(
+                              'No messages yet',
+                              style: AppTextStyles.titleMedium(
+                                Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                            SizedBox(height: 8.h),
+                            Text(
+                              'Send a message to start the conversation',
+                              style: AppTextStyles.bodyMedium(
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    
+                    return ListView.builder(
+                      reverse: true,
+                      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                      itemCount: messages.length,
+                      itemBuilder: (context, index) {
+                        final message = messages[index];
+                        final isMe = message.senderId == _currentUserId;
+                        
+                        return Align(
+                          alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                          child: Container(
+                            margin: EdgeInsets.only(bottom: 8.h),
+                            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+                            decoration: BoxDecoration(
+                              color: isMe ? AppColors.primary : Theme.of(context).colorScheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(16.r).copyWith(
+                                bottomRight: isMe ? const Radius.circular(0) : null,
+                                bottomLeft: !isMe ? const Radius.circular(0) : null,
+                              ),
+                            ),
+                            child: Text(
+                              message.content,
+                              style: AppTextStyles.bodyMedium(
+                                isMe ? Colors.white : Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  }
+                  
+                  return const SizedBox.shrink();
+                },
+              ),
+            ),
+            
+            // Message Input
+            Container(
               padding: EdgeInsets.all(16.w),
-              itemCount: 10,
-              itemBuilder: (context, index) {
-                return _buildMessageBubble(context, index);
-              },
-            ),
-          ),
-          _buildMessageInput(context),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMessageBubble(BuildContext context, int index) {
-    final isMe = index % 2 == 0;
-
-    return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      child: Row(
-        mainAxisAlignment:
-            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-        children: [
-          if (!isMe) ...[
-            CircleAvatar(
-              radius: 16.r,
-              backgroundColor: const Color(0xFF6366F1).withValues(alpha: 0.1),
-              child: Icon(
-                Icons.person,
-                color: const Color(0xFF6366F1),
-                size: 16.sp,
-              ),
-            ),
-            SizedBox(width: 8.w),
-          ],
-          Flexible(
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
               decoration: BoxDecoration(
-                color: isMe ? const Color(0xFF6366F1) : Colors.grey[200],
-                borderRadius: BorderRadius.circular(20.r),
-              ),
-              child: Text(
-                'This is a sample message ${index + 1}',
-                style: TextStyle(
-                  color: isMe ? Colors.white : Colors.black87,
-                  fontSize: 14.sp,
+                color: Theme.of(context).colorScheme.surface,
+                border: Border(
+                  top: BorderSide(
+                    color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+                  ),
                 ),
               ),
-            ),
-          ),
-          if (isMe) ...[
-            SizedBox(width: 8.w),
-            CircleAvatar(
-              radius: 16.r,
-              backgroundColor: Colors.grey[300],
-              child: Icon(Icons.person, color: Colors.grey[600], size: 16.sp),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _messageController,
+                      decoration: const InputDecoration(
+                        hintText: 'Type a message...',
+                        border: InputBorder.none,
+                      ),
+                      maxLines: null,
+                      onSubmitted: (_) => _sendMessage(),
+                    ),
+                  ),
+                  SizedBox(width: 8.w),
+                  IconButton(
+                    icon: Icon(
+                      PhosphorIconsFill.paperPlaneTilt,
+                      size: 24.sp,
+                      color: AppColors.primary,
+                    ),
+                    onPressed: _sendMessage,
+                  ),
+                ],
+              ),
             ),
           ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMessageInput(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -5),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Type a message...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(25.r),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Colors.grey[100],
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 20.w,
-                  vertical: 12.h,
-                ),
-              ),
-            ),
-          ),
-          SizedBox(width: 12.w),
-          Container(
-            decoration: const BoxDecoration(
-              color: Color(0xFF6366F1),
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.send, color: Colors.white),
-              onPressed: () {
-                // TODO(chat): Send message
-              },
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 }
+

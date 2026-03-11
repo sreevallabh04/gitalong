@@ -8,10 +8,10 @@
       "languageVersion": "3.5"
     },
     {
-      "name": "_flutterfire_internals",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/_flutterfire_internals-1.3.62",
+      "name": "adaptive_number",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/adaptive_number-1.0.0",
       "packageUri": "lib/",
-      "languageVersion": "3.2"
+      "languageVersion": "2.12"
     },
     {
       "name": "analyzer",
@@ -24,6 +24,30 @@
       "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/ansicolor-2.0.3",
       "packageUri": "lib/",
       "languageVersion": "3.0"
+    },
+    {
+      "name": "app_links",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/app_links-6.4.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.5"
+    },
+    {
+      "name": "app_links_linux",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/app_links_linux-1.0.3",
+      "packageUri": "lib/",
+      "languageVersion": "3.2"
+    },
+    {
+      "name": "app_links_platform_interface",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/app_links_platform_interface-2.0.2",
+      "packageUri": "lib/",
+      "languageVersion": "3.2"
+    },
+    {
+      "name": "app_links_web",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/app_links_web-1.0.4",
+      "packageUri": "lib/",
+      "languageVersion": "3.2"
     },
     {
       "name": "archive",
@@ -75,9 +99,9 @@
     },
     {
       "name": "build_daemon",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/build_daemon-4.0.4",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/build_daemon-4.1.1",
       "packageUri": "lib/",
-      "languageVersion": "3.6"
+      "languageVersion": "3.7"
     },
     {
       "name": "build_resolvers",
@@ -105,7 +129,7 @@
     },
     {
       "name": "built_value",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/built_value-8.12.0",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/built_value-8.12.1",
       "packageUri": "lib/",
       "languageVersion": "3.0"
     },
@@ -164,24 +188,6 @@
       "languageVersion": "3.4"
     },
     {
-      "name": "cloud_firestore",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/cloud_firestore-6.0.2",
-      "packageUri": "lib/",
-      "languageVersion": "3.2"
-    },
-    {
-      "name": "cloud_firestore_platform_interface",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/cloud_firestore_platform_interface-7.0.2",
-      "packageUri": "lib/",
-      "languageVersion": "3.2"
-    },
-    {
-      "name": "cloud_firestore_web",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/cloud_firestore_web-5.0.2",
-      "packageUri": "lib/",
-      "languageVersion": "3.4"
-    },
-    {
       "name": "code_builder",
       "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/code_builder-4.11.0",
       "packageUri": "lib/",
@@ -219,13 +225,13 @@
     },
     {
       "name": "cross_file",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/cross_file-0.3.4+2",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/cross_file-0.3.5",
       "packageUri": "lib/",
-      "languageVersion": "3.3"
+      "languageVersion": "3.7"
     },
     {
       "name": "crypto",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/crypto-3.0.6",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/crypto-3.0.7",
       "packageUri": "lib/",
       "languageVersion": "3.4"
     },
@@ -234,6 +240,12 @@
       "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/csslib-1.0.2",
       "packageUri": "lib/",
       "languageVersion": "3.1"
+    },
+    {
+      "name": "dart_jsonwebtoken",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/dart_jsonwebtoken-3.3.2",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
     },
     {
       "name": "dart_style",
@@ -278,6 +290,12 @@
       "languageVersion": "3.3"
     },
     {
+      "name": "ed25519_edwards",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/ed25519_edwards-0.3.1",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
       "name": "equatable",
       "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/equatable-2.0.7",
       "packageUri": "lib/",
@@ -315,133 +333,13 @@
     },
     {
       "name": "file_selector_platform_interface",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/file_selector_platform_interface-2.6.2",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/file_selector_platform_interface-2.7.0",
       "packageUri": "lib/",
-      "languageVersion": "3.0"
+      "languageVersion": "3.7"
     },
     {
       "name": "file_selector_windows",
       "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/file_selector_windows-0.9.3+4",
-      "packageUri": "lib/",
-      "languageVersion": "3.4"
-    },
-    {
-      "name": "firebase_analytics",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_analytics-12.0.2",
-      "packageUri": "lib/",
-      "languageVersion": "3.2"
-    },
-    {
-      "name": "firebase_analytics_platform_interface",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_analytics_platform_interface-5.0.2",
-      "packageUri": "lib/",
-      "languageVersion": "3.2"
-    },
-    {
-      "name": "firebase_analytics_web",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_analytics_web-0.6.0+2",
-      "packageUri": "lib/",
-      "languageVersion": "3.4"
-    },
-    {
-      "name": "firebase_auth",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_auth-6.1.0",
-      "packageUri": "lib/",
-      "languageVersion": "3.2"
-    },
-    {
-      "name": "firebase_auth_platform_interface",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_auth_platform_interface-8.1.2",
-      "packageUri": "lib/",
-      "languageVersion": "3.2"
-    },
-    {
-      "name": "firebase_auth_web",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_auth_web-6.0.3",
-      "packageUri": "lib/",
-      "languageVersion": "3.4"
-    },
-    {
-      "name": "firebase_core",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_core-4.1.1",
-      "packageUri": "lib/",
-      "languageVersion": "3.2"
-    },
-    {
-      "name": "firebase_core_platform_interface",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_core_platform_interface-6.0.1",
-      "packageUri": "lib/",
-      "languageVersion": "3.2"
-    },
-    {
-      "name": "firebase_core_web",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_core_web-3.1.1",
-      "packageUri": "lib/",
-      "languageVersion": "3.4"
-    },
-    {
-      "name": "firebase_crashlytics",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_crashlytics-5.0.2",
-      "packageUri": "lib/",
-      "languageVersion": "3.2"
-    },
-    {
-      "name": "firebase_crashlytics_platform_interface",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_crashlytics_platform_interface-3.8.13",
-      "packageUri": "lib/",
-      "languageVersion": "3.2"
-    },
-    {
-      "name": "firebase_messaging",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_messaging-16.0.2",
-      "packageUri": "lib/",
-      "languageVersion": "3.2"
-    },
-    {
-      "name": "firebase_messaging_platform_interface",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_messaging_platform_interface-4.7.2",
-      "packageUri": "lib/",
-      "languageVersion": "3.2"
-    },
-    {
-      "name": "firebase_messaging_web",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_messaging_web-4.0.2",
-      "packageUri": "lib/",
-      "languageVersion": "3.4"
-    },
-    {
-      "name": "firebase_remote_config",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_remote_config-6.0.2",
-      "packageUri": "lib/",
-      "languageVersion": "3.2"
-    },
-    {
-      "name": "firebase_remote_config_platform_interface",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_remote_config_platform_interface-2.0.3",
-      "packageUri": "lib/",
-      "languageVersion": "3.2"
-    },
-    {
-      "name": "firebase_remote_config_web",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_remote_config_web-1.8.12",
-      "packageUri": "lib/",
-      "languageVersion": "3.4"
-    },
-    {
-      "name": "firebase_storage",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_storage-13.0.2",
-      "packageUri": "lib/",
-      "languageVersion": "3.2"
-    },
-    {
-      "name": "firebase_storage_platform_interface",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_storage_platform_interface-5.2.13",
-      "packageUri": "lib/",
-      "languageVersion": "3.2"
-    },
-    {
-      "name": "firebase_storage_web",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_storage_web-3.10.20",
       "packageUri": "lib/",
       "languageVersion": "3.4"
     },
@@ -501,7 +399,7 @@
     },
     {
       "name": "flutter_local_notifications",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_local_notifications-19.4.2",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_local_notifications-19.5.0",
       "packageUri": "lib/",
       "languageVersion": "3.4"
     },
@@ -531,7 +429,7 @@
     },
     {
       "name": "flutter_plugin_android_lifecycle",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_plugin_android_lifecycle-2.0.30",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_plugin_android_lifecycle-2.0.31",
       "packageUri": "lib/",
       "languageVersion": "3.7"
     },
@@ -614,8 +512,14 @@
       "languageVersion": "3.7"
     },
     {
+      "name": "functions_client",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/functions_client-2.5.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
       "name": "get_it",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/get_it-8.2.0",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/get_it-8.3.0",
       "packageUri": "lib/",
       "languageVersion": "3.0"
     },
@@ -627,7 +531,7 @@
     },
     {
       "name": "go_router",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/go_router-16.2.4",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/go_router-16.3.0",
       "packageUri": "lib/",
       "languageVersion": "3.7"
     },
@@ -674,10 +578,22 @@
       "languageVersion": "3.4"
     },
     {
+      "name": "gotrue",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/gotrue-2.18.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.3"
+    },
+    {
       "name": "graphs",
       "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/graphs-2.3.2",
       "packageUri": "lib/",
       "languageVersion": "3.4"
+    },
+    {
+      "name": "gtk",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/gtk-2.1.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
     },
     {
       "name": "hive",
@@ -699,7 +615,7 @@
     },
     {
       "name": "http",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/http-1.5.0",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/http-1.6.0",
       "packageUri": "lib/",
       "languageVersion": "3.4"
     },
@@ -717,15 +633,15 @@
     },
     {
       "name": "image",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/image-4.5.4",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/image-4.7.2",
       "packageUri": "lib/",
       "languageVersion": "3.0"
     },
     {
       "name": "image_picker",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/image_picker-1.2.0",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/image_picker-1.2.1",
       "packageUri": "lib/",
-      "languageVersion": "3.6"
+      "languageVersion": "3.7"
     },
     {
       "name": "image_picker_android",
@@ -759,9 +675,9 @@
     },
     {
       "name": "image_picker_platform_interface",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/image_picker_platform_interface-2.11.0",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/image_picker_platform_interface-2.11.1",
       "packageUri": "lib/",
-      "languageVersion": "3.6"
+      "languageVersion": "3.7"
     },
     {
       "name": "image_picker_windows",
@@ -818,6 +734,12 @@
       "languageVersion": "3.6"
     },
     {
+      "name": "jwt_decode",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/jwt_decode-0.3.1",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
       "name": "leak_tracker",
       "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/leak_tracker-10.0.8",
       "packageUri": "lib/",
@@ -861,9 +783,9 @@
     },
     {
       "name": "local_auth_platform_interface",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/local_auth_platform_interface-1.0.10",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/local_auth_platform_interface-1.1.0",
       "packageUri": "lib/",
-      "languageVersion": "3.0"
+      "languageVersion": "3.7"
     },
     {
       "name": "local_auth_windows",
@@ -873,7 +795,7 @@
     },
     {
       "name": "logger",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/logger-2.6.1",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/logger-2.6.2",
       "packageUri": "lib/",
       "languageVersion": "2.17"
     },
@@ -969,7 +891,7 @@
     },
     {
       "name": "path_provider_android",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/path_provider_android-2.2.18",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/path_provider_android-2.2.19",
       "packageUri": "lib/",
       "languageVersion": "3.7"
     },
@@ -1058,6 +980,12 @@
       "languageVersion": "3.0"
     },
     {
+      "name": "pointycastle",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/pointycastle-4.0.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.2"
+    },
+    {
       "name": "pool",
       "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/pool-1.5.2",
       "packageUri": "lib/",
@@ -1066,6 +994,12 @@
     {
       "name": "posix",
       "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/posix-6.0.3",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
+      "name": "postgrest",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/postgrest-2.6.0",
       "packageUri": "lib/",
       "languageVersion": "3.0"
     },
@@ -1094,16 +1028,70 @@
       "languageVersion": "3.6"
     },
     {
+      "name": "realtime_client",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/realtime_client-2.7.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
       "name": "recase",
       "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/recase-4.1.0",
       "packageUri": "lib/",
       "languageVersion": "2.12"
     },
     {
+      "name": "retry",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/retry-3.1.2",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
       "name": "rxdart",
       "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/rxdart-0.28.0",
       "packageUri": "lib/",
       "languageVersion": "2.12"
+    },
+    {
+      "name": "shared_preferences",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/shared_preferences-2.5.3",
+      "packageUri": "lib/",
+      "languageVersion": "3.5"
+    },
+    {
+      "name": "shared_preferences_android",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/shared_preferences_android-2.4.13",
+      "packageUri": "lib/",
+      "languageVersion": "3.7"
+    },
+    {
+      "name": "shared_preferences_foundation",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/shared_preferences_foundation-2.5.4",
+      "packageUri": "lib/",
+      "languageVersion": "3.4"
+    },
+    {
+      "name": "shared_preferences_linux",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/shared_preferences_linux-2.4.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.3"
+    },
+    {
+      "name": "shared_preferences_platform_interface",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/shared_preferences_platform_interface-2.4.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.2"
+    },
+    {
+      "name": "shared_preferences_web",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/shared_preferences_web-2.4.3",
+      "packageUri": "lib/",
+      "languageVersion": "3.4"
+    },
+    {
+      "name": "shared_preferences_windows",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/shared_preferences_windows-2.4.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.3"
     },
     {
       "name": "shelf",
@@ -1184,12 +1172,6 @@
       "languageVersion": "3.1"
     },
     {
-      "name": "sprintf",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/sprintf-7.0.0",
-      "packageUri": "lib/",
-      "languageVersion": "2.12"
-    },
-    {
       "name": "sqflite",
       "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/sqflite-2.4.2",
       "packageUri": "lib/",
@@ -1226,6 +1208,12 @@
       "languageVersion": "3.4"
     },
     {
+      "name": "storage_client",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/storage_client-2.4.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
       "name": "stream_channel",
       "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/stream_channel-2.1.4",
       "packageUri": "lib/",
@@ -1242,6 +1230,18 @@
       "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/string_scanner-1.4.1",
       "packageUri": "lib/",
       "languageVersion": "3.1"
+    },
+    {
+      "name": "supabase",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/supabase-2.10.2",
+      "packageUri": "lib/",
+      "languageVersion": "3.3"
+    },
+    {
+      "name": "supabase_flutter",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/supabase_flutter-2.12.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.3"
     },
     {
       "name": "swipe_cards",
@@ -1305,9 +1305,9 @@
     },
     {
       "name": "universal_io",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/universal_io-2.2.2",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/universal_io-2.3.1",
       "packageUri": "lib/",
-      "languageVersion": "2.17"
+      "languageVersion": "3.6"
     },
     {
       "name": "url_launcher",
@@ -1359,7 +1359,7 @@
     },
     {
       "name": "uuid",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/uuid-4.5.1",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/uuid-4.5.2",
       "packageUri": "lib/",
       "languageVersion": "3.0"
     },
@@ -1389,9 +1389,9 @@
     },
     {
       "name": "watcher",
-      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/watcher-1.1.3",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/watcher-1.2.0",
       "packageUri": "lib/",
-      "languageVersion": "3.1"
+      "languageVersion": "3.4"
     },
     {
       "name": "web",
@@ -1454,13 +1454,19 @@
       "languageVersion": "3.4"
     },
     {
+      "name": "yet_another_json_isolate",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/yet_another_json_isolate-2.1.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
       "name": "gitalong",
       "rootUri": "../",
       "packageUri": "lib/",
       "languageVersion": "3.7"
     }
   ],
-  "generated": "2025-09-27T14:08:17.495735Z",
+  "generated": "2026-03-11T07:13:24.355885Z",
   "generator": "pub",
   "generatorVersion": "3.7.2",
   "flutterRoot": "file:///C:/src/flutter",

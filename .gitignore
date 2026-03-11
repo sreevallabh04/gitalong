@@ -1,0 +1,84 @@
+# ============================================
+# GitAlong - Flutter .gitignore
+# ============================================
+
+# ---- Secrets & Environment ----
+.env
+*.env.local
+*.env.*.local
+google-services.json
+GoogleService-Info.plist
+
+# ---- Flutter / Dart ----
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+
+# ---- Symbolication / Obfuscation ----
+app.*.symbols
+app.*.map.json
+
+# ---- Android ----
+/android/app/debug/
+/android/app/profile/
+/android/app/release/
+/android/.gradle/
+/android/captures/
+/android/local.properties
+/android/key.properties
+*.jks
+*.keystore
+
+# ---- iOS / macOS ----
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Runner/GeneratedPluginRegistrant.*
+**/ios/Runner.xcworkspace/
+**/macos/Flutter/GeneratedPluginRegistrant.*
+**/macos/Flutter/ephemeral/
+
+# ---- IntelliJ / Android Studio ----
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# ---- VS Code ----
+.vscode/settings.json
+.vscode/launch.json
+.vscode/*.code-workspace
+
+# ---- macOS ----
+.DS_Store
+**/.DS_Store
+
+# ---- Windows ----
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ---- Misc ----
+*.class
+*.log
+*.pyc
+*.swp
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+
+# ---- Analysis output ----
+analyze_output.txt
+
+# ---- Build artifacts ----
+*.apk
+*.aab
+*.ipa

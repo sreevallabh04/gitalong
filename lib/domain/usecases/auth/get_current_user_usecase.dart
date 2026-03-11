@@ -3,14 +3,15 @@ import 'package:injectable/injectable.dart';
 import '../../entities/user_entity.dart';
 import '../../repositories/auth_repository.dart';
 
+/// Get current user use case
 @injectable
-/// Use case for getting the current authenticated user
 class GetCurrentUserUseCase {
-  /// Creates the use case
-  GetCurrentUserUseCase(this._authRepository);
-
   final AuthRepository _authRepository;
 
-  /// Gets the current user
-  Future<UserEntity?> call() => _authRepository.getCurrentUser();
+  const GetCurrentUserUseCase(this._authRepository);
+
+  /// Execute the use case
+  Future<UserEntity?> call() async {
+    return await _authRepository.getCurrentUser();
+  }
 }

@@ -1,202 +1,167 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-/// Settings screen for app configuration
+import '../../../core/theme/app_text_styles.dart';
+import '../../bloc/auth/auth_bloc.dart';
+import '../../bloc/auth/auth_event.dart';
+
+/// Settings screen
 class SettingsScreen extends StatelessWidget {
-  /// Creates the settings screen
   const SettingsScreen({super.key});
+  
+  void _showComingSoon(BuildContext context, String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$feature coming soon!')),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings'), centerTitle: true),
+      appBar: AppBar(
+        title: const Text('Settings'),
+      ),
       body: ListView(
-        padding: EdgeInsets.all(16.w),
         children: [
-          _buildSettingsSection(
-            context,
-            title: 'Account',
-            items: [
-              SettingsItem(
-                icon: Icons.person,
-                title: 'Profile Settings',
-                onTap: () {},
-              ),
-              SettingsItem(
-                icon: Icons.security,
-                title: 'Privacy & Security',
-                onTap: () {},
-              ),
-              SettingsItem(
-                icon: Icons.notifications,
-                title: 'Notifications',
-                onTap: () {},
-              ),
-            ],
+          // Account Section
+          _SectionHeader(title: 'Account'),
+          ListTile(
+            leading: Icon(PhosphorIconsRegular.user, size: 24.sp),
+            title: const Text('Edit Profile'),
+            trailing: Icon(PhosphorIconsRegular.caretRight, size: 20.sp),
+            onTap: () {
+               _showComingSoon(context, 'Edit Profile');
+            },
           ),
-          SizedBox(height: 24.h),
-          _buildSettingsSection(
-            context,
-            title: 'Preferences',
-            items: [
-              SettingsItem(
-                icon: Icons.dark_mode,
-                title: 'Dark Mode',
-                trailing: Switch(value: false, onChanged: (value) {}),
-              ),
-              SettingsItem(
-                icon: Icons.language,
-                title: 'Language',
-                trailing: const Text('English'),
-                onTap: () {},
-              ),
-            ],
+          ListTile(
+            leading: Icon(PhosphorIconsRegular.bell, size: 24.sp),
+            title: const Text('Notifications'),
+            trailing: Icon(PhosphorIconsRegular.caretRight, size: 20.sp),
+            onTap: () {
+               _showComingSoon(context, 'Notifications Settings');
+            },
           ),
-          SizedBox(height: 24.h),
-          _buildSettingsSection(
-            context,
-            title: 'Support',
-            items: [
-              SettingsItem(
-                icon: Icons.help,
-                title: 'Help Center',
-                onTap: () {},
-              ),
-              SettingsItem(
-                icon: Icons.feedback,
-                title: 'Send Feedback',
-                onTap: () {},
-              ),
-              SettingsItem(icon: Icons.info, title: 'About', onTap: () {}),
-            ],
+          
+          const Divider(),
+          
+          // Preferences Section
+          _SectionHeader(title: 'Preferences'),
+          SwitchListTile(
+            secondary: Icon(PhosphorIconsRegular.moon, size: 24.sp),
+            title: const Text('Dark Mode'),
+            value: Theme.of(context).brightness == Brightness.dark,
+            onChanged: (value) {
+                // Feature mock 
+                _showComingSoon(context, 'Dark Mode Toggle');
+            },
           ),
-          SizedBox(height: 24.h),
-          _buildLogoutButton(context),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSettingsSection(
-    BuildContext context, {
-    required String title,
-    required List<SettingsItem> items,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+          
+          const Divider(),
+          
+          // About Section
+          _SectionHeader(title: 'About'),
+          ListTile(
+            leading: Icon(PhosphorIconsRegular.info, size: 24.sp),
+            title: const Text('About GitAlong'),
+            trailing: Icon(PhosphorIconsRegular.caretRight, size: 20.sp),
+            onTap: () {
+               showDialog(
+                 context: context,
+                 builder: (c) => AlertDialog(
+                   title: const Text('GitAlong'),
+                   content: const Text('Find your perfect open-source companion.\nVersion 1.0.0'),
+                   actions: [
+                     TextButton(onPressed: () => Navigator.pop(c), child: const Text('Close'))
+                   ]
+                 )
+               );
+            },
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: EdgeInsets.all(16.w),
-            child: Text(
-              title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF6366F1),
-              ),
+          ListTile(
+            leading: Icon(PhosphorIconsRegular.fileText, size: 24.sp),
+            title: const Text('Terms of Service'),
+            trailing: Icon(PhosphorIconsRegular.caretRight, size: 20.sp),
+            onTap: () {
+               _showComingSoon(context, 'Terms of Service');
+            },
+          ),
+          ListTile(
+            leading: Icon(PhosphorIconsRegular.lock, size: 24.sp),
+            title: const Text('Privacy Policy'),
+            trailing: Icon(PhosphorIconsRegular.caretRight, size: 20.sp),
+            onTap: () {
+               _showComingSoon(context, 'Privacy Policy');
+            },
+          ),
+          
+          const Divider(),
+          
+          // Sign Out
+          ListTile(
+            leading: Icon(
+              PhosphorIconsRegular.signOut,
+              size: 24.sp,
+              color: Colors.red,
             ),
+            title: Text(
+              'Sign Out',
+              style: TextStyle(color: Colors.red),
+            ),
+            onTap: () {
+              // Actual Sign Out implementation 
+              showDialog(
+                context: context,
+                builder: (BuildContext c) {
+                  return AlertDialog(
+                    title: const Text('Sign Out'),
+                    content: const Text('Are you sure you want to sign out?'),
+                    actions: <Widget>[
+                      TextButton(
+                        child: const Text('Cancel'),
+                        onPressed: () {
+                          Navigator.of(c).pop();
+                        },
+                      ),
+                      TextButton(
+                        child: const Text('Sign Out', style: TextStyle(color: Colors.red)),
+                        onPressed: () {
+                          Navigator.of(c).pop();
+                          context.read<AuthBloc>().add(SignOutEvent());
+                        },
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
           ),
-          ...items.map((item) {
-            final isLast = item == items.last;
-            return Column(
-              children: [
-                ListTile(
-                  leading: Icon(item.icon, color: const Color(0xFF6366F1)),
-                  title: Text(item.title),
-                  trailing: item.trailing ?? const Icon(Icons.chevron_right),
-                  onTap: item.onTap,
-                ),
-                if (!isLast)
-                  Divider(height: 1, indent: 72.w, color: Colors.grey[200]),
-              ],
-            );
-          }).toList(),
         ],
       ),
     );
   }
+}
 
-  Widget _buildLogoutButton(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 56.h,
-      decoration: BoxDecoration(
-        color: Colors.red.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-      ),
-      child: TextButton.icon(
-        onPressed: () {
-          _showLogoutDialog(context);
-        },
-        icon: const Icon(Icons.logout, color: Colors.red),
-        label: Text(
-          'Logout',
-          style: TextStyle(
-            color: Colors.red,
-            fontSize: 16.sp,
-            fontWeight: FontWeight.w600,
-          ),
+/// Section header widget
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  
+  const _SectionHeader({required this.title});
+  
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 8.h),
+      child: Text(
+        title,
+        style: AppTextStyles.labelLarge(
+          Theme.of(context).colorScheme.primary,
         ),
       ),
     );
   }
-
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Logout'),
-            content: const Text('Are you sure you want to logout?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  // TODO(settings): Implement logout
-                },
-                child: const Text('Logout'),
-              ),
-            ],
-          ),
-    );
-  }
 }
 
-/// Settings item for configuration options
-class SettingsItem {
-  /// Icon for the settings item
-  final IconData icon;
 
-  /// Title of the settings item
-  final String title;
 
-  /// Trailing widget for the settings item
-  final Widget? trailing;
-
-  /// Callback when the settings item is tapped
-  final VoidCallback? onTap;
-
-  /// Creates a settings item
-  SettingsItem({
-    required this.icon,
-    required this.title,
-    this.trailing,
-    this.onTap,
-  });
-}

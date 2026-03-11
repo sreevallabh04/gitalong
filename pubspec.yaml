@@ -45,19 +45,10 @@ dependencies:
   hive_flutter: ^1.1.0
   flutter_secure_storage: ^9.2.4
   
-  # Authentication
-  firebase_auth: ^6.0.1
-  firebase_core: ^4.0.0
+  # Backend
+  supabase_flutter: ^2.8.2
   google_sign_in: ^6.2.1
   sign_in_with_apple: ^6.1.4
-  
-  # Firebase Services
-  cloud_firestore: ^6.0.0
-  firebase_messaging: ^16.0.0
-  firebase_analytics: ^12.0.0
-  firebase_crashlytics: ^5.0.0
-  firebase_remote_config: ^6.0.0
-  firebase_storage: ^13.0.0
   
   # Notifications
   flutter_local_notifications: ^19.4.1
@@ -87,6 +78,7 @@ dependencies:
   
   # Environment
   flutter_dotenv: ^6.0.0
+  app_links: ^6.4.1
 
 dev_dependencies:
   flutter_test:
@@ -133,8 +125,8 @@ flutter_launcher_icons:
   web:
     generate: true
     image_path: "assets/app_icon/app_icon.jpg"
-    background_color: "#hexcode"
-    theme_color: "#hexcode"
+    background_color: "#6366F1"
+    theme_color: "#6366F1"
   windows:
     generate: true
     image_path: "assets/app_icon/app_icon.jpg"

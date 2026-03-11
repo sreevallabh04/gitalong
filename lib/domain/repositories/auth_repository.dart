@@ -1,31 +1,25 @@
 import '../entities/user_entity.dart';
 
-/// Repository for authentication operations
+/// Authentication repository interface
 abstract class AuthRepository {
-  /// Get current authenticated user
-  Future<UserEntity?> getCurrentUser();
-
-  /// Sign in with GitHub OAuth
+  /// Sign in with GitHub
   Future<UserEntity> signInWithGitHub();
+
+  /// Sign in with Google
+  Future<UserEntity> signInWithGoogle();
 
   /// Sign in with Apple
   Future<UserEntity> signInWithApple();
 
-  /// Sign out current user
+  /// Sign out
   Future<void> signOut();
+
+  /// Get current user
+  Future<UserEntity?> getCurrentUser();
 
   /// Check if user is authenticated
   Future<bool> isAuthenticated();
 
-  /// Update user profile
-  Future<UserEntity> updateProfile(UserEntity user);
-
-  /// Delete user account
+  /// Delete account
   Future<void> deleteAccount();
-
-  /// Refresh user token
-  Future<String> refreshToken();
-
-  /// Stream of authentication state changes
-  Stream<UserEntity?> get authStateChanges;
 }

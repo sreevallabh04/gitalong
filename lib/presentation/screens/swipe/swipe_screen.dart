@@ -1,529 +1,262 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:card_swiper/card_swiper.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../core/theme/app_theme.dart';
+import '../../../core/di/injection.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_text_styles.dart';
+import '../../../domain/entities/swipe_entity.dart';
+import '../../bloc/discover/discover_bloc.dart';
+import '../../bloc/discover/discover_event.dart';
+import '../../bloc/discover/discover_state.dart';
 
-/// Swipe screen for discovering projects and developers
+/// Swipe screen for discovering developers
 class SwipeScreen extends StatefulWidget {
-  /// Creates the swipe screen
   const SwipeScreen({super.key});
-
+  
   @override
   State<SwipeScreen> createState() => _SwipeScreenState();
 }
 
-class _SwipeScreenState extends State<SwipeScreen>
-    with TickerProviderStateMixin {
-  late SwiperController _swiperController;
-  late AnimationController _animationController;
-  late Animation<double> _scaleAnimation;
-
-  bool _isLiked = false;
-  bool _isPassed = false;
-
-  // Dummy data for demonstration
-  final List<SwipeCardData> _cards = [
-    SwipeCardData(
-      id: '1',
-      type: SwipeCardType.user,
-      title: 'Alex Chen',
-      subtitle: 'Full Stack Developer',
-      description:
-          'Passionate about React, Node.js, and building scalable web applications. Looking for collaboration on open-source projects.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400',
-      technologies: ['React', 'Node.js', 'TypeScript', 'MongoDB'],
-      stats: {'repos': 45, 'stars': 1200, 'followers': 850},
-    ),
-    SwipeCardData(
-      id: '2',
-      type: SwipeCardType.project,
-      title: 'EcoTracker',
-      subtitle: 'Environmental Monitoring App',
-      description:
-          'A mobile app that helps users track their carbon footprint and suggests eco-friendly alternatives.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400',
-      technologies: ['Flutter', 'Firebase', 'Dart', 'Google Maps API'],
-      stats: {'stars': 89, 'forks': 23, 'issues': 5},
-    ),
-    SwipeCardData(
-      id: '3',
-      type: SwipeCardType.user,
-      title: 'Sarah Johnson',
-      subtitle: 'Mobile Developer',
-      description:
-          'iOS and Android developer with 5+ years experience. Love working on fintech and health apps.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=400',
-      technologies: ['Swift', 'Kotlin', 'Flutter', 'React Native'],
-      stats: {'repos': 32, 'stars': 890, 'followers': 650},
-    ),
-    SwipeCardData(
-      id: '4',
-      type: SwipeCardType.project,
-      title: 'DevTools Suite',
-      subtitle: 'Developer Productivity Tools',
-      description:
-          'A collection of CLI tools to boost developer productivity. Includes code formatters, linters, and automation scripts.',
-      imageUrl:
-          'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400',
-      technologies: ['Python', 'Rust', 'Go', 'Shell'],
-      stats: {'stars': 234, 'forks': 67, 'issues': 12},
-    ),
-  ];
+class _SwipeScreenState extends State<SwipeScreen> {
+  late DiscoverBloc _discoverBloc;
 
   @override
   void initState() {
     super.initState();
-    _swiperController = SwiperController();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 200),
-      vsync: this,
-    );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
-    );
+    _discoverBloc = getIt<DiscoverBloc>()..add(LoadRecommendationsEvent());
   }
 
   @override
   void dispose() {
-    _swiperController.dispose();
-    _animationController.dispose();
+    _discoverBloc.close();
     super.dispose();
   }
 
-  void _onSwipeLeft() {
-    setState(() {
-      _isPassed = true;
-      _isLiked = false;
-    });
-    _animationController.forward().then((_) {
-      _animationController.reverse();
-      _swiperController.next();
-    });
-  }
-
-  void _onSwipeRight() {
-    setState(() {
-      _isLiked = true;
-      _isPassed = false;
-    });
-    _animationController.forward().then((_) {
-      _animationController.reverse();
-      _swiperController.next();
-    });
-  }
-
-  void _onSuperLike() {
-    // TODO(swipe): Implement super like functionality
-    _swiperController.next();
+  void _handleSwipe(String userId, SwipeAction action) {
+    _discoverBloc.add(SwipeUserEvent(swipedUserId: userId, action: action));
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Discover'),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: () {
-              // TODO(swipe): Show filter options
-            },
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Swipe Cards
-          Expanded(
-            flex: 7,
-            child: Padding(
-              padding: EdgeInsets.all(16.w),
-              child: Swiper(
-                controller: _swiperController,
-                itemBuilder: (context, index) {
-                  if (index >= _cards.length) {
-                    return _buildEmptyState();
-                  }
-                  return _buildSwipeCard(_cards[index]);
-                },
-                itemCount: _cards.length + 1,
-                itemWidth: double.infinity,
-                itemHeight: double.infinity,
-                layout: SwiperLayout.STACK,
-                onIndexChanged: (index) {
-                  setState(() {
-                    _isLiked = false;
-                    _isPassed = false;
-                  });
-                },
-              ),
+    return BlocProvider.value(
+      value: _discoverBloc,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Discover'),
+          actions: [
+            IconButton(
+              icon: Icon(PhosphorIconsRegular.funnel, size: 24.sp),
+              onPressed: () {
+                // Open filters logic
+              },
             ),
-          ),
+          ],
+        ),
+        body: BlocConsumer<DiscoverBloc, DiscoverState>(
+          listener: (context, state) {
+            if (state is DiscoverError) {
+               ScaffoldMessenger.of(context).showSnackBar(
+                 SnackBar(content: Text(state.message)),
+               );
+            }
+            if (state is DiscoverMatch) {
+               showDialog(
+                 context: context, 
+                 builder: (_) => AlertDialog(
+                   title: const Text('It\'s a Match! 🎉'),
+                   content: Text('You matched with ${state.match.user.name ?? state.match.user.username}!'),
+                   actions: [
+                     TextButton(onPressed: () => Navigator.pop(context), child: const Text('Keep Swiping')),
+                   ]
+                 )
+               );
+            }
+          },
+          builder: (context, state) {
+            if (state is DiscoverLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          // Action Buttons
-          Expanded(flex: 2, child: _buildActionButtons()),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSwipeCard(SwipeCardData card) {
-    return AnimatedBuilder(
-      animation: _scaleAnimation,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: _scaleAnimation.value,
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20.r),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20.r),
-              child: Stack(
-                children: [
-                  // Background Image
-                  Positioned.fill(
-                    child: Image.network(
-                      card.imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                          child: Icon(
-                            card.type == SwipeCardType.user
-                                ? Icons.person
-                                : Icons.code,
-                            size: 80.sp,
-                            color: AppTheme.primaryColor,
-                          ),
-                        );
-                      },
+            if (state is DiscoverEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      PhosphorIconsRegular.cards,
+                      size: 80.sp,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
-                  ),
+                    SizedBox(height: 16.h),
+                    Text(
+                      'No more developers to show',
+                      style: AppTextStyles.titleMedium(
+                        Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    SizedBox(height: 8.h),
+                    Text(
+                      'Check back later for more matches',
+                      style: AppTextStyles.bodyMedium(
+                        Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
 
-                  // Gradient Overlay
-                  Positioned.fill(
-                    child: Container(
+            if (state is DiscoverLoaded) {
+              if (state.users.isEmpty) return const SizedBox.shrink(); // Handled by empty above usually
+
+              final topUser = state.users.first;
+              
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Swipe Cards Container 
+                    Container(
+                      width: double.infinity,
+                      height: 500.h,
+                      margin: EdgeInsets.symmetric(horizontal: 16.w),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Colors.black.withValues(alpha: 0.7),
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(24.r),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+                          width: 1,
+                        ),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(24.r),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: Container(
+                                color: Colors.blueGrey.shade100,
+                                child: (topUser.avatarUrl != null && topUser.avatarUrl!.isNotEmpty)
+                                    ? Image.network(topUser.avatarUrl!, fit: BoxFit.cover, errorBuilder: (c,e,s) => Icon(PhosphorIconsRegular.user, size: 80.sp))
+                                    : Icon(PhosphorIconsRegular.user, size: 80.sp),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 2,
+                              child: Padding(
+                                padding: EdgeInsets.all(16.w),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      topUser.name ?? topUser.username,
+                                      style: AppTextStyles.headlineMedium(Theme.of(context).colorScheme.onSurface),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    SizedBox(height: 4.h),
+                                    Text(
+                                      topUser.bio ?? 'Developer',
+                                      style: AppTextStyles.bodyMedium(Theme.of(context).colorScheme.onSurfaceVariant),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const Spacer(),
+                                    Row(
+                                      children: [
+                                        Icon(PhosphorIconsRegular.code, size: 16.sp, color: AppColors.primary),
+                                        SizedBox(width: 4.w),
+                                        Text('${topUser.publicRepos} Repos'),
+                                        SizedBox(width: 16.w),
+                                        Icon(PhosphorIconsRegular.users, size: 16.sp, color: AppColors.primary),
+                                        SizedBox(width: 4.w),
+                                        Text('${topUser.followers} Followers'),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
                     ),
-                  ),
-
-                  // Content
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: Padding(
-                      padding: EdgeInsets.all(24.w),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Title and Subtitle
-                          Text(
-                            card.title,
-                            style: Theme.of(
-                              context,
-                            ).textTheme.headlineMedium?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          SizedBox(height: 4.h),
-                          Text(
-                            card.subtitle,
-                            style: Theme.of(
-                              context,
-                            ).textTheme.titleMedium?.copyWith(
-                              color: Colors.white.withValues(alpha: 0.9),
-                            ),
-                          ),
-                          SizedBox(height: 12.h),
-
-                          // Description
-                          Text(
-                            card.description,
-                            style: Theme.of(
-                              context,
-                            ).textTheme.bodyMedium?.copyWith(
-                              color: Colors.white.withValues(alpha: 0.8),
-                              height: 1.4,
-                            ),
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          SizedBox(height: 16.h),
-
-                          // Technologies
-                          Wrap(
-                            spacing: 8.w,
-                            runSpacing: 8.h,
-                            children:
-                                card.technologies.take(4).map((tech) {
-                                  return Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 12.w,
-                                      vertical: 6.h,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.2,
-                                      ),
-                                      borderRadius: BorderRadius.circular(16.r),
-                                      border: Border.all(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.3,
-                                        ),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      tech,
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12.sp,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                          ),
-                          SizedBox(height: 16.h),
-
-                          // Stats
-                          Row(
-                            children:
-                                card.stats.entries.map((stat) {
-                                  return Expanded(
-                                    child: _buildStatItem(
-                                      stat.key,
-                                      stat.value.toString(),
-                                    ),
-                                  );
-                                }).toList(),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  // Like/Pass Overlay
-                  if (_isLiked || _isPassed)
-                    Positioned.fill(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: (_isLiked ? Colors.green : Colors.red)
-                              .withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(20.r),
+                    
+                    SizedBox(height: 32.h),
+                    
+                    // Action Buttons
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Dislike Button
+                        _ActionButton(
+                          icon: PhosphorIconsRegular.x,
+                          color: AppColors.swipeDislike,
+                          onPressed: () => _handleSwipe(topUser.id, SwipeAction.dislike),
                         ),
-                        child: Center(
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 32.w,
-                              vertical: 16.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _isLiked ? Colors.green : Colors.red,
-                              borderRadius: BorderRadius.circular(25.r),
-                            ),
-                            child: Text(
-                              _isLiked ? 'LIKED' : 'PASSED',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18.sp,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 2,
-                              ),
-                            ),
-                          ),
+                        
+                        SizedBox(width: 24.w),
+                        
+                        // Super Like Button
+                        _ActionButton(
+                          icon: PhosphorIconsRegular.star,
+                          color: AppColors.swipeSuperLike,
+                          onPressed: () => _handleSwipe(topUser.id, SwipeAction.superLike),
                         ),
-                      ),
+                        
+                        SizedBox(width: 24.w),
+                        
+                        // Like Button
+                        _ActionButton(
+                          icon: PhosphorIconsRegular.heart,
+                          color: AppColors.swipeLike,
+                          onPressed: () => _handleSwipe(topUser.id, SwipeAction.like),
+                        ),
+                      ],
                     ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
+                  ],
+                ),
+              );
+            }
 
-  Widget _buildStatItem(String label, String value) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        Text(
-          label.toUpperCase(),
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Colors.white.withValues(alpha: 0.7),
-            letterSpacing: 1,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionButtons() {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 16.h),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          // Pass Button
-          _buildActionButton(
-            icon: Icons.close,
-            color: Colors.red,
-            onTap: _onSwipeLeft,
-          ),
-
-          // Super Like Button
-          _buildActionButton(
-            icon: Icons.star,
-            color: Colors.blue,
-            onTap: _onSuperLike,
-            size: 60.w,
-          ),
-
-          // Like Button
-          _buildActionButton(
-            icon: Icons.favorite,
-            color: Colors.green,
-            onTap: _onSwipeRight,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-    double size = 50,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: size,
-        width: size,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: 0.3),
-              blurRadius: 10,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
-        child: Icon(icon, color: color, size: size * 0.5),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(20.r),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.favorite_border, size: 80.sp, color: Colors.grey[400]),
-            SizedBox(height: 16.h),
-            Text(
-              'No more cards!',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(color: Colors.grey[600]),
-            ),
-            SizedBox(height: 8.h),
-            Text(
-              'Check back later for new matches',
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: Colors.grey[500]),
-            ),
-          ],
+            return const SizedBox.shrink();
+          },
         ),
       ),
     );
   }
 }
 
-/// Data for a swipe card
-class SwipeCardData {
-  /// Unique identifier for the card
-  final String id;
-
-  /// Type of the swipe card
-  final SwipeCardType type;
-
-  /// Title of the card
-  final String title;
-
-  /// Subtitle of the card
-  final String subtitle;
-
-  /// Description of the card
-  final String description;
-
-  /// Image URL for the card
-  final String imageUrl;
-
-  /// Technologies associated with the card
-  final List<String> technologies;
-
-  /// Statistics for the card
-  final Map<String, int> stats;
-
-  /// Creates swipe card data
-  SwipeCardData({
-    required this.id,
-    required this.type,
-    required this.title,
-    required this.subtitle,
-    required this.description,
-    required this.imageUrl,
-    required this.technologies,
-    required this.stats,
+/// Action button widget
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback onPressed;
+  
+  const _ActionButton({
+    required this.icon,
+    required this.color,
+    required this.onPressed,
   });
+  
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 64.w,
+      height: 64.w,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        shape: BoxShape.circle,
+        border: Border.all(color: color, width: 2),
+      ),
+      child: IconButton(
+        icon: Icon(icon, size: 32.sp, color: color),
+        onPressed: onPressed,
+      ),
+    );
+  }
 }
 
-/// Type of swipe card
-enum SwipeCardType {
-  /// User profile card
-  user,
-
-  /// Project card
-  project,
-}
