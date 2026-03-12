@@ -31,6 +31,8 @@ UserModel _$UserModelFromJson(Map<String, dynamic> json) => UserModel(
       json['last_active_at'] == null
           ? null
           : DateTime.parse(json['last_active_at'] as String),
+  matchScore: (json['match_score'] as num?)?.toDouble(),
+  scoreBreakdown: json['score_breakdown'] as Map<String, dynamic>?,
 );
 
 Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
@@ -52,4 +54,6 @@ Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
   'created_at': instance.createdAt.toIso8601String(),
   if (instance.lastActiveAt?.toIso8601String() case final value?)
     'last_active_at': value,
+  if (instance.matchScore case final value?) 'match_score': value,
+  if (instance.scoreBreakdown case final value?) 'score_breakdown': value,
 };

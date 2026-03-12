@@ -14,7 +14,8 @@ from __future__ import annotations
 from ..repositories.user_repository import UserRepository
 from ..repositories.swipe_repository import SwipeRepository
 from ..models.recommendation import RecommendationResponse, ScoredCandidate
-from .recommendation_engine import RecommendationEngine, build_cf_signal
+from .heavy_recommendation_engine import HeavyRecommendationEngine
+from .recommendation_engine import build_cf_signal
 from ..config import get_settings
 
 
@@ -27,7 +28,7 @@ class RecommendationService:
     ):
         self._users = user_repo or UserRepository()
         self._swipes = swipe_repo or SwipeRepository()
-        self._engine = RecommendationEngine()
+        self._engine = HeavyRecommendationEngine()
         self._settings = get_settings()
 
     async def get_recommendations(
@@ -58,6 +59,7 @@ class RecommendationService:
                 user_id=user_id,
                 recommendations=[],
                 total=0,
+                algorithm="heavy_ml_hybrid_v2"
             )
 
         # 4. Collaborative-filtering signal
@@ -73,6 +75,7 @@ class RecommendationService:
             max_cf_count=max_cf,
         )
 
+
         # 6. Fetch full profiles for top-N results
         top_ids = [s.user_id for s in scored[:limit]]
         score_map = {s.user_id: s.score for s in scored}
@@ -83,16 +86,21 @@ class RecommendationService:
         id_order = {uid: i for i, uid in enumerate(top_ids)}
         top_users.sort(key=lambda u: id_order.get(u.id, 999))
 
-        recommendations = [
-            {
-                **u.model_dump(),
-                "match_score": score_map.get(u.id, 0.0),
-            }
-            for u in top_users
-        ]
+        recommendations = []
+        for u in top_users:
+            rec_dict = u.model_dump()
+            rec_dict["match_score"] = score_map.get(u.id, 0.0)
+            # Find the breakdown for this specific user
+            for s in scored:
+                if s.user_id == u.id:
+                    rec_dict["score_breakdown"] = s.score_breakdown
+                    break
+            recommendations.append(rec_dict)
 
         return RecommendationResponse(
             user_id=user_id,
             recommendations=recommendations,
             total=len(recommendations),
+            algorithm="heavy_ml_hybrid_v2"
         )
+

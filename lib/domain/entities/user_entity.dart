@@ -19,6 +19,8 @@ class UserEntity extends Equatable {
   final List<String> interests;
   final DateTime createdAt;
   final DateTime? lastActiveAt;
+  final double? matchScore;
+  final Map<String, dynamic>? scoreBreakdown;
 
   const UserEntity({
     required this.id,
@@ -38,6 +40,8 @@ class UserEntity extends Equatable {
     this.interests = const [],
     required this.createdAt,
     this.lastActiveAt,
+    this.matchScore,
+    this.scoreBreakdown,
   });
 
   @override
@@ -59,6 +63,8 @@ class UserEntity extends Equatable {
     interests,
     createdAt,
     lastActiveAt,
+    matchScore,
+    scoreBreakdown,
   ];
 
   /// Copy with method
@@ -80,6 +86,8 @@ class UserEntity extends Equatable {
     List<String>? interests,
     DateTime? createdAt,
     DateTime? lastActiveAt,
+    double? matchScore,
+    Map<String, dynamic>? scoreBreakdown,
   }) {
     return UserEntity(
       id: id ?? this.id,
@@ -99,6 +107,8 @@ class UserEntity extends Equatable {
       interests: interests ?? this.interests,
       createdAt: createdAt ?? this.createdAt,
       lastActiveAt: lastActiveAt ?? this.lastActiveAt,
+      matchScore: matchScore ?? this.matchScore,
+      scoreBreakdown: scoreBreakdown ?? this.scoreBreakdown,
     );
   }
 }

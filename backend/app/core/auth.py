@@ -7,7 +7,9 @@ in the Authorization: Bearer <token> header.
 from __future__ import annotations
 
 import jwt
+import json
 import httpx
+from jwt.algorithms import RSAAlgorithm
 from fastapi import Header, HTTPException, status
 from functools import lru_cache
 
@@ -48,11 +50,10 @@ def verify_token(authorization: str = Header(...)) -> str:
 
         # Find matching key in JWKS
         jwks = _fetch_jwks()
-        public_keys = {
-            key["kid"]: jwt.algorithms.RSAAlgorithm.from_jwk(str(key))  # type: ignore
-            for key in jwks.get("keys", [])
-            if key.get("kid")
-        }
+        public_keys = {}
+        for key in jwks.get("keys", []):
+            if key.get("kid"):
+                public_keys[key["kid"]] = RSAAlgorithm.from_jwk(json.dumps(key))
 
         kid = unverified_header.get("kid")
         if kid not in public_keys:
@@ -60,6 +61,7 @@ def verify_token(authorization: str = Header(...)) -> str:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Unknown key ID in token.",
             )
+
 
         payload = jwt.decode(
             token,

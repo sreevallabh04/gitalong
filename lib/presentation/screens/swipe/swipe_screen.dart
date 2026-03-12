@@ -395,6 +395,20 @@ class _SwipeScreenState extends State<SwipeScreen>
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
+                          if (user.matchScore != null)
+                            Container(
+                              margin: EdgeInsets.only(right: 8.w),
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 8.w, vertical: 2.h),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius: BorderRadius.circular(12.r),
+                              ),
+                              child: Text(
+                                '${user.matchScore!.toInt()}% Match',
+                                style: AppTextStyles.labelSmall(Colors.white),
+                              ),
+                            ),
                           Container(
                             padding: EdgeInsets.symmetric(
                                 horizontal: 8.w, vertical: 2.h),

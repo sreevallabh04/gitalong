@@ -24,6 +24,8 @@ class UserModel extends UserEntity {
     super.interests,
     required super.createdAt,
     super.lastActiveAt,
+    @JsonKey(includeToJson: false) super.matchScore,
+    @JsonKey(includeToJson: false) super.scoreBreakdown,
   });
 
   /// From JSON (Supabase row)
@@ -52,6 +54,8 @@ class UserModel extends UserEntity {
         interests: entity.interests,
         createdAt: entity.createdAt,
         lastActiveAt: entity.lastActiveAt,
+        matchScore: entity.matchScore,
+        scoreBreakdown: entity.scoreBreakdown,
       );
 
   /// To entity
@@ -73,5 +77,7 @@ class UserModel extends UserEntity {
         interests: interests,
         createdAt: createdAt,
         lastActiveAt: lastActiveAt,
+        matchScore: matchScore,
+        scoreBreakdown: scoreBreakdown,
       );
 }
