@@ -8,26 +8,18 @@ import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../bloc/auth/auth_bloc.dart';
 import '../../bloc/auth/auth_event.dart';
+import '../../bloc/theme/theme_cubit.dart';
 
-/// Settings screen
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
-  
-  void _showComingSoon(BuildContext context, String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$feature coming soon!')),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-      ),
+      appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         children: [
-          // Account Section
+          // Account
           _SectionHeader(title: 'Account'),
           ListTile(
             leading: Icon(PhosphorIconsRegular.user, size: 24.sp),
@@ -35,145 +27,135 @@ class SettingsScreen extends StatelessWidget {
             trailing: Icon(PhosphorIconsRegular.caretRight, size: 20.sp),
             onTap: () => context.push(RoutePaths.editProfile),
           ),
-          ListTile(
-            leading: Icon(PhosphorIconsRegular.bell, size: 24.sp),
-            title: const Text('Notifications'),
-            trailing: Icon(PhosphorIconsRegular.caretRight, size: 20.sp),
-            onTap: () {
-               _showComingSoon(context, 'Notifications Settings');
-            },
-          ),
-          
+
           const Divider(),
-          
-          // Preferences Section
+
+          // Preferences
           _SectionHeader(title: 'Preferences'),
-          SwitchListTile(
-            secondary: Icon(PhosphorIconsRegular.moon, size: 24.sp),
-            title: const Text('Dark Mode'),
-            value: Theme.of(context).brightness == Brightness.dark,
-            onChanged: (value) {
-                // Feature mock 
-                _showComingSoon(context, 'Dark Mode Toggle');
+          BlocBuilder<ThemeCubit, ThemeMode>(
+            builder: (context, mode) {
+              return SwitchListTile(
+                secondary: Icon(PhosphorIconsRegular.moon, size: 24.sp),
+                title: const Text('Dark Mode'),
+                value: mode == ThemeMode.dark ||
+                    (mode == ThemeMode.system &&
+                        MediaQuery.platformBrightnessOf(context) ==
+                            Brightness.dark),
+                onChanged: (_) => context.read<ThemeCubit>().toggle(),
+              );
             },
           ),
-          
+
           const Divider(),
-          
-          // About Section
+
+          // About
           _SectionHeader(title: 'About'),
           ListTile(
             leading: Icon(PhosphorIconsRegular.info, size: 24.sp),
             title: const Text('About GitAlong'),
             trailing: Icon(PhosphorIconsRegular.caretRight, size: 20.sp),
             onTap: () {
-               showDialog(
-                 context: context,
-                 builder: (c) => AlertDialog(
-                   title: const Text('GitAlong'),
-                   content: const Text('Find your perfect open-source companion.\nVersion 1.0.0'),
-                   actions: [
-                     TextButton(onPressed: () => Navigator.pop(c), child: const Text('Close'))
-                   ]
-                 )
-               );
+              showDialog(
+                context: context,
+                builder: (c) => AlertDialog(
+                  title: const Text('GitAlong'),
+                  content: const Text(
+                      'Find your perfect open-source companion.\nVersion 1.0.0'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(c),
+                      child: const Text('Close'),
+                    ),
+                  ],
+                ),
+              );
             },
           ),
           ListTile(
             leading: Icon(PhosphorIconsRegular.fileText, size: 24.sp),
             title: const Text('Terms of Service'),
             trailing: Icon(PhosphorIconsRegular.caretRight, size: 20.sp),
-            onTap: () {
-               _showComingSoon(context, 'Terms of Service');
-            },
+            onTap: () => context.push(RoutePaths.termsOfService),
           ),
           ListTile(
             leading: Icon(PhosphorIconsRegular.lock, size: 24.sp),
             title: const Text('Privacy Policy'),
             trailing: Icon(PhosphorIconsRegular.caretRight, size: 20.sp),
-            onTap: () {
-               _showComingSoon(context, 'Privacy Policy');
-            },
+            onTap: () => context.push(RoutePaths.privacyPolicy),
           ),
-          
+
           const Divider(),
-          
-          // Sign Out
+
+          // Danger zone
           ListTile(
             leading: Icon(
               PhosphorIconsRegular.signOut,
               size: 24.sp,
               color: Colors.red,
             ),
-            title: Text(
-              'Sign Out',
-              style: TextStyle(color: Colors.red),
-            ),
-            onTap: () {
-              // Actual Sign Out implementation 
-              showDialog(
-                context: context,
-                builder: (BuildContext c) {
-                  return AlertDialog(
-                    title: const Text('Sign Out'),
-                    content: const Text('Are you sure you want to sign out?'),
-                    actions: <Widget>[
-                      TextButton(
-                        child: const Text('Cancel'),
-                        onPressed: () {
-                          Navigator.of(c).pop();
-                        },
-                      ),
-                      TextButton(
-                        child: const Text('Sign Out', style: TextStyle(color: Colors.red)),
-                        onPressed: () {
-                          Navigator.of(c).pop();
-                          context.read<AuthBloc>().add(SignOutEvent());
-                        },
-                      ),
-                    ],
-                  );
-                },
-              );
-            },
+            title: const Text('Sign Out', style: TextStyle(color: Colors.red)),
+            onTap: () => _confirmSignOut(context),
           ),
-          
           ListTile(
             leading: Icon(
               PhosphorIconsRegular.trash,
               size: 24.sp,
               color: Colors.red[900],
             ),
-            title: Text(
-              'Delete Account',
-              style: TextStyle(color: Colors.red[900]),
-            ),
-            onTap: () {
-              showDialog(
-                context: context,
-                builder: (BuildContext c) {
-                  return AlertDialog(
-                    title: const Text('Delete Account', style: TextStyle(color: Colors.red)),
-                    content: const Text('Are you sure you want to permanently delete your account? This action cannot be undone and will delete all your data, matches, and messages.'),
-                    actions: <Widget>[
-                      TextButton(
-                        child: const Text('Cancel'),
-                        onPressed: () {
-                          Navigator.of(c).pop();
-                        },
-                      ),
-                      TextButton(
-                        child: const Text('Delete Account', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                        onPressed: () {
-                          Navigator.of(c).pop();
-                          context.read<AuthBloc>().add(DeleteAccountEvent());
-                        },
-                      ),
-                    ],
-                  );
-                },
-              );
+            title: Text('Delete Account',
+                style: TextStyle(color: Colors.red[900])),
+            onTap: () => _confirmDeleteAccount(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmSignOut(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Sign Out'),
+        content: const Text('Are you sure you want to sign out?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(c),
+              child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(c);
+              context.read<AuthBloc>().add(SignOutEvent());
             },
+            child:
+                const Text('Sign Out', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteAccount(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Delete Account',
+            style: TextStyle(color: Colors.red)),
+        content: const Text(
+            'Are you sure you want to permanently delete your account? '
+            'This action cannot be undone and will delete all your data, '
+            'matches, and messages.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(c),
+              child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(c);
+              context.read<AuthBloc>().add(DeleteAccountEvent());
+            },
+            child: const Text('Delete Account',
+                style:
+                    TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -181,12 +163,11 @@ class SettingsScreen extends StatelessWidget {
   }
 }
 
-/// Section header widget
 class _SectionHeader extends StatelessWidget {
   final String title;
-  
+
   const _SectionHeader({required this.title});
-  
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -200,6 +181,3 @@ class _SectionHeader extends StatelessWidget {
     );
   }
 }
-
-
-

@@ -116,11 +116,6 @@ class _SwipeScreenState extends State<SwipeScreen>
         ),
         body: BlocConsumer<DiscoverBloc, DiscoverState>(
           listener: (context, state) {
-            if (state is DiscoverError) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.message)),
-              );
-            }
             if (state is DiscoverMatch) {
               _showMatchDialog(context, state);
             }
@@ -130,12 +125,28 @@ class _SwipeScreenState extends State<SwipeScreen>
               return const Center(child: CircularProgressIndicator());
             }
 
+            if (state is DiscoverError) {
+              return _ErrorRetryView(
+                message: state.message,
+                onRetry: () =>
+                    _discoverBloc.add(LoadRecommendationsEvent()),
+              );
+            }
+
             if (state is DiscoverEmpty) {
-              return _EmptyView();
+              return _EmptyView(
+                onRefresh: () =>
+                    _discoverBloc.add(LoadRecommendationsEvent()),
+              );
             }
 
             if (state is DiscoverLoaded) {
-              if (state.users.isEmpty) return _EmptyView();
+              if (state.users.isEmpty) {
+                return _EmptyView(
+                  onRefresh: () =>
+                      _discoverBloc.add(LoadRecommendationsEvent()),
+                );
+              }
 
               return Column(
                 children: [
@@ -532,6 +543,10 @@ class _SwipeScreenState extends State<SwipeScreen>
 }
 
 class _EmptyView extends StatelessWidget {
+  final VoidCallback? onRefresh;
+
+  const _EmptyView({this.onRefresh});
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -557,6 +572,61 @@ class _EmptyView extends StatelessWidget {
               textAlign: TextAlign.center,
               style: AppTextStyles.bodyMedium(
                   Theme.of(context).colorScheme.onSurfaceVariant),
+            ),
+            if (onRefresh != null) ...[
+              SizedBox(height: 24.h),
+              OutlinedButton.icon(
+                onPressed: onRefresh,
+                icon: Icon(PhosphorIconsRegular.arrowClockwise, size: 18.sp),
+                label: const Text('Refresh'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorRetryView extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _ErrorRetryView({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(32.w),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              PhosphorIconsRegular.warning,
+              size: 64.sp,
+              color: AppColors.error,
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              'Something went wrong',
+              style: AppTextStyles.titleMedium(
+                  Theme.of(context).colorScheme.onSurface),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.bodyMedium(
+                  Theme.of(context).colorScheme.onSurfaceVariant),
+            ),
+            SizedBox(height: 24.h),
+            FilledButton.icon(
+              onPressed: onRetry,
+              icon: Icon(PhosphorIconsRegular.arrowClockwise, size: 18.sp),
+              label: const Text('Try Again'),
             ),
           ],
         ),

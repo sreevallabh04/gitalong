@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../presentation/bloc/auth/auth_bloc.dart';
@@ -12,17 +13,20 @@ import '../../presentation/screens/chat/chat_list_screen.dart';
 import '../../presentation/screens/chat/chat_detail_screen.dart';
 import '../../presentation/screens/profile/profile_screen.dart';
 import '../../presentation/screens/profile/edit_profile_screen.dart';
+import '../../presentation/screens/profile/profile_setup_screen.dart';
 import '../../presentation/screens/settings/settings_screen.dart';
+import '../../presentation/screens/legal/privacy_policy_screen.dart';
+import '../../presentation/screens/legal/terms_of_service_screen.dart';
 import 'go_router_refresh_stream.dart';
 
 /// App router configuration
 class AppRouter {
   AppRouter._();
 
-  static GoRouter createRouter(AuthBloc authBloc) {
+  static GoRouter createRouter(AuthBloc authBloc, bool hasSeenOnboarding) {
     return GoRouter(
       initialLocation: RoutePaths.splash,
-      debugLogDiagnostics: true,
+      debugLogDiagnostics: kDebugMode,
       refreshListenable: GoRouterRefreshStream(authBloc.stream),
       redirect: (context, state) {
         final authState = authBloc.state;
@@ -33,16 +37,29 @@ class AppRouter {
         final loc = state.matchedLocation;
         final isPublic = loc == RoutePaths.splash ||
             loc == RoutePaths.login ||
-            loc == RoutePaths.onboarding;
+            loc == RoutePaths.onboarding ||
+            loc == RoutePaths.privacyPolicy ||
+            loc == RoutePaths.termsOfService;
 
-        // Wait while auth resolves — stay on splash
         if (isLoading) return null;
 
-        // Authenticated user landing on a public route → go home
-        if (isAuthenticated && isPublic) return RoutePaths.home;
+        if (authState is AuthAuthenticated && isPublic) {
+          if (authState.user.interests.isEmpty) {
+            return RoutePaths.profileSetup;
+          }
+          return RoutePaths.home;
+        }
 
-        // Unauthenticated user trying to access a protected route → go login
-        if (!isAuthenticated && !isPublic) return RoutePaths.login;
+        if (authState is AuthAuthenticated &&
+            loc == RoutePaths.profileSetup) {
+          return null;
+        }
+
+        if (!isAuthenticated && !isPublic) {
+          return hasSeenOnboarding
+              ? RoutePaths.login
+              : RoutePaths.onboarding;
+        }
 
         return null;
       },
@@ -108,9 +125,24 @@ class AppRouter {
           builder: (context, state) => const EditProfileScreen(),
         ),
         GoRoute(
+          path: RoutePaths.profileSetup,
+          name: RouteNames.profileSetup,
+          builder: (context, state) => const ProfileSetupScreen(),
+        ),
+        GoRoute(
           path: RoutePaths.settings,
           name: RouteNames.settings,
           builder: (context, state) => const SettingsScreen(),
+        ),
+        GoRoute(
+          path: RoutePaths.privacyPolicy,
+          name: RouteNames.privacyPolicy,
+          builder: (context, state) => const PrivacyPolicyScreen(),
+        ),
+        GoRoute(
+          path: RoutePaths.termsOfService,
+          name: RouteNames.termsOfService,
+          builder: (context, state) => const TermsOfServiceScreen(),
         ),
       ],
     );
@@ -131,7 +163,10 @@ class RoutePaths {
   static const String chatDetail = '/chats/:matchId';
   static const String profile = '/profile';
   static const String editProfile = '/profile/edit';
+  static const String profileSetup = '/profile/setup';
   static const String settings = '/settings';
+  static const String privacyPolicy = '/privacy-policy';
+  static const String termsOfService = '/terms-of-service';
 }
 
 /// Route names
@@ -148,5 +183,8 @@ class RouteNames {
   static const String chatDetail = 'chatDetail';
   static const String profile = 'profile';
   static const String editProfile = 'editProfile';
+  static const String profileSetup = 'profileSetup';
   static const String settings = 'settings';
+  static const String privacyPolicy = 'privacyPolicy';
+  static const String termsOfService = 'termsOfService';
 }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
+import '../../core/constants/app_constants.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
@@ -17,6 +19,16 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+
+  Future<void> _markSeen() async {
+    final box = await Hive.openBox(AppConstants.settingsBox);
+    await box.put('has_seen_onboarding', true);
+  }
+
+  void _goToLogin() {
+    _markSeen();
+    context.go(RoutePaths.login);
+  }
   
   final List<OnboardingPage> _pages = [
     OnboardingPage(
@@ -52,7 +64,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Align(
               alignment: Alignment.topRight,
               child: TextButton(
-                onPressed: () => context.go(RoutePaths.login),
+                onPressed: _goToLogin,
                 child: Text(
                   'Skip',
                   style: AppTextStyles.labelLarge(AppColors.primary),
@@ -146,7 +158,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         curve: Curves.easeInOut,
                       );
                     } else {
-                      context.go(RoutePaths.login);
+                      _goToLogin();
                     }
                   },
                   child: Text(

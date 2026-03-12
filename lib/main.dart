@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:app_links/app_links.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'core/di/injection.dart';
 import 'core/router/app_router.dart';
@@ -14,16 +15,13 @@ import 'core/constants/app_constants.dart';
 import 'core/utils/logger.dart';
 import 'presentation/bloc/auth/auth_bloc.dart';
 import 'presentation/bloc/auth/auth_event.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'presentation/bloc/theme/theme_cubit.dart';
 
-/// Application entry point
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load environment variables
   await dotenv.load(fileName: ".env");
 
-  // Initialize Supabase with PKCE flow for proper mobile OAuth
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL'] ?? '',
     anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
@@ -32,19 +30,15 @@ void main() async {
     ),
   );
 
-  // Initialize Hive
   await Hive.initFlutter();
 
-  // Configure dependency injection
   await configureDependencies();
 
-  // Set preferred orientations
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
-  // Set system UI overlay style
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -52,18 +46,19 @@ void main() async {
     ),
   );
 
+  // Pre-open settings box for sync access in the router
+  final settingsBox = await Hive.openBox(AppConstants.settingsBox);
+  final hasSeenOnboarding =
+      settingsBox.get('has_seen_onboarding', defaultValue: false) as bool;
+
   AppLogger.i('GitAlong app starting...');
 
-  // Create the singleton AuthBloc and kick off the auth check
   final authBloc = getIt<AuthBloc>()..add(AuthCheckRequested());
-
-  // Build the router with the auth guard wired to the AuthBloc stream
-  final router = AppRouter.createRouter(authBloc);
+  final router = AppRouter.createRouter(authBloc, hasSeenOnboarding);
 
   runApp(GitAlongApp(authBloc: authBloc, router: router));
 }
 
-/// Main application widget
 class GitAlongApp extends StatefulWidget {
   final AuthBloc authBloc;
   final GoRouter router;
@@ -80,6 +75,7 @@ class GitAlongApp extends StatefulWidget {
 
 class _GitAlongAppState extends State<GitAlongApp> {
   final _appLinks = AppLinks();
+  final _themeCubit = ThemeCubit();
 
   @override
   void initState() {
@@ -87,7 +83,12 @@ class _GitAlongAppState extends State<GitAlongApp> {
     _handleIncomingLinks();
   }
 
-  /// Listen for deep links coming back from the OAuth browser
+  @override
+  void dispose() {
+    _themeCubit.close();
+    super.dispose();
+  }
+
   void _handleIncomingLinks() {
     _appLinks.uriLinkStream.listen((uri) async {
       AppLogger.i('Deep link received: $uri');
@@ -123,28 +124,29 @@ class _GitAlongAppState extends State<GitAlongApp> {
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) {
-        return BlocProvider.value(
-          value: widget.authBloc,
-          child: MaterialApp.router(
-            title: AppConstants.appName,
-            debugShowCheckedModeBanner: false,
-
-            // Theme
-            theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.darkTheme,
-            themeMode: ThemeMode.system,
-
-            // Router
-            routerConfig: widget.router,
-
-            // Builder
-            builder: (context, widget) {
-              if (widget == null) return const SizedBox.shrink();
-              return MediaQuery(
-                data: MediaQuery.of(context).copyWith(
-                  textScaler: const TextScaler.linear(1.0),
-                ),
-                child: widget,
+        return MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: widget.authBloc),
+            BlocProvider.value(value: _themeCubit),
+          ],
+          child: BlocBuilder<ThemeCubit, ThemeMode>(
+            builder: (context, themeMode) {
+              return MaterialApp.router(
+                title: AppConstants.appName,
+                debugShowCheckedModeBanner: false,
+                theme: AppTheme.lightTheme,
+                darkTheme: AppTheme.darkTheme,
+                themeMode: themeMode,
+                routerConfig: widget.router,
+                builder: (context, widget) {
+                  if (widget == null) return const SizedBox.shrink();
+                  return MediaQuery(
+                    data: MediaQuery.of(context).copyWith(
+                      textScaler: const TextScaler.linear(1.0),
+                    ),
+                    child: widget,
+                  );
+                },
               );
             },
           ),

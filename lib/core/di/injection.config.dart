@@ -33,6 +33,7 @@ import '../../domain/usecases/auth/delete_account_usecase.dart' as _i778;
 import '../../domain/usecases/auth/get_current_user_usecase.dart' as _i408;
 import '../../domain/usecases/auth/sign_in_with_github_usecase.dart' as _i959;
 import '../../domain/usecases/auth/sign_in_with_google_usecase.dart' as _i474;
+import '../../domain/usecases/auth/sign_in_with_apple_usecase.dart' as _i321;
 import '../../domain/usecases/auth/sign_out_usecase.dart' as _i1014;
 import '../../domain/usecases/chat/get_messages_usecase.dart' as _i105;
 import '../../domain/usecases/chat/send_message_usecase.dart' as _i188;
@@ -84,6 +85,7 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i895.AuthRepositoryImpl(
         gh<_i454.SupabaseClient>(),
         gh<_i116.GoogleSignIn>(),
+        gh<_i248.GitHubService>(),
       ),
     );
     gh.factory<_i796.SwipeUserUseCase>(
@@ -103,6 +105,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i474.SignInWithGoogleUseCase>(
       () => _i474.SignInWithGoogleUseCase(gh<_i1073.AuthRepository>()),
+    );
+    gh.factory<_i321.SignInWithAppleUseCase>(
+      () => _i321.SignInWithAppleUseCase(gh<_i1073.AuthRepository>()),
     );
     gh.lazySingleton<_i271.UserRepository>(
       () => _i790.UserRepositoryImpl(
@@ -125,6 +130,7 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i408.GetCurrentUserUseCase>(),
         gh<_i959.SignInWithGitHubUseCase>(),
         gh<_i474.SignInWithGoogleUseCase>(),
+        gh<_i321.SignInWithAppleUseCase>(),
         gh<_i1014.SignOutUseCase>(),
         gh<_i778.DeleteAccountUseCase>(),
       ),

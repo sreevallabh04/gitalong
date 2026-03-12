@@ -6,6 +6,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../models/user_model.dart';
+import '../services/github_service.dart';
 import '../../core/utils/logger.dart';
 
 /// Authentication repository implementation
@@ -13,10 +14,12 @@ import '../../core/utils/logger.dart';
 class AuthRepositoryImpl implements AuthRepository {
   final SupabaseClient _supabase;
   final GoogleSignIn _googleSignIn;
+  final GitHubService _githubService;
   
   AuthRepositoryImpl(
     this._supabase,
     this._googleSignIn,
+    this._githubService,
   );
   
   @override
@@ -178,7 +181,6 @@ class AuthRepositoryImpl implements AuthRepository {
         .maybeSingle();
 
     if (existingUser != null) {
-      // Update last active timestamp
       final updatedData = await _supabase
           .from('users')
           .update({'last_active_at': now.toIso8601String()})
@@ -187,7 +189,6 @@ class AuthRepositoryImpl implements AuthRepository {
           .single();
       return UserModel.fromJson(updatedData).toEntity();
     } else {
-      // Construct new user from GitHub metadata
       final name = user.userMetadata?['full_name'] ?? user.userMetadata?['name'];
       final avatarUrl = user.userMetadata?['avatar_url'];
       final githubUsername = user.userMetadata?['preferred_username'] ??
@@ -217,7 +218,65 @@ class AuthRepositoryImpl implements AuthRepository {
           .select()
           .single();
 
-      return UserModel.fromJson(insertedData).toEntity();
+      final entity = UserModel.fromJson(insertedData).toEntity();
+
+      // Best-effort enrichment from GitHub API
+      return await _enrichFromGitHub(entity, githubUsername);
+    }
+  }
+
+  /// Fetches real profile data and languages from the GitHub API
+  /// and updates the Supabase user row. Falls back to the original
+  /// entity if the API is unreachable.
+  Future<UserEntity> _enrichFromGitHub(
+    UserEntity entity,
+    String username,
+  ) async {
+    try {
+      AppLogger.i('Enriching profile from GitHub for $username');
+
+      final results = await Future.wait([
+        _githubService.getUserProfile(username),
+        _githubService.analyzeLanguages(username),
+      ]);
+
+      final profile = results[0] as GitHubProfile?;
+      final langMap = results[1] as Map<String, int>;
+      final topLanguages = langMap.keys.take(10).toList();
+
+      if (profile == null && topLanguages.isEmpty) return entity;
+
+      final updates = <String, dynamic>{
+        'last_active_at': DateTime.now().toIso8601String(),
+      };
+
+      if (profile != null) {
+        if (profile.bio != null) updates['bio'] = profile.bio;
+        if (profile.location != null) updates['location'] = profile.location;
+        if (profile.company != null) updates['company'] = profile.company;
+        updates['followers'] = profile.followers;
+        updates['following'] = profile.following;
+        updates['public_repos'] = profile.publicRepos;
+        updates['github_url'] = 'https://github.com/$username';
+      }
+
+      if (topLanguages.isNotEmpty) {
+        updates['languages'] = topLanguages;
+      }
+
+      final updatedRow = await _supabase
+          .from('users')
+          .update(updates)
+          .eq('id', entity.id)
+          .select()
+          .single();
+
+      AppLogger.i('GitHub enrichment complete for $username');
+      return UserModel.fromJson(updatedRow).toEntity();
+    } catch (e, stackTrace) {
+      AppLogger.w('GitHub enrichment failed (non-fatal): $e');
+      AppLogger.e('GitHub enrichment error', e, stackTrace);
+      return entity;
     }
   }
 }
