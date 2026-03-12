@@ -55,7 +55,17 @@ class AppRouter {
           return null;
         }
 
-        if (!isAuthenticated && !isPublic) {
+        if (!isAuthenticated) {
+          // Already on login or onboarding -- stay there
+          if (loc == RoutePaths.login || loc == RoutePaths.onboarding) {
+            return null;
+          }
+          // Legal pages are accessible without auth
+          if (loc == RoutePaths.privacyPolicy ||
+              loc == RoutePaths.termsOfService) {
+            return null;
+          }
+          // Everything else (splash, protected routes) -> login/onboarding
           return hasSeenOnboarding
               ? RoutePaths.login
               : RoutePaths.onboarding;
