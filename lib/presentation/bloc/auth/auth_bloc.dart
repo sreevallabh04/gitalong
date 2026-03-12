@@ -5,26 +5,30 @@ import '../../../domain/usecases/auth/get_current_user_usecase.dart';
 import '../../../domain/usecases/auth/sign_in_with_github_usecase.dart';
 import '../../../domain/usecases/auth/sign_in_with_google_usecase.dart';
 import '../../../domain/usecases/auth/sign_out_usecase.dart';
+import '../../../domain/usecases/auth/delete_account_usecase.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 
-@injectable
+@lazySingleton
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final GetCurrentUserUseCase _getCurrentUserUseCase;
   final SignInWithGitHubUseCase _signInWithGitHubUseCase;
   final SignInWithGoogleUseCase _signInWithGoogleUseCase;
   final SignOutUseCase _signOutUseCase;
+  final DeleteAccountUseCase _deleteAccountUseCase;
 
   AuthBloc(
     this._getCurrentUserUseCase,
     this._signInWithGitHubUseCase,
     this._signInWithGoogleUseCase,
     this._signOutUseCase,
+    this._deleteAccountUseCase,
   ) : super(AuthInitial()) {
     on<AuthCheckRequested>(_onAuthCheckRequested);
     on<SignInWithGitHubEvent>(_onSignInWithGitHub);
     on<SignInWithGoogleEvent>(_onSignInWithGoogle);
     on<SignOutEvent>(_onSignOut);
+    on<DeleteAccountEvent>(_onDeleteAccount);
     
     // Automatically intercept browser sign in callbacks from deep links
     Supabase.instance.client.auth.onAuthStateChange.listen((data) {
@@ -79,6 +83,24 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } catch (e) {
       emit(AuthError(e.toString()));
       emit(AuthUnauthenticated());
+    }
+  }
+
+  Future<void> _onDeleteAccount(
+      DeleteAccountEvent event, Emitter<AuthState> emit) async {
+    emit(AuthLoading());
+    try {
+      await _deleteAccountUseCase.call();
+      emit(AuthUnauthenticated());
+    } catch (e) {
+      emit(AuthError('Failed to delete account: $e'));
+      // fallback to unauthenticated or just error? Let's assume if it fails we stay authenticated
+      final user = await _getCurrentUserUseCase.call();
+      if (user != null) {
+        emit(AuthAuthenticated(user));
+      } else {
+        emit(AuthUnauthenticated());
+      }
     }
   }
 }

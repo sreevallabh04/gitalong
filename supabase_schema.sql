@@ -30,6 +30,7 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Enable read access for all users" ON public.users FOR SELECT USING (true);
 CREATE POLICY "Enable insert for authenticated users only" ON public.users FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "Enable update for users based on id" ON public.users FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Enable delete for users based on id" ON public.users FOR DELETE USING (auth.uid() = id);
 
 -- Create Swipes table
 CREATE TABLE IF NOT EXISTS public.swipes (
@@ -43,8 +44,9 @@ CREATE TABLE IF NOT EXISTS public.swipes (
 
 ALTER TABLE public.swipes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Enable insert for authenticated users" ON public.swipes FOR INSERT WITH CHECK (auth.uid() = swiper_id);
-CREATE POLICY "Enable read for own swipes" ON public.swipes FOR SELECT USING (auth.uid() = swiper_id);
+CREATE POLICY "Enable read for own and received swipes" ON public.swipes FOR SELECT USING (auth.uid() = swiper_id OR auth.uid() = swiped_user_id);
 CREATE POLICY "Enable delete for own swipes" ON public.swipes FOR DELETE USING (auth.uid() = swiper_id);
+
 
 -- Create Matches table
 CREATE TABLE IF NOT EXISTS public.matches (

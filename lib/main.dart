@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:app_links/app_links.dart';
+import 'package:go_router/go_router.dart';
 
 import 'core/di/injection.dart';
 import 'core/router/app_router.dart';
@@ -53,12 +54,25 @@ void main() async {
 
   AppLogger.i('GitAlong app starting...');
 
-  runApp(const GitAlongApp());
+  // Create the singleton AuthBloc and kick off the auth check
+  final authBloc = getIt<AuthBloc>()..add(AuthCheckRequested());
+
+  // Build the router with the auth guard wired to the AuthBloc stream
+  final router = AppRouter.createRouter(authBloc);
+
+  runApp(GitAlongApp(authBloc: authBloc, router: router));
 }
 
 /// Main application widget
 class GitAlongApp extends StatefulWidget {
-  const GitAlongApp({super.key});
+  final AuthBloc authBloc;
+  final GoRouter router;
+
+  const GitAlongApp({
+    super.key,
+    required this.authBloc,
+    required this.router,
+  });
 
   @override
   State<GitAlongApp> createState() => _GitAlongAppState();
@@ -78,22 +92,22 @@ class _GitAlongAppState extends State<GitAlongApp> {
     _appLinks.uriLinkStream.listen((uri) async {
       AppLogger.i('Deep link received: $uri');
       try {
-        // Have Supabase process the OAuth callback URL
         await Supabase.instance.client.auth.getSessionFromUrl(uri);
         AppLogger.i('Session recovered from deep link');
       } catch (e) {
-        AppLogger.e('Error recovering session from deep link', e, StackTrace.current);
+        AppLogger.e(
+            'Error recovering session from deep link', e, StackTrace.current);
       }
     });
 
-    // Also handle the initial link if app was launched from deep link
     _appLinks.getInitialLink().then((uri) async {
       if (uri != null) {
         AppLogger.i('Initial deep link: $uri');
         try {
           await Supabase.instance.client.auth.getSessionFromUrl(uri);
         } catch (e) {
-          AppLogger.e('Error recovering session from initial link', e, StackTrace.current);
+          AppLogger.e('Error recovering session from initial link', e,
+              StackTrace.current);
         }
       }
     });
@@ -109,8 +123,8 @@ class _GitAlongAppState extends State<GitAlongApp> {
       minTextAdapt: true,
       splitScreenMode: true,
       builder: (context, child) {
-        return BlocProvider(
-          create: (context) => getIt<AuthBloc>()..add(AuthCheckRequested()),
+        return BlocProvider.value(
+          value: widget.authBloc,
           child: MaterialApp.router(
             title: AppConstants.appName,
             debugShowCheckedModeBanner: false,
@@ -121,7 +135,7 @@ class _GitAlongAppState extends State<GitAlongApp> {
             themeMode: ThemeMode.system,
 
             // Router
-            routerConfig: AppRouter.router,
+            routerConfig: widget.router,
 
             // Builder
             builder: (context, widget) {

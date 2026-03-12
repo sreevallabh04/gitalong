@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../bloc/auth/auth_bloc.dart';
 import '../../bloc/auth/auth_event.dart';
@@ -31,9 +33,7 @@ class SettingsScreen extends StatelessWidget {
             leading: Icon(PhosphorIconsRegular.user, size: 24.sp),
             title: const Text('Edit Profile'),
             trailing: Icon(PhosphorIconsRegular.caretRight, size: 20.sp),
-            onTap: () {
-               _showComingSoon(context, 'Edit Profile');
-            },
+            onTap: () => context.push(RoutePaths.editProfile),
           ),
           ListTile(
             leading: Icon(PhosphorIconsRegular.bell, size: 24.sp),
@@ -129,6 +129,44 @@ class SettingsScreen extends StatelessWidget {
                         onPressed: () {
                           Navigator.of(c).pop();
                           context.read<AuthBloc>().add(SignOutEvent());
+                        },
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
+          ),
+          
+          ListTile(
+            leading: Icon(
+              PhosphorIconsRegular.trash,
+              size: 24.sp,
+              color: Colors.red[900],
+            ),
+            title: Text(
+              'Delete Account',
+              style: TextStyle(color: Colors.red[900]),
+            ),
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (BuildContext c) {
+                  return AlertDialog(
+                    title: const Text('Delete Account', style: TextStyle(color: Colors.red)),
+                    content: const Text('Are you sure you want to permanently delete your account? This action cannot be undone and will delete all your data, matches, and messages.'),
+                    actions: <Widget>[
+                      TextButton(
+                        child: const Text('Cancel'),
+                        onPressed: () {
+                          Navigator.of(c).pop();
+                        },
+                      ),
+                      TextButton(
+                        child: const Text('Delete Account', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                        onPressed: () {
+                          Navigator.of(c).pop();
+                          context.read<AuthBloc>().add(DeleteAccountEvent());
                         },
                       ),
                     ],

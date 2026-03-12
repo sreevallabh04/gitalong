@@ -66,83 +66,139 @@ class _ProfileScreenState extends State<ProfileScreen> {
                final matchCount = state.matchCount;
                final chatCount = state.chatCount;
 
-               return SingleChildScrollView(
-                 padding: EdgeInsets.all(16.w),
-                 child: Column(
-                   children: [
-                     // Profile Avatar
-                     Container(
-                       width: 120.w,
-                       height: 120.w,
-                       decoration: BoxDecoration(
-                         gradient: AppColors.primaryGradient,
-                         shape: BoxShape.circle,
-                       ),
-                       child: ClipOval(
-                         child: (user.avatarUrl != null && user.avatarUrl!.isNotEmpty)
-                             ? Image.network(user.avatarUrl!, fit: BoxFit.cover, errorBuilder: (c, e, s) => Icon(PhosphorIconsRegular.user, size: 60.sp, color: Colors.white))
-                             : Icon(PhosphorIconsRegular.user, size: 60.sp, color: Colors.white),
-                       ),
-                     ),
-                     
-                     SizedBox(height: 16.h),
-                     
-                     // Name
-                     Text(
-                       user.name ?? user.username,
-                       style: AppTextStyles.headlineSmall(
-                         Theme.of(context).colorScheme.onSurface,
-                       ),
-                     ),
-                     
-                     SizedBox(height: 4.h),
-                     
-                     // Username
-                     Text(
-                       '@${user.username}',
-                       style: AppTextStyles.bodyLarge(
-                         Theme.of(context).colorScheme.onSurfaceVariant,
-                       ),
-                     ),
-                     
-                     SizedBox(height: 24.h),
-                     
-                     // Stats
-                     Row(
-                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                       children: [
-                         _StatItem(
-                           icon: PhosphorIconsRegular.heart,
-                           label: 'Matches',
-                           value: matchCount.toString(),
+               return RefreshIndicator(
+                 onRefresh: () async => _profileBloc.add(LoadProfileEvent()),
+                 child: SingleChildScrollView(
+                   physics: const AlwaysScrollableScrollPhysics(),
+                   padding: EdgeInsets.all(16.w),
+                   child: Column(
+                     children: [
+                       // Profile Avatar
+                       Container(
+                         width: 120.w,
+                         height: 120.w,
+                         decoration: BoxDecoration(
+                           gradient: AppColors.primaryGradient,
+                           shape: BoxShape.circle,
                          ),
-                         _StatItem(
-                           icon: PhosphorIconsRegular.chatCircle,
-                           label: 'Chats',
-                           value: chatCount.toString(),
+                         child: ClipOval(
+                           child: (user.avatarUrl != null && user.avatarUrl!.isNotEmpty)
+                               ? Image.network(user.avatarUrl!, fit: BoxFit.cover, errorBuilder: (c, e, s) => Icon(PhosphorIconsRegular.user, size: 60.sp, color: Colors.white))
+                               : Icon(PhosphorIconsRegular.user, size: 60.sp, color: Colors.white),
                          ),
-                         _StatItem(
-                           icon: PhosphorIconsRegular.githubLogo,
-                           label: 'Repos',
-                           value: user.publicRepos.toString(),
+                       ),
+
+                       SizedBox(height: 16.h),
+
+                       // Name
+                       Text(
+                         user.name ?? user.username,
+                         style: AppTextStyles.headlineSmall(
+                           Theme.of(context).colorScheme.onSurface,
+                         ),
+                       ),
+
+                       SizedBox(height: 4.h),
+
+                       // Username
+                       Text(
+                         '@${user.username}',
+                         style: AppTextStyles.bodyLarge(
+                           Theme.of(context).colorScheme.onSurfaceVariant,
+                         ),
+                       ),
+
+                       if (user.bio != null && user.bio!.isNotEmpty) ...[
+                         SizedBox(height: 12.h),
+                         Text(
+                           user.bio!,
+                           style: AppTextStyles.bodyMedium(
+                             Theme.of(context).colorScheme.onSurface,
+                           ),
+                           textAlign: TextAlign.center,
                          ),
                        ],
-                     ),
-                     
-                     SizedBox(height: 32.h),
-                     
-                     // Edit Profile Button
-                     SizedBox(
-                       width: double.infinity,
-                       child: OutlinedButton.icon(
-                         onPressed: () {
-                           // Open github url or a web view to edit
-                         },
-                         icon: Icon(PhosphorIconsRegular.pencil, size: 20.sp),
-                         label: const Text('Edit Profile'),
+
+                       if (user.location != null && user.location!.isNotEmpty) ...[
+                         SizedBox(height: 8.h),
+                         Row(
+                           mainAxisAlignment: MainAxisAlignment.center,
+                           children: [
+                             Icon(PhosphorIconsRegular.mapPin, size: 14.sp, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                             SizedBox(width: 4.w),
+                             Text(
+                               user.location!,
+                               style: AppTextStyles.bodySmall(Theme.of(context).colorScheme.onSurfaceVariant),
+                             ),
+                           ],
+                         ),
+                       ],
+
+                       SizedBox(height: 24.h),
+
+                       // Stats
+                       Row(
+                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                         children: [
+                           _StatItem(
+                             icon: PhosphorIconsRegular.heart,
+                             label: 'Matches',
+                             value: matchCount.toString(),
+                           ),
+                           _StatItem(
+                             icon: PhosphorIconsRegular.chatCircle,
+                             label: 'Chats',
+                             value: chatCount.toString(),
+                           ),
+                           _StatItem(
+                             icon: PhosphorIconsRegular.githubLogo,
+                             label: 'Repos',
+                             value: user.publicRepos.toString(),
+                           ),
+                         ],
                        ),
-                     ),
-                   ],
+
+                       if (user.languages.isNotEmpty) ...[
+                         SizedBox(height: 24.h),
+                         Align(
+                           alignment: Alignment.centerLeft,
+                           child: Text(
+                             'Languages',
+                             style: AppTextStyles.titleSmall(Theme.of(context).colorScheme.onSurface),
+                           ),
+                         ),
+                         SizedBox(height: 8.h),
+                         Wrap(
+                           spacing: 8.w,
+                           runSpacing: 6.h,
+                           children: user.languages.map((lang) => Chip(
+                             label: Text(lang, style: AppTextStyles.labelSmall(AppColors.primary)),
+                             backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                             side: BorderSide(color: AppColors.primary.withValues(alpha: 0.3)),
+                             padding: EdgeInsets.zero,
+                             visualDensity: VisualDensity.compact,
+                           )).toList(),
+                         ),
+                       ],
+
+                       SizedBox(height: 32.h),
+
+                       // Edit Profile Button
+                       SizedBox(
+                         width: double.infinity,
+                         child: OutlinedButton.icon(
+                           onPressed: () async {
+                             await context.push(RoutePaths.editProfile);
+                             if (context.mounted) {
+                               _profileBloc.add(LoadProfileEvent());
+                             }
+                           },
+                           icon: Icon(PhosphorIconsRegular.pencil, size: 20.sp),
+                           label: const Text('Edit Profile'),
+                         ),
+                       ),
+                     ],
+                   ),
                  ),
                );
             }

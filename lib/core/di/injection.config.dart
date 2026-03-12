@@ -29,6 +29,7 @@ import '../../domain/repositories/chat_repository.dart' as _i1072;
 import '../../domain/repositories/match_repository.dart' as _i568;
 import '../../domain/repositories/swipe_repository.dart' as _i280;
 import '../../domain/repositories/user_repository.dart' as _i271;
+import '../../domain/usecases/auth/delete_account_usecase.dart' as _i778;
 import '../../domain/usecases/auth/get_current_user_usecase.dart' as _i408;
 import '../../domain/usecases/auth/sign_in_with_github_usecase.dart' as _i959;
 import '../../domain/usecases/auth/sign_in_with_google_usecase.dart' as _i474;
@@ -38,9 +39,11 @@ import '../../domain/usecases/chat/send_message_usecase.dart' as _i188;
 import '../../domain/usecases/match/get_matches_usecase.dart' as _i229;
 import '../../domain/usecases/swipe/swipe_user_usecase.dart' as _i796;
 import '../../domain/usecases/user/get_recommended_users_usecase.dart' as _i850;
+import '../../domain/usecases/user/update_user_profile_usecase.dart' as _i688;
 import '../../presentation/bloc/auth/auth_bloc.dart' as _i605;
 import '../../presentation/bloc/chat/chat_bloc.dart' as _i573;
 import '../../presentation/bloc/discover/discover_bloc.dart' as _i600;
+import '../../presentation/bloc/matches/matches_bloc.dart' as _i556;
 import '../../presentation/bloc/profile/profile_bloc.dart' as _i636;
 
 extension GetItInjectableX on _i174.GetIt {
@@ -59,14 +62,11 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i280.SwipeRepository>(
       () => _i1047.SwipeRepositoryImpl(gh<_i454.SupabaseClient>()),
     );
+    gh.lazySingleton<_i447.RecommendationService>(
+      () => _i447.RecommendationService(gh<_i454.SupabaseClient>()),
+    );
     gh.lazySingleton<_i248.GitHubService>(
       () => _i248.GitHubService(gh<_i361.Dio>()),
-    );
-    gh.lazySingleton<_i447.RecommendationService>(
-      () => _i447.RecommendationService(
-        gh<_i248.GitHubService>(),
-        gh<_i454.SupabaseClient>(),
-      ),
     );
     gh.factory<_i105.GetMessagesUseCase>(
       () => _i105.GetMessagesUseCase(gh<_i1072.ChatRepository>()),
@@ -98,6 +98,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i1014.SignOutUseCase>(
       () => _i1014.SignOutUseCase(gh<_i1073.AuthRepository>()),
     );
+    gh.lazySingleton<_i778.DeleteAccountUseCase>(
+      () => _i778.DeleteAccountUseCase(gh<_i1073.AuthRepository>()),
+    );
     gh.factory<_i474.SignInWithGoogleUseCase>(
       () => _i474.SignInWithGoogleUseCase(gh<_i1073.AuthRepository>()),
     );
@@ -111,21 +114,29 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i850.GetRecommendedUsersUseCase>(
       () => _i850.GetRecommendedUsersUseCase(gh<_i271.UserRepository>()),
     );
+    gh.factory<_i688.UpdateUserProfileUseCase>(
+      () => _i688.UpdateUserProfileUseCase(gh<_i271.UserRepository>()),
+    );
     gh.factory<_i229.GetMatchesUseCase>(
       () => _i229.GetMatchesUseCase(gh<_i568.MatchRepository>()),
     );
-    gh.factory<_i636.ProfileBloc>(
-      () => _i636.ProfileBloc(
-        gh<_i408.GetCurrentUserUseCase>(),
-        gh<_i229.GetMatchesUseCase>(),
-      ),
-    );
-    gh.factory<_i605.AuthBloc>(
+    gh.lazySingleton<_i605.AuthBloc>(
       () => _i605.AuthBloc(
         gh<_i408.GetCurrentUserUseCase>(),
         gh<_i959.SignInWithGitHubUseCase>(),
         gh<_i474.SignInWithGoogleUseCase>(),
         gh<_i1014.SignOutUseCase>(),
+        gh<_i778.DeleteAccountUseCase>(),
+      ),
+    );
+    gh.factory<_i556.MatchesBloc>(
+      () => _i556.MatchesBloc(gh<_i229.GetMatchesUseCase>()),
+    );
+    gh.factory<_i636.ProfileBloc>(
+      () => _i636.ProfileBloc(
+        gh<_i408.GetCurrentUserUseCase>(),
+        gh<_i229.GetMatchesUseCase>(),
+        gh<_i688.UpdateUserProfileUseCase>(),
       ),
     );
     gh.factory<_i600.DiscoverBloc>(

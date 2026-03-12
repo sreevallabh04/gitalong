@@ -12,6 +12,8 @@ class ProfileInitial extends ProfileState {}
 
 class ProfileLoading extends ProfileState {}
 
+class ProfileUpdating extends ProfileState {}
+
 class ProfileLoaded extends ProfileState {
   final UserEntity user;
   final int matchCount;

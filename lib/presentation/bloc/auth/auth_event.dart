@@ -14,3 +14,6 @@ class SignInWithGitHubEvent extends AuthEvent {}
 class SignInWithGoogleEvent extends AuthEvent {}
 
 class SignOutEvent extends AuthEvent {}
+
+class DeleteAccountEvent extends AuthEvent {}
+

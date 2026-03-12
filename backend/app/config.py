@@ -1,5 +1,7 @@
 from pydantic_settings import BaseSettings
+from pydantic import field_validator
 from functools import lru_cache
+from typing import List, Union
 
 
 class Settings(BaseSettings):
@@ -17,7 +19,13 @@ class Settings(BaseSettings):
     debug: bool = False
 
     # CORS - Flutter app origins
-    allowed_origins: list[str] = ["*"]
+    allowed_origins: Union[str, List[str]] = ["*"]
+
+    @field_validator("allowed_origins", mode="before")
+    def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
+        if isinstance(v, str) and not v.startswith("["):
+            return [i.strip() for i in v.split(",") if i.strip()]
+        return v
 
     # Recommendation engine
     recommendation_limit: int = 20
