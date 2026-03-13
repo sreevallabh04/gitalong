@@ -23,19 +23,21 @@ class SwipeScreen extends StatefulWidget {
 }
 
 class _SwipeScreenState extends State<SwipeScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late DiscoverBloc _discoverBloc;
 
-  // Drag state
   double _dragX = 0;
   double _dragY = 0;
+  bool _isExiting = false;
 
-  // Animation when card snaps back
   late final AnimationController _snapController;
   late Animation<double> _snapX;
   late Animation<double> _snapY;
 
-  // Threshold (px) to trigger a swipe
+  late final AnimationController _exitController;
+  late Animation<double> _exitX;
+  late Animation<double> _exitY;
+
   static const double _swipeThreshold = 100;
 
   @override
@@ -52,28 +54,69 @@ class _SwipeScreenState extends State<SwipeScreen>
           _dragY = _snapY.value;
         });
       });
+
+    _exitController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    )..addListener(() {
+        setState(() {
+          _dragX = _exitX.value;
+          _dragY = _exitY.value;
+        });
+      });
   }
 
   @override
   void dispose() {
     _snapController.dispose();
+    _exitController.dispose();
     _discoverBloc.close();
     super.dispose();
   }
 
   void _handleSwipe(String userId, SwipeAction action) {
-    _discoverBloc.add(SwipeUserEvent(swipedUserId: userId, action: action));
-    setState(() {
-      _dragX = 0;
-      _dragY = 0;
+    if (_isExiting) return;
+    _isExiting = true;
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    double targetX;
+    double targetY = _dragY;
+
+    switch (action) {
+      case SwipeAction.like:
+        targetX = screenWidth * 1.5;
+      case SwipeAction.dislike:
+        targetX = -screenWidth * 1.5;
+      case SwipeAction.superLike:
+        targetX = _dragX;
+        targetY = -screenWidth * 1.5;
+    }
+
+    _exitX = Tween<double>(begin: _dragX, end: targetX).animate(
+      CurvedAnimation(parent: _exitController, curve: Curves.easeInCubic),
+    );
+    _exitY = Tween<double>(begin: _dragY, end: targetY).animate(
+      CurvedAnimation(parent: _exitController, curve: Curves.easeInCubic),
+    );
+
+    _exitController.forward(from: 0).then((_) {
+      _discoverBloc
+          .add(SwipeUserEvent(swipedUserId: userId, action: action));
+      setState(() {
+        _dragX = 0;
+        _dragY = 0;
+        _isExiting = false;
+      });
     });
   }
 
   void _onDragStart(DragStartDetails details) {
+    if (_isExiting) return;
     _snapController.stop();
   }
 
   void _onDragUpdate(DragUpdateDetails details) {
+    if (_isExiting) return;
     setState(() {
       _dragX += details.delta.dx;
       _dragY += details.delta.dy;
@@ -81,6 +124,7 @@ class _SwipeScreenState extends State<SwipeScreen>
   }
 
   void _onDragEnd(DragEndDetails details, String userId) {
+    if (_isExiting) return;
 
     if (_dragX > _swipeThreshold) {
       _handleSwipe(userId, SwipeAction.like);
@@ -89,7 +133,6 @@ class _SwipeScreenState extends State<SwipeScreen>
     } else if (_dragY < -_swipeThreshold) {
       _handleSwipe(userId, SwipeAction.superLike);
     } else {
-      // Snap back
       _snapX = Tween<double>(begin: _dragX, end: 0).animate(
         CurvedAnimation(parent: _snapController, curve: Curves.elasticOut),
       );
@@ -107,12 +150,6 @@ class _SwipeScreenState extends State<SwipeScreen>
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Discover'),
-          actions: [
-            IconButton(
-              icon: Icon(PhosphorIconsRegular.funnel, size: 24.sp),
-              onPressed: () {},
-            ),
-          ],
         ),
         body: BlocConsumer<DiscoverBloc, DiscoverState>(
           listener: (context, state) {

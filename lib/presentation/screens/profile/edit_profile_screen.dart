@@ -163,6 +163,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           _buildField(
                             controller: _nameCtrl,
                             hint: 'Your full name',
+                            validator: (v) {
+                              if (v == null || v.trim().isEmpty) {
+                                return 'Name is required';
+                              }
+                              if (v.trim().length > 100) {
+                                return 'Name must be under 100 characters';
+                              }
+                              return null;
+                            },
                           ),
                           SizedBox(height: 20.h),
                           _buildLabel('Bio'),
@@ -170,18 +179,36 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             controller: _bioCtrl,
                             hint: 'Tell developers about yourself...',
                             maxLines: 3,
+                            validator: (v) {
+                              if (v != null && v.length > 500) {
+                                return 'Bio must be under 500 characters';
+                              }
+                              return null;
+                            },
                           ),
                           SizedBox(height: 20.h),
                           _buildLabel('Location'),
                           _buildField(
                             controller: _locationCtrl,
                             hint: 'City, Country',
+                            validator: (v) {
+                              if (v != null && v.length > 100) {
+                                return 'Location must be under 100 characters';
+                              }
+                              return null;
+                            },
                           ),
                           SizedBox(height: 20.h),
                           _buildLabel('Company'),
                           _buildField(
                             controller: _companyCtrl,
                             hint: 'Where do you work?',
+                            validator: (v) {
+                              if (v != null && v.length > 100) {
+                                return 'Company must be under 100 characters';
+                              }
+                              return null;
+                            },
                           ),
                           SizedBox(height: 20.h),
                           _buildLabel('Website'),
@@ -189,6 +216,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             controller: _websiteCtrl,
                             hint: 'https://yoursite.com',
                             keyboardType: TextInputType.url,
+                            validator: (v) {
+                              if (v != null && v.trim().isNotEmpty) {
+                                final uri = Uri.tryParse(v.trim());
+                                if (uri == null || !uri.hasScheme) {
+                                  return 'Enter a valid URL (e.g. https://...)';
+                                }
+                              }
+                              return null;
+                            },
                           ),
                           SizedBox(height: 20.h),
                           _buildLabel('Languages'),
@@ -254,6 +290,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     required String hint,
     int maxLines = 1,
     TextInputType? keyboardType,
+    String? Function(String?)? validator,
   }) {
     return TextFormField(
       controller: controller,
@@ -267,6 +304,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
       maxLines: maxLines,
       keyboardType: keyboardType,
+      validator: validator,
     );
   }
 }

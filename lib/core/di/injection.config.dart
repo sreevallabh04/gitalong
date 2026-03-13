@@ -20,10 +20,10 @@ import '../../data/repositories/chat_repository_impl.dart' as _i838;
 import '../../data/repositories/match_repository_impl.dart' as _i395;
 import '../../data/repositories/swipe_repository_impl.dart' as _i1047;
 import '../../data/repositories/user_repository_impl.dart' as _i790;
+import '../../data/services/backend_api_client.dart' as _i901;
 import '../../data/services/cache_service.dart' as _i763;
 import '../../data/services/github_service.dart' as _i248;
 import '../../data/services/http_module.dart' as _i323;
-import '../../data/services/recommendation_service.dart' as _i447;
 import '../../domain/repositories/auth_repository.dart' as _i1073;
 import '../../domain/repositories/chat_repository.dart' as _i1072;
 import '../../domain/repositories/match_repository.dart' as _i568;
@@ -63,8 +63,8 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i280.SwipeRepository>(
       () => _i1047.SwipeRepositoryImpl(gh<_i454.SupabaseClient>()),
     );
-    gh.lazySingleton<_i447.RecommendationService>(
-      () => _i447.RecommendationService(gh<_i454.SupabaseClient>()),
+    gh.lazySingleton<_i901.BackendApiClient>(
+      () => _i901.BackendApiClient(gh<_i454.SupabaseClient>()),
     );
     gh.lazySingleton<_i248.GitHubService>(
       () => _i248.GitHubService(gh<_i361.Dio>()),
@@ -112,8 +112,7 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i271.UserRepository>(
       () => _i790.UserRepositoryImpl(
         gh<_i454.SupabaseClient>(),
-        gh<_i447.RecommendationService>(),
-        gh<_i248.GitHubService>(),
+        gh<_i901.BackendApiClient>(),
       ),
     );
     gh.factory<_i850.GetRecommendedUsersUseCase>(
@@ -143,6 +142,7 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i408.GetCurrentUserUseCase>(),
         gh<_i229.GetMatchesUseCase>(),
         gh<_i688.UpdateUserProfileUseCase>(),
+        gh<_i901.BackendApiClient>(),
       ),
     );
     gh.factory<_i600.DiscoverBloc>(

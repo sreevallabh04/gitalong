@@ -29,3 +29,13 @@ class ChatError extends ChatState {
   @override
   List<Object?> get props => [message];
 }
+
+class ChatSendError extends ChatState {
+  final List<MessageEntity> messages;
+  final String error;
+
+  const ChatSendError({required this.messages, required this.error});
+
+  @override
+  List<Object?> get props => [messages, error];
+}

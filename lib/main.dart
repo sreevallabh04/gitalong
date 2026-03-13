@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -18,45 +21,60 @@ import 'presentation/bloc/auth/auth_event.dart';
 import 'presentation/bloc/theme/theme_cubit.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  runZonedGuarded<Future<void>>(() async {
+    WidgetsFlutterBinding.ensureInitialized();
 
-  await dotenv.load(fileName: ".env");
+    FlutterError.onError = (details) {
+      FlutterError.presentError(details);
+      AppLogger.e(
+        'FlutterError: ${details.exceptionAsString()}',
+        details.exception,
+        details.stack,
+      );
+    };
 
-  await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL'] ?? '',
-    anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
-    authOptions: const FlutterAuthClientOptions(
-      authFlowType: AuthFlowType.pkce,
-    ),
-  );
+    await dotenv.load(fileName: ".env");
 
-  await Hive.initFlutter();
+    await Supabase.initialize(
+      url: dotenv.env['SUPABASE_URL'] ?? '',
+      anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
+      authOptions: const FlutterAuthClientOptions(
+        authFlowType: AuthFlowType.pkce,
+      ),
+    );
 
-  await configureDependencies();
+    await Hive.initFlutter();
 
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
+    await configureDependencies();
 
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      systemNavigationBarColor: Colors.transparent,
-    ),
-  );
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
 
-  // Pre-open settings box for sync access in the router
-  final settingsBox = await Hive.openBox(AppConstants.settingsBox);
-  final hasSeenOnboarding =
-      settingsBox.get('has_seen_onboarding', defaultValue: false) as bool;
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: Colors.transparent,
+      ),
+    );
 
-  AppLogger.i('GitAlong app starting...');
+    final settingsBox = await Hive.openBox(AppConstants.settingsBox);
+    final hasSeenOnboarding =
+        settingsBox.get('has_seen_onboarding', defaultValue: false) as bool;
 
-  final authBloc = getIt<AuthBloc>()..add(AuthCheckRequested());
-  final router = AppRouter.createRouter(authBloc, hasSeenOnboarding);
+    if (kDebugMode) {
+      AppLogger.i('GitAlong app starting...');
+      AppLogger.i('Backend: ${dotenv.env['BACKEND_URL']}');
+    }
 
-  runApp(GitAlongApp(authBloc: authBloc, router: router));
+    final authBloc = getIt<AuthBloc>()..add(AuthCheckRequested());
+    final router = AppRouter.createRouter(authBloc, hasSeenOnboarding);
+
+    runApp(GitAlongApp(authBloc: authBloc, router: router));
+  }, (error, stack) {
+    AppLogger.e('Uncaught zone error', error, stack);
+  });
 }
 
 class GitAlongApp extends StatefulWidget {
@@ -91,10 +109,9 @@ class _GitAlongAppState extends State<GitAlongApp> {
 
   void _handleIncomingLinks() {
     _appLinks.uriLinkStream.listen((uri) async {
-      AppLogger.i('Deep link received: $uri');
+      if (kDebugMode) AppLogger.i('Deep link received: $uri');
       try {
         await Supabase.instance.client.auth.getSessionFromUrl(uri);
-        AppLogger.i('Session recovered from deep link');
       } catch (e) {
         AppLogger.e(
             'Error recovering session from deep link', e, StackTrace.current);
@@ -103,7 +120,7 @@ class _GitAlongAppState extends State<GitAlongApp> {
 
     _appLinks.getInitialLink().then((uri) async {
       if (uri != null) {
-        AppLogger.i('Initial deep link: $uri');
+        if (kDebugMode) AppLogger.i('Initial deep link: $uri');
         try {
           await Supabase.instance.client.auth.getSessionFromUrl(uri);
         } catch (e) {
@@ -138,15 +155,6 @@ class _GitAlongAppState extends State<GitAlongApp> {
                 darkTheme: AppTheme.darkTheme,
                 themeMode: themeMode,
                 routerConfig: widget.router,
-                builder: (context, widget) {
-                  if (widget == null) return const SizedBox.shrink();
-                  return MediaQuery(
-                    data: MediaQuery.of(context).copyWith(
-                      textScaler: const TextScaler.linear(1.0),
-                    ),
-                    child: widget,
-                  );
-                },
               );
             },
           ),

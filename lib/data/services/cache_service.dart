@@ -14,7 +14,6 @@ class CacheService {
     if (_initialized) return;
     
     try {
-      await Hive.initFlutter();
       _cacheBox = await Hive.openBox(AppConstants.cacheBox);
       _initialized = true;
       AppLogger.i('Cache service initialized');

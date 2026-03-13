@@ -113,14 +113,20 @@ class AppRouter {
           path: RoutePaths.chatDetail,
           name: RouteNames.chatDetail,
           builder: (context, state) {
-            final matchId = state.pathParameters['matchId']!;
-            final extra = state.extra as Map<String, String?>?;
-            final otherUserName = extra?['otherUserName'];
-            final otherUserAvatar = extra?['otherUserAvatar'];
+            final matchId = state.pathParameters['matchId'];
+            if (matchId == null || matchId.isEmpty) {
+              return const MatchesScreen();
+            }
+            Map<String, String?>? extra;
+            try {
+              extra = state.extra as Map<String, String?>?;
+            } catch (_) {
+              extra = null;
+            }
             return ChatDetailScreen(
               matchId: matchId,
-              otherUserName: otherUserName,
-              otherUserAvatar: otherUserAvatar,
+              otherUserName: extra?['otherUserName'],
+              otherUserAvatar: extra?['otherUserAvatar'],
             );
           },
         ),

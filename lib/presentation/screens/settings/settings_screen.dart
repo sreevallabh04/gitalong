@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -10,8 +11,23 @@ import '../../bloc/auth/auth_bloc.dart';
 import '../../bloc/auth/auth_event.dart';
 import '../../bloc/theme/theme_cubit.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  String _version = '';
+
+  @override
+  void initState() {
+    super.initState();
+    PackageInfo.fromPlatform().then((info) {
+      if (mounted) setState(() => _version = '${info.version}+${info.buildNumber}');
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +35,6 @@ class SettingsScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         children: [
-          // Account
           _SectionHeader(title: 'Account'),
           ListTile(
             leading: Icon(PhosphorIconsRegular.user, size: 24.sp),
@@ -30,7 +45,6 @@ class SettingsScreen extends StatelessWidget {
 
           const Divider(),
 
-          // Preferences
           _SectionHeader(title: 'Preferences'),
           BlocBuilder<ThemeCubit, ThemeMode>(
             builder: (context, mode) {
@@ -48,7 +62,6 @@ class SettingsScreen extends StatelessWidget {
 
           const Divider(),
 
-          // About
           _SectionHeader(title: 'About'),
           ListTile(
             leading: Icon(PhosphorIconsRegular.info, size: 24.sp),
@@ -59,8 +72,8 @@ class SettingsScreen extends StatelessWidget {
                 context: context,
                 builder: (c) => AlertDialog(
                   title: const Text('GitAlong'),
-                  content: const Text(
-                      'Find your perfect open-source companion.\nVersion 1.0.0'),
+                  content: Text(
+                      'Find your perfect open-source companion.\nVersion $_version'),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(c),
@@ -86,7 +99,6 @@ class SettingsScreen extends StatelessWidget {
 
           const Divider(),
 
-          // Danger zone
           ListTile(
             leading: Icon(
               PhosphorIconsRegular.signOut,

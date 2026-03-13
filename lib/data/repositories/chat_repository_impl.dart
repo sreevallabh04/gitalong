@@ -69,16 +69,23 @@ class ChatRepositoryImpl implements ChatRepository {
         'is_read': false,
       };
 
-      await _supabase.from('messages').insert(messageData).select().single();
+      final row =
+          await _supabase.from('messages').insert(messageData).select().single();
+
+      // Update the match's last_message preview
+      await _supabase.from('matches').update({
+        'last_message': content,
+        'last_message_at': now.toIso8601String(),
+      }).eq('id', matchId);
 
       return MessageEntity(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        id: row['id'].toString(),
         matchId: matchId,
         senderId: currentUser.id,
         receiverId: receiverId,
         content: content,
         type: type,
-        sentAt: now,
+        sentAt: DateTime.parse(row['sent_at'] as String),
         isRead: false,
       );
     } catch (e, stackTrace) {

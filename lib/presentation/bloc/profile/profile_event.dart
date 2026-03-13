@@ -13,6 +13,8 @@ class LoadProfileEvent extends ProfileEvent {}
 
 class RefreshStatsEvent extends ProfileEvent {}
 
+class RefreshGitHubEvent extends ProfileEvent {}
+
 class UpdateProfileEvent extends ProfileEvent {
   final UserEntity updatedUser;
 

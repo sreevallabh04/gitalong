@@ -88,7 +88,18 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   Widget build(BuildContext context) {
     return BlocProvider.value(
       value: _chatBloc,
-      child: Scaffold(
+      child: BlocListener<ChatBloc, ChatState>(
+        listener: (context, state) {
+          if (state is ChatSendError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.error),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        },
+        child: Scaffold(
         appBar: AppBar(
           leadingWidth: 40.w,
           title: Row(
@@ -108,8 +119,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      'Online',
-                      style: AppTextStyles.labelSmall(AppColors.primary),
+                      'Matched',
+                      style: AppTextStyles.labelSmall(
+                        Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -305,6 +318,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 
