@@ -878,6 +878,18 @@
       "languageVersion": "3.4"
     },
     {
+      "name": "package_info_plus",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/package_info_plus-8.3.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.3"
+    },
+    {
+      "name": "package_info_plus_platform_interface",
+      "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/package_info_plus_platform_interface-3.2.1",
+      "packageUri": "lib/",
+      "languageVersion": "2.18"
+    },
+    {
       "name": "path",
       "rootUri": "file:///C:/Users/sriva/AppData/Local/Pub/Cache/hosted/pub.dev/path-1.9.1",
       "packageUri": "lib/",
@@ -1466,7 +1478,7 @@
       "languageVersion": "3.7"
     }
   ],
-  "generated": "2026-03-12T04:35:24.985442Z",
+  "generated": "2026-03-13T07:48:41.417601Z",
   "generator": "pub",
   "generatorVersion": "3.7.2",
   "flutterRoot": "file:///C:/src/flutter",
