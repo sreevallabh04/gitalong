@@ -1,0 +1,61 @@
+﻿Analyzing gitalong...                                           
+
+   info - Sort directive sections alphabetically - lib\core\router\app_router.dart:7:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\core\router\app_router.dart:8:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\core\router\app_router.dart:11:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\core\router\app_router.dart:12:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\core\router\app_router.dart:13:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\core\router\app_router.dart:15:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\core\router\app_router.dart:18:1 - directives_ordering
+   info - Use 'const' with the constructor to improve performance - lib\core\theme\app_theme.dart:65:31 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\core\theme\app_theme.dart:188:31 - prefer_const_constructors
+   info - Sort directive sections alphabetically - lib\data\repositories\auth_repository_impl.dart:8:1 - directives_ordering
+   info - Missing a newline at the end of the file - lib\data\repositories\auth_repository_impl.dart:211:2 - eol_at_end_of_file
+   info - Sort directive sections alphabetically - lib\data\repositories\chat_repository_impl.dart:6:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\data\repositories\match_repository_impl.dart:5:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\data\repositories\match_repository_impl.dart:7:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\data\repositories\swipe_repository_impl.dart:5:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\data\repositories\swipe_repository_impl.dart:8:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\data\repositories\user_repository_impl.dart:8:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\data\services\cache_service.dart:2:1 - directives_ordering
+   info - Missing a newline at the end of the file - lib\data\services\cache_service.dart:183:2 - eol_at_end_of_file
+   info - Sort directive sections alphabetically - lib\data\services\github_service.dart:2:1 - directives_ordering
+   info - Missing a newline at the end of the file - lib\data\services\github_service.dart:336:2 - eol_at_end_of_file
+   info - Sort directive sections alphabetically - lib\data\services\http_module.dart:3:1 - directives_ordering
+   info - Missing a newline at the end of the file - lib\domain\repositories\chat_repository.dart:31:2 - eol_at_end_of_file
+   info - Sort directive sections alphabetically - lib\domain\repositories\swipe_repository.dart:2:1 - directives_ordering
+   info - Missing a newline at the end of the file - lib\domain\usecases\chat\get_messages_usecase.dart:25:2 - eol_at_end_of_file
+   info - Missing a newline at the end of the file - lib\domain\usecases\chat\send_message_usecase.dart:27:2 - eol_at_end_of_file
+   info - Missing a newline at the end of the file - lib\domain\usecases\match\get_matches_usecase.dart:23:2 - eol_at_end_of_file
+   info - Sort directive sections alphabetically - lib\domain\usecases\swipe\swipe_user_usecase.dart:4:1 - directives_ordering
+   info - Missing a newline at the end of the file - lib\domain\usecases\swipe\swipe_user_usecase.dart:32:2 - eol_at_end_of_file
+   info - Missing a newline at the end of the file - lib\domain\usecases\user\get_recommended_users_usecase.dart:23:2 - eol_at_end_of_file
+   info - Sort directive sections alphabetically - lib\main.dart:4:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\main.dart:5:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\main.dart:10:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\main.dart:12:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\main.dart:17:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\presentation\bloc\auth\auth_bloc.dart:7:1 - directives_ordering
+   info - Missing a newline at the end of the file - lib\presentation\bloc\auth\auth_event.dart:16:46 - eol_at_end_of_file
+   info - Sort directive sections alphabetically - lib\presentation\bloc\chat\chat_bloc.dart:8:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\presentation\bloc\discover\discover_bloc.dart:7:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\presentation\bloc\discover\discover_state.dart:3:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\presentation\screens\chat\chat_detail_screen.dart:4:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\presentation\screens\chat\chat_detail_screen.dart:5:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\presentation\screens\home\home_screen.dart:8:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\presentation\screens\home\home_screen.dart:9:1 - directives_ordering
+   info - Missing a newline at the end of the file - lib\presentation\screens\home\home_screen.dart:74:2 - eol_at_end_of_file
+   info - Missing a newline at the end of the file - lib\presentation\screens\onboarding_screen.dart:191:2 - eol_at_end_of_file
+   info - Sort directive sections alphabetically - lib\presentation\screens\profile\edit_profile_screen.dart:3:1 - directives_ordering
+   info - Use 'const' with the constructor to improve performance - lib\presentation\screens\profile\edit_profile_screen.dart:141:34 - prefer_const_constructors
+   info - Sort directive sections alphabetically - lib\presentation\screens\profile\profile_screen.dart:4:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\presentation\screens\profile\profile_screen.dart:5:1 - directives_ordering
+   info - Use 'const' with the constructor to improve performance - lib\presentation\screens\profile\profile_screen.dart:80:38 - prefer_const_constructors
+   info - Missing a newline at the end of the file - lib\presentation\screens\profile\profile_screen.dart:248:2 - eol_at_end_of_file
+   info - Sort directive sections alphabetically - lib\presentation\screens\profile\profile_setup_screen.dart:4:1 - directives_ordering
+   info - Sort directive sections alphabetically - lib\presentation\screens\settings\settings_screen.dart:4:1 - directives_ordering
+   info - Use 'const' with the constructor to improve performance - lib\presentation\screens\settings\settings_screen.dart:38:11 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\presentation\screens\settings\settings_screen.dart:48:11 - prefer_const_constructors
+   info - Use 'const' with the constructor to improve performance - lib\presentation\screens\settings\settings_screen.dart:65:11 - prefer_const_constructors
+   info - Sort directive sections alphabetically - lib\presentation\screens\swipe\swipe_screen.dart:5:1 - directives_ordering
+
