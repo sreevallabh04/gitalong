@@ -130,4 +130,34 @@ class BackendApiClient {
 
     return jsonDecode(res.body) as Map<String, dynamic>;
   }
+
+  /// `POST /api/v1/notify-match` — tell backend a match was created so the other user gets a notification.
+  /// Does not throw on 4xx/5xx so match creation in Supabase remains successful; logs and returns.
+  Future<void> notifyNewMatch(
+    String matchId,
+    String notifyUserId,
+    String matcherName,
+  ) async {
+    try {
+      final token = _requireAccessToken();
+      final res = await http
+          .post(
+            Uri.parse('$_baseUrl/api/v1/notify-match'),
+            headers: _headers(token),
+            body: jsonEncode({
+              'match_id': matchId,
+              'notify_user_id': notifyUserId,
+              'matcher_name': matcherName,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+      if (res.statusCode >= 400) {
+        AppLogger.w(
+          'Backend notify-match returned ${res.statusCode}: ${res.body}',
+        );
+      }
+    } catch (e, st) {
+      AppLogger.w('Backend notifyNewMatch failed', e, st);
+    }
+  }
 }
