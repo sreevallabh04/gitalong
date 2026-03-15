@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 
+import '../../../../data/services/backend_api_client.dart';
 import '../../../../domain/entities/user_entity.dart';
 import '../../../../domain/usecases/user/get_recommended_users_usecase.dart';
 import '../../../../domain/usecases/swipe/swipe_user_usecase.dart';
@@ -11,12 +12,14 @@ import 'discover_state.dart';
 class DiscoverBloc extends Bloc<DiscoverEvent, DiscoverState> {
   final GetRecommendedUsersUseCase _getRecommendedUsersUseCase;
   final SwipeUserUseCase _swipeUserUseCase;
+  final BackendApiClient _backendApiClient;
 
   List<UserEntity> _currentUsers = [];
 
   DiscoverBloc(
     this._getRecommendedUsersUseCase,
     this._swipeUserUseCase,
+    this._backendApiClient,
   ) : super(DiscoverInitial()) {
     on<LoadRecommendationsEvent>(_onLoadRecommendations);
     on<SwipeUserEvent>(_onSwipeUser);
@@ -55,6 +58,12 @@ class DiscoverBloc extends Bloc<DiscoverEvent, DiscoverState> {
       );
 
       if (match != null) {
+        // Notify backend so the other user gets "You matched with X!" in-app
+        _backendApiClient.notifyNewMatch(
+          match.id,
+          match.user.id,
+          match.user.name ?? match.user.username,
+        );
         // Stop current flow to display match screen
         emit(DiscoverMatch(match: match, remainingUsers: List.from(_currentUsers)));
         // Re-emit loaded so UI can resume swiping behind the match dialog

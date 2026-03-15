@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../widgets/notifications_listener.dart';
 import '../swipe/swipe_screen.dart';
 import '../matches/matches_screen.dart';
 import '../chat/chat_list_screen.dart';
@@ -27,7 +29,8 @@ class _HomeScreenState extends State<HomeScreen> {
   
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    final scaffold = Scaffold(
       body: IndexedStack(
         index: _currentIndex,
         children: _screens,
@@ -63,6 +66,10 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+    if (userId != null) {
+      return NotificationsListener(userId: userId, child: scaffold);
+    }
+    return scaffold;
   }
 }
 
