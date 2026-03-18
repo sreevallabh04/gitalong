@@ -1,4 +1,4 @@
-import 'dart:io';
+
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -31,17 +31,7 @@ class _LoginScreenState extends State<LoginScreen> {
     context.read<AuthBloc>().add(SignInWithGitHubEvent());
   }
 
-  void _signInWithGoogle() {
-    HapticFeedback.lightImpact();
-    setState(() => _loading = true);
-    context.read<AuthBloc>().add(SignInWithGoogleEvent());
-  }
 
-  void _signInWithApple() {
-    HapticFeedback.lightImpact();
-    setState(() => _loading = true);
-    context.read<AuthBloc>().add(SignInWithAppleEvent());
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -159,36 +149,6 @@ class _LoginScreenState extends State<LoginScreen> {
           foregroundColor: Colors.white,
           onPressed: _signInWithGitHub,
         ),
-
-        SizedBox(height: 12.h),
-
-        // Google
-        _SignInButton(
-          label: 'Continue with Google',
-          icon: PhosphorIconsRegular.googleLogo,
-          backgroundColor: Colors.white,
-          foregroundColor: const Color(0xFF1F1F1F),
-          borderColor: Colors.grey.shade300,
-          onPressed: _signInWithGoogle,
-        ),
-
-        // Apple -- only on iOS / macOS
-        if (Platform.isIOS || Platform.isMacOS) ...[
-          SizedBox(height: 12.h),
-          _SignInButton(
-            label: 'Continue with Apple',
-            icon: PhosphorIconsRegular.appleLogo,
-            backgroundColor:
-                Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white
-                    : Colors.black,
-            foregroundColor:
-                Theme.of(context).brightness == Brightness.dark
-                    ? Colors.black
-                    : Colors.white,
-            onPressed: _signInWithApple,
-          ),
-        ],
       ],
     );
   }
