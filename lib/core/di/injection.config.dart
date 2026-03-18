@@ -18,6 +18,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' as _i454;
 import '../../data/repositories/auth_repository_impl.dart' as _i895;
 import '../../data/repositories/chat_repository_impl.dart' as _i838;
 import '../../data/repositories/match_repository_impl.dart' as _i395;
+import '../../data/repositories/notification_repository_impl.dart' as _i9998;
 import '../../data/repositories/swipe_repository_impl.dart' as _i1047;
 import '../../data/repositories/user_repository_impl.dart' as _i790;
 import '../../data/services/backend_api_client.dart' as _i1031;
@@ -27,6 +28,7 @@ import '../../data/services/http_module.dart' as _i323;
 import '../../domain/repositories/auth_repository.dart' as _i1073;
 import '../../domain/repositories/chat_repository.dart' as _i1072;
 import '../../domain/repositories/match_repository.dart' as _i568;
+import '../../domain/repositories/notification_repository.dart' as _i9999;
 import '../../domain/repositories/swipe_repository.dart' as _i280;
 import '../../domain/repositories/user_repository.dart' as _i271;
 import '../../domain/usecases/auth/delete_account_usecase.dart' as _i778;
@@ -59,6 +61,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i361.Dio>(() => httpModule.dio);
     gh.lazySingleton<_i1072.ChatRepository>(
       () => _i838.ChatRepositoryImpl(gh<_i454.SupabaseClient>()),
+    );
+    gh.lazySingleton<_i9999.NotificationRepository>(
+      () => _i9998.NotificationRepositoryImpl(gh<_i454.SupabaseClient>()),
     );
     gh.lazySingleton<_i280.SwipeRepository>(
       () => _i1047.SwipeRepositoryImpl(
