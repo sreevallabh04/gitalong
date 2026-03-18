@@ -2,10 +2,7 @@ services:
   - type: web
     name: gitalong-backend
     runtime: docker
-    # Dockerfile path relative to repo root
-    dockerfilePath: ./backend/Dockerfile
-    # Build context is repo root so COPY backend/... paths work
-    dockerContext: .
+    rootDir: backend
     envVars:
       - key: SUPABASE_URL
         sync: false
