@@ -1,15 +1,16 @@
 """
 JWT / Auth utilities
 ====================
-Verifies Supabase JWT tokens sent by the Flutter app
+Verifies Supabase JWT tokens sent by the frontend/app
 in the Authorization: Bearer <token> header.
+
+Supports both ES256 (ECDSA) and RS256 (RSA) — Supabase uses ES256
+as of 2024+.
 """
 from __future__ import annotations
 
 import jwt
-import json
-import httpx
-from jwt.algorithms import RSAAlgorithm
+from jwt import PyJWKClient
 from fastapi import Header, HTTPException, status
 from functools import lru_cache
 
@@ -17,19 +18,10 @@ from ..config import get_settings
 
 
 @lru_cache(maxsize=1)
-def _get_jwks_uri() -> str:
+def _get_jwk_client() -> PyJWKClient:
     settings = get_settings()
-    # Supabase JWKS endpoint
-    return f"{settings.supabase_url}/auth/v1/.well-known/jwks.json"
-
-
-@lru_cache(maxsize=1)
-def _fetch_jwks() -> dict:
-    uri = _get_jwks_uri()
-    with httpx.Client() as client:
-        resp = client.get(uri)
-        resp.raise_for_status()
-        return resp.json()
+    uri = f"{settings.supabase_url}/auth/v1/.well-known/jwks.json"
+    return PyJWKClient(uri)
 
 
 def verify_token(authorization: str = Header(...)) -> str:
@@ -45,36 +37,21 @@ def verify_token(authorization: str = Header(...)) -> str:
     token = authorization[7:]
 
     try:
-        # Decode header to get kid
-        unverified_header = jwt.get_unverified_header(token)
-
-        # Find matching key in JWKS
-        jwks = _fetch_jwks()
-        public_keys = {}
-        for key in jwks.get("keys", []):
-            if key.get("kid"):
-                public_keys[key["kid"]] = RSAAlgorithm.from_jwk(json.dumps(key))
-
-        kid = unverified_header.get("kid")
-        if kid not in public_keys:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Unknown key ID in token.",
-            )
-
+        jwk_client = _get_jwk_client()
+        signing_key = jwk_client.get_signing_key_from_jwt(token)
 
         payload = jwt.decode(
             token,
-            key=public_keys[kid],
-            algorithms=["RS256"],
+            key=signing_key.key,
+            algorithms=["ES256", "RS256"],
             options={"verify_aud": False},
         )
-        return payload["sub"]  # Supabase user UUID
+        return payload["sub"]
 
     except jwt.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token has expired.",
+            detail="Token has expired. Please sign in again.",
         )
     except jwt.PyJWTError as exc:
         raise HTTPException(
