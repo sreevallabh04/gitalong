@@ -7,6 +7,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/feedback_service.dart';
 import '../../../domain/repositories/match_repository.dart';
 import '../../bloc/auth/auth_bloc.dart';
 import '../../bloc/auth/auth_state.dart';
@@ -74,6 +75,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     final text = _messageController.text.trim();
     if (text.isEmpty || _otherUserId.isEmpty) return;
 
+    FeedbackService.onMessageSent();
     _chatBloc.add(
       SendMessageEvent(
         matchId: widget.matchId,

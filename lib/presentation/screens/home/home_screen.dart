@@ -4,6 +4,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../widgets/notifications_listener.dart';
+import '../../../core/utils/feedback_service.dart';
 import '../swipe/swipe_screen.dart';
 import '../matches/matches_screen.dart';
 import '../chat/chat_list_screen.dart';
@@ -38,6 +39,7 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) {
+          FeedbackService.onTabChange();
           setState(() {
             _currentIndex = index;
           });

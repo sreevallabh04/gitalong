@@ -1,15 +1,20 @@
+import 'dart:math' as math;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/feedback_service.dart';
 import '../../../domain/entities/swipe_entity.dart';
 import '../../../domain/entities/user_entity.dart';
+import '../../bloc/auth/auth_bloc.dart';
+import '../../bloc/auth/auth_state.dart';
 import '../../bloc/discover/discover_bloc.dart';
 import '../../bloc/discover/discover_event.dart';
 import '../../bloc/discover/discover_state.dart';
@@ -39,6 +44,7 @@ class _SwipeScreenState extends State<SwipeScreen>
   late Animation<double> _exitY;
 
   static const double _swipeThreshold = 100;
+  bool _thresholdCrossed = false;
 
   @override
   void initState() {
@@ -85,11 +91,14 @@ class _SwipeScreenState extends State<SwipeScreen>
     switch (action) {
       case SwipeAction.like:
         targetX = screenWidth * 1.5;
+        FeedbackService.onSwipeLike();
       case SwipeAction.dislike:
         targetX = -screenWidth * 1.5;
+        FeedbackService.onSwipeDislike();
       case SwipeAction.superLike:
         targetX = _dragX;
         targetY = -screenWidth * 1.5;
+        FeedbackService.onSuperLike();
     }
 
     _exitX = Tween<double>(begin: _dragX, end: targetX).animate(
@@ -121,6 +130,15 @@ class _SwipeScreenState extends State<SwipeScreen>
       _dragX += details.delta.dx;
       _dragY += details.delta.dy;
     });
+
+    // Haptic tick when crossing the swipe threshold
+    final crossed = _dragX.abs() > _swipeThreshold || _dragY.abs() > _swipeThreshold;
+    if (crossed && !_thresholdCrossed) {
+      FeedbackService.onThresholdCrossed();
+      _thresholdCrossed = true;
+    } else if (!crossed && _thresholdCrossed) {
+      _thresholdCrossed = false;
+    }
   }
 
   void _onDragEnd(DragEndDetails details, String userId) {
@@ -133,6 +151,8 @@ class _SwipeScreenState extends State<SwipeScreen>
     } else if (_dragY < -_swipeThreshold) {
       _handleSwipe(userId, SwipeAction.superLike);
     } else {
+      FeedbackService.onSnapBack();
+      _thresholdCrossed = false;
       _snapX = Tween<double>(begin: _dragX, end: 0).animate(
         CurvedAnimation(parent: _snapController, curve: Curves.elasticOut),
       );
@@ -154,6 +174,7 @@ class _SwipeScreenState extends State<SwipeScreen>
         body: BlocConsumer<DiscoverBloc, DiscoverState>(
           listener: (context, state) {
             if (state is DiscoverMatch) {
+              FeedbackService.onMatch();
               _showMatchDialog(context, state);
             }
           },
@@ -522,60 +543,218 @@ class _SwipeScreenState extends State<SwipeScreen>
   }
 
   void _showMatchDialog(BuildContext context, DiscoverMatch state) {
-    showDialog(
+    final authState = context.read<AuthBloc>().state;
+    String? currentUserAvatar;
+    if (authState is AuthAuthenticated) {
+      currentUserAvatar = authState.user.avatarUrl;
+    }
+
+    showGeneralDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(24.r)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
+      barrierColor: Colors.black.withValues(alpha: 0.9),
+      barrierDismissible: false,
+      transitionDuration: const Duration(milliseconds: 500),
+      pageBuilder: (context, anim1, anim2) {
+        return _MatchOverlay(
+          match: state.match,
+          currentUserAvatar: currentUserAvatar,
+        );
+      },
+    );
+  }
+}
+
+class _MatchOverlay extends StatefulWidget {
+  final dynamic match;
+  final String? currentUserAvatar;
+
+  const _MatchOverlay({required this.match, this.currentUserAvatar});
+
+  @override
+  State<_MatchOverlay> createState() => _MatchOverlayState();
+}
+
+class _MatchOverlayState extends State<_MatchOverlay>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ringController;
+
+  @override
+  void initState() {
+    super.initState();
+    _ringController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _ringController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('🎉', style: TextStyle(fontSize: 60.sp)),
-            SizedBox(height: 16.h),
+            const Spacer(flex: 3),
+
+            // Match Title
             Text(
               "It's a Match!",
-              style: AppTextStyles.headlineMedium(
-                  Theme.of(context).colorScheme.onSurface),
-            ),
+              style: AppTextStyles.headlineLarge(Colors.white)
+                  .copyWith(fontSize: 42.sp, fontWeight: FontWeight.w900, letterSpacing: -1),
+            ).animate().scale(delay: 200.ms, duration: 600.ms, curve: Curves.elasticOut).shimmer(delay: 800.ms),
+
             SizedBox(height: 8.h),
+
             Text(
-              'You and ${state.match.user.name ?? state.match.user.username} liked each other.',
+              'You and ${widget.match.user.name ?? widget.match.user.username} liked each other.',
+              style: AppTextStyles.bodyLarge(Colors.white70),
               textAlign: TextAlign.center,
-              style: AppTextStyles.bodyMedium(
-                  Theme.of(context).colorScheme.onSurfaceVariant),
-            ),
-            SizedBox(height: 24.h),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Keep Swiping'),
+            ).animate().fade(delay: 500.ms, duration: 400.ms),
+
+            const Spacer(flex: 2),
+
+            // Avatars Interaction
+            SizedBox(
+              height: 180.h,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Overlapping circles with glow
+                  Positioned(
+                    left: 60.w,
+                    child: _AnimatedAvatar(
+                      imageUrl: widget.currentUserAvatar,
+                      controller: _ringController,
+                      delay: 600,
+                    ),
                   ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: FilledButton(
+                  Positioned(
+                    right: 60.w,
+                    child: _AnimatedAvatar(
+                      imageUrl: widget.match.user.avatarUrl,
+                      controller: _ringController,
+                      delay: 800,
+                    ),
+                  ),
+
+                  // Center Love Icon
+                  Container(
+                    padding: EdgeInsets.all(12.w),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFEF4444),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(color: Color(0x66EF4444), blurRadius: 20, spreadRadius: 5)
+                      ]
+                    ),
+                    child: Icon(PhosphorIconsFill.heart, color: Colors.white, size: 28.sp),
+                  ).animate().scale(delay: 1100.ms, duration: 400.ms, curve: Curves.bounceOut),
+                ],
+              ),
+            ),
+
+            const Spacer(flex: 3),
+
+            // Actions
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 40.w),
+              child: Column(
+                children: [
+                   Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.primaryGradient,
+                      borderRadius: BorderRadius.circular(30.r),
+                      boxShadow: [
+                        BoxShadow(color: AppColors.primary.withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 5))
+                      ]
+                    ),
+                    child: TextButton(
+                      style: TextButton.styleFrom(padding: EdgeInsets.symmetric(vertical: 16.h)),
+                      onPressed: () {
+                        FeedbackService.onButtonPress();
+                        Navigator.pop(context);
+                        context.push(
+                          '/chats/${widget.match.id}',
+                          extra: {
+                            'otherUserName': widget.match.user.name ?? widget.match.user.username,
+                            'otherUserAvatar': widget.match.user.avatarUrl,
+                          },
+                        );
+                      },
+                      child: Text('Send a Message', style: AppTextStyles.titleMedium(Colors.white)),
+                    ),
+                  ).animate().slideY(begin: 0.5, delay: 1300.ms).fade(delay: 1300.ms),
+
+                  SizedBox(height: 16.h),
+
+                  TextButton(
                     onPressed: () {
+                      FeedbackService.onButtonPress();
                       Navigator.pop(context);
-                      context.push(
-                        '/chats/${state.match.id}',
-                        extra: {
-                          'otherUserName': state.match.user.name ??
-                              state.match.user.username,
-                          'otherUserAvatar': state.match.user.avatarUrl,
-                        },
-                      );
                     },
-                    child: const Text('Message'),
-                  ),
-                ),
-              ],
+                    child: Text('Keep Swiping', style: AppTextStyles.bodyMedium(Colors.white70)),
+                  ).animate().fade(delay: 1600.ms),
+                ],
+              ),
             ),
+
+            const Spacer(),
           ],
         ),
       ),
     );
+  }
+}
+
+class _AnimatedAvatar extends StatelessWidget {
+  final String? imageUrl;
+  final AnimationController controller;
+  final int delay;
+
+  const _AnimatedAvatar({this.imageUrl, required this.controller, required this.delay});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, child) {
+        return Container(
+          width: 120.w,
+          height: 120.w,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white24, width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.2),
+                blurRadius: 30,
+                spreadRadius: 5,
+              )
+            ],
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(4.w),
+            child: ClipOval(
+              child: imageUrl != null
+                  ? CachedNetworkImage(
+                      imageUrl: imageUrl!,
+                      fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) => const Icon(Icons.person, color: Colors.white),
+                    )
+                  : const Icon(Icons.person, color: Colors.white),
+            ),
+          ),
+        );
+      },
+    ).animate().scale(delay: delay.ms, duration: 500.ms, curve: Curves.easeOutBack).fade(delay: delay.ms);
   }
 }
 

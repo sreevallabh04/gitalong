@@ -4,10 +4,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/feedback_service.dart';
 import '../../../domain/entities/match_entity.dart';
 import '../../bloc/matches/matches_bloc.dart';
 import '../../bloc/matches/matches_event.dart';
@@ -128,7 +130,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                                 match: newMatches[index],
                                 onTap: () =>
                                     _openChat(context, newMatches[index]),
-                              );
+                              ).animate().fade(duration: 400.ms, delay: (index * 50).ms).slideX(begin: 0.2);
                             },
                           ),
                         ),
@@ -156,7 +158,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                           match: conversations[index],
                           onTap: () =>
                               _openChat(context, conversations[index]),
-                        ),
+                        ).animate().fade(duration: 500.ms, delay: (index * 30).ms).slideY(begin: 0.1),
                         childCount: conversations.length,
                       ),
                     ),
@@ -215,6 +217,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
   }
 
   void _openChat(BuildContext context, MatchEntity match) {
+    FeedbackService.onButtonPress();
     context.push(
       '/chats/${match.id}',
       extra: {
