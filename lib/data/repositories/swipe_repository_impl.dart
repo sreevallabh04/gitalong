@@ -5,14 +5,16 @@ import '../../domain/entities/swipe_entity.dart';
 import '../../domain/entities/match_entity.dart';
 import '../../domain/repositories/swipe_repository.dart';
 import '../models/user_model.dart';
+import '../services/backend_api_client.dart';
 import '../../core/utils/logger.dart';
 
 /// Swipe repository implementation
 @LazySingleton(as: SwipeRepository)
 class SwipeRepositoryImpl implements SwipeRepository {
   final SupabaseClient _supabase;
+  final BackendApiClient _backendApiClient;
 
-  SwipeRepositoryImpl(this._supabase);
+  SwipeRepositoryImpl(this._supabase, this._backendApiClient);
 
   @override
   Future<void> swipeUser({
@@ -31,6 +33,14 @@ class SwipeRepositoryImpl implements SwipeRepository {
       };
 
       await _supabase.from('swipes').insert(swipe);
+
+      // Also record on backend for recommendation engine CF signal (fire-and-forget)
+      _backendApiClient
+          .recordSwipe(
+            swipedUserId: swipedUserId,
+            action: action.toString().split('.').last,
+          )
+          .catchError((e) => AppLogger.w('Backend swipe sync failed: $e'));
     } catch (e, stackTrace) {
       AppLogger.e('Error swiping user', e, stackTrace);
       rethrow;

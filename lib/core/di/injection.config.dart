@@ -61,7 +61,10 @@ extension GetItInjectableX on _i174.GetIt {
       () => _i838.ChatRepositoryImpl(gh<_i454.SupabaseClient>()),
     );
     gh.lazySingleton<_i280.SwipeRepository>(
-      () => _i1047.SwipeRepositoryImpl(gh<_i454.SupabaseClient>()),
+      () => _i1047.SwipeRepositoryImpl(
+        gh<_i454.SupabaseClient>(),
+        gh<_i1031.BackendApiClient>(),
+      ),
     );
     gh.lazySingleton<_i1031.BackendApiClient>(
       () => _i1031.BackendApiClient(gh<_i454.SupabaseClient>()),

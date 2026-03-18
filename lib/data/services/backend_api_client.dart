@@ -160,4 +160,125 @@ class BackendApiClient {
       AppLogger.w('Backend notifyNewMatch failed', e, st);
     }
   }
+
+  // ── Swipes ──────────────────────────────────────────────────────────────────
+
+  /// `POST /api/v1/swipes` — record swipe on backend (populates CF signal).
+  /// Returns `{status, matched, match_id}`.
+  Future<Map<String, dynamic>?> recordSwipe({
+    required String swipedUserId,
+    required String action,
+  }) async {
+    try {
+      final token = _requireAccessToken();
+      final res = await http
+          .post(
+            Uri.parse('$_baseUrl/api/v1/swipes'),
+            headers: _headers(token),
+            body: jsonEncode({
+              'swiped_user_id': swipedUserId,
+              'action': action,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (res.statusCode == 201 || res.statusCode == 200) {
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      }
+      AppLogger.w('Backend /swipes returned ${res.statusCode}: ${res.body}');
+      return null;
+    } catch (e, st) {
+      AppLogger.w('Backend recordSwipe failed', e, st);
+      return null;
+    }
+  }
+
+  // ── Matches ─────────────────────────────────────────────────────────────────
+
+  /// `GET /api/v1/matches`
+  Future<List<Map<String, dynamic>>> getMatches({int limit = 50}) async {
+    final token = _requireAccessToken();
+    final res = await http
+        .get(
+          Uri.parse('$_baseUrl/api/v1/matches?limit=$limit'),
+          headers: _headers(token),
+        )
+        .timeout(const Duration(seconds: 15));
+
+    if (res.statusCode != 200) {
+      throw Exception('Backend /matches returned ${res.statusCode}: ${res.body}');
+    }
+
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    return List<Map<String, dynamic>>.from(data['matches'] ?? []);
+  }
+
+  // ── Messages ────────────────────────────────────────────────────────────────
+
+  /// `GET /api/v1/matches/{matchId}/messages`
+  Future<List<Map<String, dynamic>>> getMessages({
+    required String matchId,
+    int limit = 50,
+  }) async {
+    final token = _requireAccessToken();
+    final res = await http
+        .get(
+          Uri.parse('$_baseUrl/api/v1/matches/$matchId/messages?limit=$limit'),
+          headers: _headers(token),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (res.statusCode != 200) {
+      throw Exception('Backend /messages returned ${res.statusCode}: ${res.body}');
+    }
+
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    return List<Map<String, dynamic>>.from(data['messages'] ?? []);
+  }
+
+  /// `POST /api/v1/matches/{matchId}/messages`
+  Future<Map<String, dynamic>?> sendMessage({
+    required String matchId,
+    required String receiverId,
+    required String content,
+  }) async {
+    try {
+      final token = _requireAccessToken();
+      final res = await http
+          .post(
+            Uri.parse('$_baseUrl/api/v1/matches/$matchId/messages'),
+            headers: _headers(token),
+            body: jsonEncode({
+              'receiver_id': receiverId,
+              'content': content,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (res.statusCode == 201 || res.statusCode == 200) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        return data['message'] as Map<String, dynamic>?;
+      }
+      AppLogger.w('Backend sendMessage returned ${res.statusCode}: ${res.body}');
+      return null;
+    } catch (e, st) {
+      AppLogger.w('Backend sendMessage failed', e, st);
+      return null;
+    }
+  }
+
+  /// `PUT /api/v1/matches/{matchId}/messages/read`
+  Future<void> markMessagesRead(String matchId) async {
+    try {
+      final token = _requireAccessToken();
+      await http
+          .put(
+            Uri.parse('$_baseUrl/api/v1/matches/$matchId/messages/read'),
+            headers: _headers(token),
+          )
+          .timeout(const Duration(seconds: 5));
+    } catch (e, st) {
+      AppLogger.w('Backend markMessagesRead failed', e, st);
+    }
+  }
 }

@@ -38,3 +38,35 @@ class SwipeRepository:
             .execute()
         )
         return resp.data or []
+
+    def record_swipe(self, swiper_id: str, swiped_user_id: str, action: str) -> dict:
+        """Insert a new swipe row."""
+        data = {
+            "swiper_id": swiper_id,
+            "swiped_user_id": swiped_user_id,
+            "action": action,
+        }
+        resp = self._db.table("swipes").insert(data).execute()
+        return resp.data[0] if resp.data else {}
+
+    def update_swipe(self, swiper_id: str, swiped_user_id: str, action: str) -> None:
+        """Update an existing swipe (e.g. user changed their mind)."""
+        (
+            self._db.table("swipes")
+            .update({"action": action})
+            .eq("swiper_id", swiper_id)
+            .eq("swiped_user_id", swiped_user_id)
+            .execute()
+        )
+
+    def get_swipe_history(self, user_id: str, limit: int = 50) -> list[dict]:
+        """Return the user's recent swipes, newest first."""
+        resp = (
+            self._db.table("swipes")
+            .select("id, swiped_user_id, action, swiped_at")
+            .eq("swiper_id", user_id)
+            .order("swiped_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return resp.data or []
