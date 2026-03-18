@@ -3,11 +3,14 @@ FROM python:3.12-slim
 WORKDIR /app
 
 # Install dependencies
-COPY requirements.txt .
+# Supports both repo-root build context (backend/requirements.txt)
+# and backend-folder build context (requirements.txt)
+COPY backend/requirements.txt ./requirements.txt
+
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy source
-COPY . .
+# Copy source from backend subfolder
+COPY backend/ .
 
 EXPOSE 8000
 

@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: gitalong-backend
+    runtime: docker
+    # Dockerfile path relative to repo root
+    dockerfilePath: ./backend/Dockerfile
+    # Build context is repo root so COPY backend/... paths work
+    dockerContext: .
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: JWT_SECRET_KEY
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
