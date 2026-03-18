@@ -6,8 +6,9 @@ POST /api/v1/matches/{match_id}/messages  — Send a message in a match.
 PUT  /api/v1/matches/{match_id}/messages/read — Mark all messages as read.
 """
 import logging
+import re
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from ...core.auth import verify_token
 from ...repositories.match_repository import MatchRepository
@@ -33,10 +34,25 @@ class MessageListResponse(BaseModel):
     count: int
 
 
+MAX_MESSAGE_LENGTH = 2000
+
+
 class SendMessageRequest(BaseModel):
     receiver_id: str
     content: str
     type: str = "text"
+
+    @field_validator("content")
+    @classmethod
+    def validate_content(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("Message content cannot be empty.")
+        if len(v) > MAX_MESSAGE_LENGTH:
+            raise ValueError(f"Message too long (max {MAX_MESSAGE_LENGTH} characters).")
+        # Strip HTML tags to prevent XSS
+        v = re.sub(r"<[^>]+>", "", v)
+        return v
 
 
 class SendMessageResponse(BaseModel):

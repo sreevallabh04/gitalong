@@ -39,18 +39,24 @@ class MatchResponse(BaseModel):
 class MatchListResponse(BaseModel):
     matches: list[MatchResponse]
     count: int
+    next_cursor: str | None = None
+    has_more: bool = False
 
 
 @router.get("", response_model=MatchListResponse)
 async def list_matches(
     limit: int = Query(default=50, ge=1, le=200),
+    before: str | None = Query(default=None, description="ISO timestamp cursor for pagination"),
     user_id: str = Depends(verify_token),
 ):
-    """Return all matches for the authenticated user."""
+    """Return matches for the authenticated user with cursor pagination."""
     match_repo = MatchRepository()
     user_repo = UserRepository()
 
-    rows = match_repo.get_matches_for_user(user_id, limit)
+    # Fetch one extra to detect if there are more
+    rows = match_repo.get_matches_for_user(user_id, limit + 1, before=before)
+    has_more = len(rows) > limit
+    rows = rows[:limit]
     matches = []
 
     for row in rows:
@@ -79,7 +85,14 @@ async def list_matches(
             is_read=row.get("is_read", True),
         ))
 
-    return MatchListResponse(matches=matches, count=len(matches))
+    next_cursor = matches[-1].matched_at if has_more and matches else None
+
+    return MatchListResponse(
+        matches=matches,
+        count=len(matches),
+        next_cursor=next_cursor,
+        has_more=has_more,
+    )
 
 
 @router.get("/{match_id}", response_model=MatchResponse)

@@ -281,4 +281,24 @@ class BackendApiClient {
       AppLogger.w('Backend markMessagesRead failed', e, st);
     }
   }
+
+  // ── Account ─────────────────────────────────────────────────────────────────
+
+  /// `DELETE /api/v1/users/me` — full server-side account deletion.
+  Future<bool> deleteAccount() async {
+    try {
+      final token = _requireAccessToken();
+      final res = await http
+          .delete(
+            Uri.parse('$_baseUrl/api/v1/users/me'),
+            headers: _headers(token),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      return res.statusCode == 200;
+    } catch (e, st) {
+      AppLogger.e('Backend deleteAccount failed', e, st);
+      return false;
+    }
+  }
 }

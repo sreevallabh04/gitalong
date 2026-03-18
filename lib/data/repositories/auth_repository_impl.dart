@@ -7,6 +7,7 @@ import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../models/user_model.dart';
 import '../services/github_service.dart';
+import '../services/backend_api_client.dart';
 import '../../core/utils/logger.dart';
 
 /// Authentication repository implementation
@@ -161,8 +162,16 @@ class AuthRepositoryImpl implements AuthRepository {
       if (user == null) {
         throw Exception('No user signed in');
       }
-      
-      await _supabase.from('users').delete().eq('id', user.id);
+
+      // Call backend for complete server-side cleanup (matches, messages, auth, etc.)
+      final backendApiClient = BackendApiClient(_supabase);
+      final backendDeleted = await backendApiClient.deleteAccount();
+
+      if (!backendDeleted) {
+        // Fallback: at minimum delete from public.users (cascade handles swipes)
+        AppLogger.w('Backend delete failed, falling back to direct delete');
+        await _supabase.from('users').delete().eq('id', user.id);
+      }
       
       await signOut();
     } catch (e, stackTrace) {
