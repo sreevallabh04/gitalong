@@ -20,7 +20,7 @@ class BackendApiClient {
   BackendApiClient(this._supabase);
 
   String get _baseUrl =>
-      dotenv.env['BACKEND_URL'] ?? 'https://gitalong-api.onrender.com';
+      dotenv.env['BACKEND_URL'] ?? 'https://gitalong-backend.onrender.com';
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
