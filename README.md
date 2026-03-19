@@ -1,7 +1,7 @@
 <div align="center">
   <img src="assets/images/logo.png" alt="GitAlong Logo" width="120" height="120" style="border-radius: 20px"/>
   <h1>GitAlong</h1>
-  <p><strong>Tinder for Developers — swipe, match, and collaborate.</strong></p>
+  <p><strong>A developer matching app for finding collaborators.</strong></p>
 
   <p>
     <img src="https://img.shields.io/badge/Flutter-3.29%2B-02569B?logo=flutter" alt="Flutter"/>
@@ -13,17 +13,18 @@
 
 ---
 
-## ✨ What is GitAlong?
+## Overview
 
-GitAlong is a developer-matching app built with Flutter. Sign in with your GitHub account, discover developers who share your tech interests, swipe right to connect, and chat in real-time — all powered by Supabase.
+GitAlong is a Flutter app for discovering other developers, matching based on shared interests, and chatting after a match. Authentication and realtime messaging are backed by Supabase, with sign-in via GitHub OAuth.
 
-## 📸 Screenshots
+## Features
 
-| Login | Discover | Matches | Chat |
-|---|---|---|---|
-| _GitHub OAuth_ | _Swipe cards_ | _Your matches_ | _Real-time chat_ |
+- GitHub sign-in (OAuth via Supabase)
+- Profile discovery and swipe-based matching
+- Match list
+- Realtime chat (Supabase Realtime)
 
-## 🏗️ Architecture
+## Project structure
 
 Clean Architecture with strict layer separation:
 
@@ -52,7 +53,7 @@ lib/
     └── widgets/            # Reusable components
 ```
 
-## 🛠️ Tech Stack
+## Tech stack
 
 | Category | Technology |
 |---|---|
@@ -69,7 +70,7 @@ lib/
 | UI | flutter_screenutil, flutter_animate, lottie |
 | Icons | phosphor_flutter |
 
-## 🚀 Getting Started
+## Getting started
 
 ### Prerequisites
 
@@ -78,20 +79,20 @@ lib/
 - A [Supabase](https://supabase.com) project
 - A [GitHub OAuth App](https://github.com/settings/developers)
 
-### 1. Clone the repo
+### Clone
 
 ```bash
 git clone https://github.com/sreevallabh04/gitalong.git
 cd gitalong
 ```
 
-### 2. Install dependencies
+### Install dependencies
 
 ```bash
 flutter pub get
 ```
 
-### 3. Set up environment variables
+### Configure environment
 
 ```bash
 cp .env.example .env
@@ -101,12 +102,14 @@ Edit `.env` and fill in your values:
 
 ```env
 GITHUB_CLIENT_ID=your_github_oauth_client_id
-GITHUB_CLIENT_SECRET=your_github_oauth_client_secret
 SUPABASE_URL=https://your-project-id.supabase.co
 SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-### 4. Set up Supabase
+Notes:
+- This app uses the OAuth + PKCE flow through Supabase. Do not ship a GitHub client secret inside a mobile app.
+
+### Supabase setup
 
 1. Create a new [Supabase project](https://supabase.com/dashboard)
 2. Go to **SQL Editor** and run `supabase_schema.sql` from this repo
@@ -116,20 +119,20 @@ SUPABASE_ANON_KEY=your_supabase_anon_key
 4. Go to **Authentication → URL Configuration**:
    - Add `app.gitalong://login-callback/` to **Redirect URLs**
 
-### 5. Set up GitHub OAuth App
+### GitHub OAuth App setup
 
 1. Go to [GitHub Developer Settings](https://github.com/settings/developers) → **OAuth Apps**
 2. Create a new OAuth App:
-   - **Homepage URL**: `https://www.gitalong.app`
+   - **Homepage URL**: your project homepage (or repository URL)
    - **Authorization callback URL**: `https://your-project-id.supabase.co/auth/v1/callback`
 
-### 6. Run the app
+### Run
 
 ```bash
 flutter run
 ```
 
-## 🗄️ Database Schema
+## Database schema
 
 All tables use `snake_case` column names (standard Postgres convention). Run `supabase_schema.sql` in your Supabase SQL Editor to create:
 
@@ -141,14 +144,14 @@ All tables use `snake_case` column names (standard Postgres convention). Run `su
 | `messages` | Real-time chat messages |
 | `github_cache` | Cached GitHub stats for recommendations |
 
-## 🔐 Security
+## Security notes
 
 - `.env` is **gitignored** — never committed
 - All API keys go in `.env` only
 - Supabase Row Level Security (RLS) is enabled on all tables
-- GitHub OAuth uses PKCE flow (no client secret exposed on mobile)
+- GitHub OAuth uses PKCE (no client secret embedded in the app)
 
-## 📦 Building for Release
+## Building
 
 ```bash
 # Android APK
@@ -161,13 +164,13 @@ flutter build appbundle --release
 flutter build ios --release
 ```
 
-## 🧪 Running Tests
+## Tests
 
 ```bash
 flutter test
 ```
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repo
 2. Create a feature branch: `git checkout -b feature/my-feature`
@@ -175,6 +178,6 @@ flutter test
 4. Push the branch: `git push origin feature/my-feature`
 5. Open a Pull Request
 
-## 📄 License
+## License
 
 MIT © [sreevallabh04](https://github.com/sreevallabh04)
