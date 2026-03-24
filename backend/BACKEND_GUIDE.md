@@ -8,9 +8,10 @@ This document provides a comprehensive overview of the backend architecture and 
 
 ### `app/main.py`
 The entry point of the FastAPI application. It initializes the app, configures **CORS** (allowing the Flutter frontend to connect), and includes the versioned API routers.
+0l-k9
 
 ### `app/config.py`
-A centralized configuration system using `pydantic-settings`. It safely loads environment variables from `.env` (like Supabase URLs and API keys) and provides a singleton `Settings` object used throughout the app.
+A centralized configuration system using `pydantic-settings`. It safely loads environment variables from `.env` (like Supabase URLs and API keys) and provides a singleton `Settings` object used throughout the app.0
 
 ### `app/database.py`
 Handles the connection to Supabase. It provides a cached `get_supabase_client()` function that initializes the Supabase Python SDK using the **Service Role Key** for administrative database access.

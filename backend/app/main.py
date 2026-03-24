@@ -95,6 +95,9 @@ app = FastAPI(
     ),
     docs_url="/docs",
     redoc_url="/redoc",
+    servers=[
+        {"url": "https://gitalong-backend.onrender.com", "description": "Production UI"}
+    ]
 )
 
 app.add_middleware(CORSMiddleware)
