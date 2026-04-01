@@ -1,4 +1,5 @@
 import logging
+from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from ...core.auth import verify_token
@@ -12,6 +13,13 @@ router = APIRouter(prefix="/recommendations", tags=["recommendations"])
 @router.get("", response_model=RecommendationResponse)
 async def get_recommendations(
     limit: int = Query(default=20, ge=1, le=100, description="Number of profiles to return"),
+    languages: list[str] | None = Query(default=None, description="Filter by languages (any match)"),
+    interests: list[str] | None = Query(default=None, description="Filter by interests/topics (any match)"),
+    location: str | None = Query(default=None, description="Filter by location (substring match)"),
+    min_followers: int | None = Query(default=None, ge=0),
+    min_public_repos: int | None = Query(default=None, ge=0),
+    active_within_days: int | None = Query(default=None, ge=1, le=3650),
+    filter_mode: Literal["soft", "strict"] = Query(default="soft"),
     user_id: str = Depends(verify_token),
 ) -> RecommendationResponse:
     """
@@ -24,7 +32,19 @@ async def get_recommendations(
     """
     try:
         service = RecommendationService()
-        return await service.get_recommendations(user_id=user_id, limit=limit)
+        return await service.get_recommendations(
+            user_id=user_id,
+            limit=limit,
+            filters={
+                "languages": languages or [],
+                "interests": interests or [],
+                "location": (location or "").strip() or None,
+                "min_followers": min_followers,
+                "min_public_repos": min_public_repos,
+                "active_within_days": active_within_days,
+                "filter_mode": filter_mode,
+            },
+        )
     except ValueError as exc:
         logger.warning("Recommendations ValueError for user %s: %s", user_id, exc)
         raise HTTPException(

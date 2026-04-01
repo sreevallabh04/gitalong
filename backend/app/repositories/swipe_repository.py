@@ -39,6 +39,20 @@ class SwipeRepository:
         )
         return resp.data or []
 
+    def get_training_swipes(self, limit: int = 20000) -> list[dict]:
+        """
+        Return swipe rows for model training.
+        We keep this intentionally simple (latest-N), since the MVP data is small.
+        """
+        resp = (
+            self._db.table("swipes")
+            .select("swiper_id, swiped_user_id, action, swiped_at")
+            .order("swiped_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return resp.data or []
+
     def record_swipe(self, swiper_id: str, swiped_user_id: str, action: str) -> dict:
         """Insert a new swipe row."""
         data = {
