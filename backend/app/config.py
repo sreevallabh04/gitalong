@@ -31,6 +31,13 @@ class Settings(BaseSettings):
     recommendation_limit: int = 20
     candidate_pool_multiplier: int = 5  # fetch 5x more candidates before scoring
 
+    # ML ranking (MVP)
+    ml_ranking_enabled: bool = False
+    ml_model_name: str = "logreg_v1"
+
+    # Admin / ops
+    admin_retrain_secret: str = ""
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

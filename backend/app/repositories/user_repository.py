@@ -32,9 +32,9 @@ class UserRepository:
         exclude_ids: list[str],
         limit: int = 100,
     ) -> list[UserProfile]:
-        """Fetch users not in the exclude list (swiped + self)."""
+        """Fetch candidate users with at least 1 public repo."""
         # Supabase Python SDK: use not_.in_()
-        query = self._db.table("users").select("*")
+        query = self._db.table("users").select("*").gt("public_repos", 0)
         if exclude_ids:
             query = query.not_.in_("id", exclude_ids)
         resp = query.limit(limit).execute()
